@@ -1,0 +1,22 @@
+{
+  "name": "smart-learning-system-for-primary-school",
+  "version": "1.0.0",
+  "description": "SmartLearning quiz generator with Express backend for Anthropic API",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "keywords": [
+    "smart-learning",
+    "quiz",
+    "anthropic",
+    "express"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "express": "^4.21.2"
+  }
+}

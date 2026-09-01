@@ -529,66 +529,112 @@ async function generateQuiz(){
   loadingText.textContent = 'AI đang đọc tài liệu và soạn câu hỏi...';
 
   const hint = hintInput.value.trim();
-  const systemPrompt = `Bạn là một AI soạn đề ôn tập cho học sinh tiểu học tại Việt Nam.
-Bạn sẽ nhận một đoạn nội dung tài liệu học tập, và phải tạo ra một bộ câu hỏi trắc nghiệm (multiple choice) để học sinh ôn tập lại kiến thức trong tài liệu đó.
+  const systemPrompt = `Bạn là một AI soạn đề ôn tập chất lượng cao cho học sinh tiểu học tại Việt Nam.
 
-YÊU CẦU BẮT BUỘC:
-- Chỉ trả lời bằng JSON hợp lệ, không thêm bất kỳ văn bản, giải thích hay markdown nào khác ngoài JSON.
-- JSON phải là một mảng (array) các object, mỗi object có dạng:
-  {
-    "question": "nội dung câu hỏi bằng tiếng Việt, đơn giản dễ hiểu cho học sinh tiểu học",
-    "options": ["đáp án A", "đáp án B", "đáp án C", "đáp án D"],
-    "correctIndex": 0,
-    "explanation": "giải thích ngắn gọn, thân thiện, dễ hiểu vì sao đáp án đó đúng"
-  }
-- Số lượng câu hỏi: đúng bằng số được yêu cầu.
-- Mỗi câu có đúng 4 lựa chọn, chỉ 1 đáp án đúng.
-- Ngôn ngữ: hoàn toàn bằng tiếng Việt, câu từ đơn giản, gần gũi, phù hợp học sinh tiểu học.
-- Câu hỏi phải bám sát nội dung tài liệu được cung cấp, không bịa thông tin ngoài tài liệu.
-- Độ khó câu hỏi theo yêu cầu người dùng (dễ / vừa / khó).`;
+YÊU CẦU CHẶT CHẼ - PHẢI TUÂN THỬ 100%:
+1. CHỈ trả lời bằng JSON hợp lệ - không thêm chữ, markdown hay giải thích nào khác
+2. Trả về một MẢNG bắt đầu bằng "[" kết thúc bằng "]"
+3. ĐIỀU CỰC KỲ QUAN TRỌNG: 
+   - Đáp án PHẢI đúng 100% với nội dung tài liệu
+   - CHỈ dùng thông tin từ tài liệu - KHÔNG bịa đặt thông tin mới
+   - Kiểm kỹ SỐ LẦN trước khi trả về correctIndex
+   - Nếu không chắc chắn 100%, hãy tạo câu hỏi khác
+4. Format bắt buộc:
+   {
+     "question": "câu hỏi đơn giản, tiếng Việt, phù hợp tiểu học",
+     "options": ["lựa chọn A", "lựa chọn B", "lựa chọn C", "lựa chọn D"],
+     "correctIndex": 0,
+     "explanation": "giải thích tại sao đáp án đó đúng dựa trên tài liệu"
+   }
+5. ĐÚNG 4 lựa chọn mỗi câu, correctIndex từ 0-3
+6. Các lựa chọn sai phải hợp lý, không hoàn toàn sai
+7. Tiếng Việt đơn giản, phù hợp học sinh tiểu học
+8. NGUYÊN TẮC VÀNG: Đáp án = sự thật trong tài liệu, KHÔNG phải thông tin bịa đặt`;
 
-  const userPrompt = `Nội dung tài liệu:
+  const userPrompt = `CHỈ dùng nội dung từ tài liệu dưới đây. KHÔNG tạo thông tin mới. KHÔNG bịa đặt.
+
+Tài liệu:
 """
 ${state.extractedText}
 """
 
-Yêu cầu tạo đề:
-- Số câu hỏi: ${state.qCount}
+YÊU CẦU:
+- Tạo ${state.qCount} câu hỏi
 - Độ khó: ${state.difficulty}
-${hint ? '- Ghi chú thêm từ giáo viên: ' + hint : ''}
+${hint ? '- Ghi chú: ' + hint : ''}
 
-Hãy trả về CHỈ một mảng JSON theo đúng định dạng đã mô tả, không thêm chữ nào khác.`;
+KIỂM SOÁT CHẤT LƯỢNG:
+1. Mỗi đáp án phải ĐÚNG 100% - kiểm kỹ từng câu
+2. correctIndex PHẢI trỏ đến đáp án đúng (0-3)
+3. Không bao giờ tạo câu hỏi có logic lỗi
+4. Nếu câu hỏi có vấn đề, bỏ qua - không trả về
+
+OUTPUT: CHỈ mảng JSON bắt đầu "[" kết thúc "]" - không có chữ nào khác`;
 
   try{
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: "claude-sonnet-4-6",
-        max_tokens: 4000,
-        system: systemPrompt,
-        messages: [{ role: "user", content: userPrompt }]
-      })
+    const response = await fetch('/api/generate-quiz', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ systemPrompt, userPrompt })
     });
 
+    const payload = await response.json().catch(() => ({}));
+
     if(!response.ok){
-      throw new Error('API lỗi: ' + response.status);
+      const errorMessage = payload?.error || 'API lỗi: ' + response.status;
+      throw new Error(errorMessage);
     }
-    const data = await response.json();
+    const data = payload;
     const textBlocks = (data.content || []).filter(b => b.type === 'text').map(b => b.text);
     let raw = textBlocks.join('\n').trim();
     raw = raw.replace(/^```json\s*/i,'').replace(/^```\s*/,'').replace(/```\s*$/,'').trim();
+
+    console.log('Raw response from API:', raw);
+    console.log('Data payload:', JSON.stringify(data, null, 2));
 
     let quiz;
     try{
       quiz = JSON.parse(raw);
     }catch(parseErr){
+      console.log('Parse error, trying to extract JSON array:', parseErr);
       const match = raw.match(/\[[\s\S]*\]/);
-      if(match){ quiz = JSON.parse(match[0]); }
-      else throw parseErr;
+      if(match){ 
+        quiz = JSON.parse(match[0]); 
+      } else {
+        // Try to extract object with questions key
+        const objMatch = raw.match(/\{[\s\S]*\}/);
+        if(objMatch){
+          quiz = JSON.parse(objMatch[0]);
+        } else {
+          throw parseErr;
+        }
+      }
+    }
+
+    console.log('Parsed quiz (before transformation):', JSON.stringify(quiz, null, 2));
+
+    // Transform to array if needed
+    if(typeof quiz === 'object' && !Array.isArray(quiz)){
+      // If it has a questions key with array, use that
+      if(quiz.questions && Array.isArray(quiz.questions)){
+        quiz = quiz.questions;
+      }
+      // If it's a single object with question property, wrap it in array
+      else if(quiz.question && !Array.isArray(quiz)){
+        quiz = [quiz];
+      }
+    }
+    
+    console.log('Quiz after transformation:', JSON.stringify(quiz, null, 2));
+    
+    if(!Array.isArray(quiz)){
+      console.log('Quiz type:', typeof quiz, 'isArray:', Array.isArray(quiz), 'keys:', Object.keys(quiz || {}));
+      throw new Error('Quiz is not an array');
     }
 
     quiz = quiz.filter(q => q && q.question && Array.isArray(q.options) && q.options.length >= 2 && typeof q.correctIndex === 'number');
+    
+    console.log('Final quiz after filter:', JSON.stringify(quiz, null, 2));
 
     if(!quiz.length){
       throw new Error('empty');
