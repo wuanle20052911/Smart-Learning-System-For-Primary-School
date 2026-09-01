@@ -1,1 +1,0 @@
-# Smart-Learning-System-For-Primary-School
