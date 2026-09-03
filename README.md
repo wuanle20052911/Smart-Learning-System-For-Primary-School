@@ -44,19 +44,36 @@ Dự án web tạo bộ câu hỏi ôn tập cho học sinh tiểu học bằng 
    PORT=3000
    OLLAMA_BASE_URL=http://localhost:11434
    OLLAMA_MODEL=deepseek-r1:8b
+   SUPABASE_URL=https://your-project.supabase.co
+   SUPABASE_ANON_KEY=your-anon-key
    ```
 
-6. Chạy server:
+6. Tạo bảng profile người dùng trong Supabase:
+
+   - Mở **SQL Editor** trong Supabase.
+   - Chạy nội dung file `supabase/001_create_users.sql`.
+   - Supabase Auth vẫn quản lý mật khẩu trong `auth.users`; bảng `public.users` chỉ lưu profile và role.
+
+7. Chạy server:
 
    ```bash
    npm start
    ```
 
-7. Mở trình duyệt tại:
+8. Mở trình duyệt tại:
 
    ```text
    http://localhost:3000
    ```
+
+   Trang đăng nhập/đăng ký: `http://localhost:3000/auth`
+
+## MVC authentication
+
+- `views/auth.html` và `public/auth.*`: giao diện LearnHub và logic form.
+- `routes/authRoutes.js`: định tuyến `/api/auth/login` và `/api/auth/register`.
+- `controllers/authController.js`: kiểm tra input và định dạng response.
+- `models/userModel.js`: giao tiếp với Supabase Auth.
 
 ## API chính
 

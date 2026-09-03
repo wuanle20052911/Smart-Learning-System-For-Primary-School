@@ -3,6 +3,7 @@ require('dotenv').config();
 const express = require('express');
 const path = require('path');
 const { generateQuizHTML, generateQuizTXT } = require('./quiz-generator');
+const authRoutes = require('./routes/authRoutes');
 
 const app = express();
 const PORT = Number(process.env.PORT) || 3000;
@@ -50,6 +51,7 @@ async function resolveModelName() {
 }
 
 app.use(express.json({ limit: '10mb' }));
+app.use('/api/auth', authRoutes);
 
 app.get('/health', (req, res) => {
   res.json({ ok: true, status: 'healthy', ollama: OLLAMA_BASE_URL, model: OLLAMA_MODEL });
@@ -232,6 +234,10 @@ app.use(express.static(__dirname));
 
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'smartlearning-quiz-generator.html'));
+});
+
+app.get('/auth', (req, res) => {
+  res.sendFile(path.join(__dirname, 'views', 'auth.html'));
 });
 
 app.use((req, res) => {
