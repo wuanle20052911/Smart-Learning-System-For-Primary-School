@@ -32,15 +32,24 @@ function generateQuizHTML(quizData, title = 'Bộ Câu Hỏi Ôn Tập') {
 
   // Add questions
   quizData.forEach((q, idx) => {
+    const type = q.type || 'multiple-choice';
     html += `
 <div class="question">
   <div class="question-text">Câu ${idx + 1}: ${q.question}</div>
   <div class="options">
 `;
-    q.options.forEach((opt, optIdx) => {
-      const optionLetter = String.fromCharCode(65 + optIdx); // A, B, C, D
-      html += `    <div class="option"><input type="radio" name="q${idx}" value="${optionLetter}"> ${optionLetter}. ${opt}</div>\n`;
-    });
+    if (type === 'matching') {
+      q.pairs.forEach((pair, pairIdx) => {
+        html += `    <div class="option">${pairIdx + 1}. ${pair.left} — ${pair.right}</div>\n`;
+      });
+    } else if (type === 'fill-blank' || type === 'short-answer') {
+      html += '    <div class="option">................................................................</div>\n';
+    } else {
+      q.options.forEach((opt, optIdx) => {
+        const optionLetter = String.fromCharCode(65 + optIdx);
+        html += `    <div class="option"><input type="radio" name="q${idx}" value="${optionLetter}"> ${optionLetter}. ${opt}</div>\n`;
+      });
+    }
     html += `  </div>
 </div>
 `;
@@ -52,8 +61,13 @@ function generateQuizHTML(quizData, title = 'Bộ Câu Hỏi Ôn Tập') {
   <h2>ĐÁP ÁN</h2>
 `;
   quizData.forEach((q, idx) => {
-    const correctLetter = String.fromCharCode(65 + q.correctIndex);
-    html += `  <div class="answer-item"><strong>Câu ${idx + 1}:</strong> ${correctLetter}. ${q.options[q.correctIndex]}`;
+    const type = q.type || 'multiple-choice';
+    let answer = type === 'matching'
+      ? q.correctMatches.map(index => q.pairs[index].right).join(', ')
+      : (type === 'fill-blank' || type === 'short-answer')
+        ? q.answer
+        : `${String.fromCharCode(65 + q.correctIndex)}. ${q.options[q.correctIndex]}`;
+    html += `  <div class="answer-item"><strong>Câu ${idx + 1}:</strong> ${answer}`;
     if (q.explanation) {
       html += `<br/><em>Giải thích: ${q.explanation}</em>`;
     }
@@ -74,11 +88,20 @@ function generateQuizTXT(quizData, title = 'BỘ CÂU HỎI ÔN TẬP') {
   txt += `${'='.repeat(60)}\n\n`;
 
   quizData.forEach((q, idx) => {
+    const type = q.type || 'multiple-choice';
     txt += `Câu ${idx + 1}: ${q.question}\n`;
-    q.options.forEach((opt, optIdx) => {
-      const letter = String.fromCharCode(65 + optIdx);
-      txt += `  ${letter}. ${opt}\n`;
-    });
+    if (type === 'matching') {
+      q.pairs.forEach((pair, pairIdx) => {
+        txt += `  ${pairIdx + 1}. ${pair.left} — ${pair.right}\n`;
+      });
+    } else if (type === 'fill-blank' || type === 'short-answer') {
+      txt += '  Trả lời: ........................................................\n';
+    } else {
+      q.options.forEach((opt, optIdx) => {
+        const letter = String.fromCharCode(65 + optIdx);
+        txt += `  ${letter}. ${opt}\n`;
+      });
+    }
     txt += `\n`;
   });
 
@@ -87,8 +110,13 @@ function generateQuizTXT(quizData, title = 'BỘ CÂU HỎI ÔN TẬP') {
   txt += `${'='.repeat(60)}\n\n`;
 
   quizData.forEach((q, idx) => {
-    const correctLetter = String.fromCharCode(65 + q.correctIndex);
-    txt += `Câu ${idx + 1}: ${correctLetter}\n`;
+    const type = q.type || 'multiple-choice';
+    const answer = type === 'matching'
+      ? q.correctMatches.map(index => q.pairs[index].right).join(', ')
+      : (type === 'fill-blank' || type === 'short-answer')
+        ? q.answer
+        : `${String.fromCharCode(65 + q.correctIndex)}. ${q.options[q.correctIndex]}`;
+    txt += `Câu ${idx + 1}: ${answer}\n`;
     if (q.explanation) {
       txt += `Giải thích: ${q.explanation}\n`;
     }

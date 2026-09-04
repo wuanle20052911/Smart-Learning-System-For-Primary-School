@@ -4,6 +4,17 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>SmartLearning – Trợ lý tạo đề ôn tập AI</title>
+<script>
+  (() => {
+    try {
+      const session = JSON.parse(localStorage.getItem('learnhub-session') || 'null');
+      if (!session?.access_token) window.location.replace('/auth');
+    } catch {
+      localStorage.removeItem('learnhub-session');
+      window.location.replace('/auth');
+    }
+  })();
+</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
@@ -223,6 +234,13 @@
     margin-bottom:18px; line-height:1.5; color:var(--ink);
   }
   .options{display:flex; flex-direction:column; gap:10px;}
+  .answer-input{
+    width:100%; padding:13px 16px; border-radius:14px; border:2px solid var(--line);
+    font:600 15px 'Quicksand',sans-serif;
+  }
+  .answer-input:focus{outline:none; border-color:var(--sky);}
+  .matching-row{display:grid; grid-template-columns:1fr 1fr; gap:10px; align-items:center;}
+  .matching-row select{width:100%; padding:11px; border:2px solid var(--line); border-radius:12px; font:600 14px 'Quicksand',sans-serif;}
   .option{
     text-align:left; padding:13px 16px; border-radius:14px; border:2px solid var(--line);
     background:white; font-weight:600; font-size:15px; cursor:pointer;
@@ -317,6 +335,16 @@
       </div>
     </div>
     <div class="field" style="margin-top:18px;">
+      <label>Dạng bài tập</label>
+      <div class="pill-group" id="questionTypeGroup">
+        <button class="pill active" data-val="multiple-choice">🔘 Trắc nghiệm</button>
+        <button class="pill" data-val="true-false">✅ Đúng / Sai</button>
+        <button class="pill" data-val="fill-blank">✏️ Điền vào chỗ trống</button>
+        <button class="pill" data-val="matching">🔗 Nối</button>
+        <button class="pill" data-val="short-answer">💬 Trả lời ngắn</button>
+      </div>
+    </div>
+    <div class="field" style="margin-top:18px;">
       <label>Lớp / chủ đề (không bắt buộc — giúp AI ra câu hỏi sát hơn)</label>
       <input type="text" id="hintInput" placeholder="VD: Toán lớp 4 – Phân số">
     </div>
@@ -376,6 +404,7 @@ const state = {
   fileName: '',
   extractedText: '',
   difficulty: 'dễ',
+  questionType: 'multiple-choice',
   qCount: 5,
   quiz: [],
   currentIndex: 0,
@@ -391,6 +420,7 @@ const previewBox = document.getElementById('previewBox');
 const uploadError = document.getElementById('uploadError');
 const settingsCard = document.getElementById('settingsCard');
 const difficultyGroup = document.getElementById('difficultyGroup');
+const questionTypeGroup = document.getElementById('questionTypeGroup');
 const qCountLabel = document.getElementById('qCountLabel');
 const decBtn = document.getElementById('decBtn');
 const incBtn = document.getElementById('incBtn');
@@ -413,6 +443,28 @@ const resultTitle = document.getElementById('resultTitle');
 const resultScore = document.getElementById('resultScore');
 const resultMsg = document.getElementById('resultMsg');
 const retryBtn = document.getElementById('retryBtn');
+
+function isValidQuestion(q){
+  if(!q || typeof q.question !== 'string' || !q.question.trim()) return false;
+  const type = q.type || 'multiple-choice';
+  if(type === 'multiple-choice'){
+    return Array.isArray(q.options) && q.options.length >= 2
+      && Number.isInteger(q.correctIndex) && q.correctIndex >= 0 && q.correctIndex < q.options.length;
+  }
+  if(type === 'true-false'){
+    return Array.isArray(q.options) && q.options.length === 2
+      && Number.isInteger(q.correctIndex) && (q.correctIndex === 0 || q.correctIndex === 1);
+  }
+  if(type === 'fill-blank' || type === 'short-answer'){
+    return typeof q.answer === 'string' && q.answer.trim().length > 0;
+  }
+  if(type === 'matching'){
+    return Array.isArray(q.pairs) && q.pairs.length > 0
+      && Array.isArray(q.correctMatches) && q.correctMatches.length === q.pairs.length
+      && q.correctMatches.every(index => Number.isInteger(index) && index >= 0 && index < q.pairs.length);
+  }
+  return false;
+}
 const reviewToggle = document.getElementById('reviewToggle');
 const reviewList = document.getElementById('reviewList');
 
@@ -509,6 +561,13 @@ difficultyGroup.addEventListener('click', e=>{
   btn.classList.add('active');
   state.difficulty = btn.dataset.val;
 });
+questionTypeGroup.addEventListener('click', e=>{
+  const btn = e.target.closest('.pill');
+  if(!btn) return;
+  [...questionTypeGroup.children].forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  state.questionType = btn.dataset.val;
+});
 decBtn.addEventListener('click', ()=>{
   state.qCount = Math.max(3, state.qCount - 1);
   qCountLabel.textContent = state.qCount;
@@ -529,6 +588,13 @@ async function generateQuiz(){
   loadingText.textContent = 'AI đang đọc tài liệu và soạn câu hỏi...';
 
   const hint = hintInput.value.trim();
+  const typeInstructions = {
+    'multiple-choice': '"type": "multiple-choice", "options": ["A", "B", "C", "D"], "correctIndex": 0',
+    'true-false': '"type": "true-false", "options": ["Đúng", "Sai"], "correctIndex": 0',
+    'fill-blank': '"type": "fill-blank", "answer": "đáp án ngắn", "acceptableAnswers": ["các cách trả lời được chấp nhận"]',
+    'matching': '"type": "matching", "pairs": [{"left": "vế trái", "right": "vế phải"}], "correctMatches": [0]',
+    'short-answer': '"type": "short-answer", "answer": "ý trả lời đúng", "keywords": ["từ khóa bắt buộc"]'
+  }[state.questionType];
   const systemPrompt = `Bạn là một AI soạn đề ôn tập chất lượng cao cho học sinh tiểu học tại Việt Nam.
 
 YÊU CẦU CHẶT CHẼ - PHẢI TUÂN THỬ 100%:
@@ -537,19 +603,20 @@ YÊU CẦU CHẶT CHẼ - PHẢI TUÂN THỬ 100%:
 3. ĐIỀU CỰC KỲ QUAN TRỌNG: 
    - Đáp án PHẢI đúng 100% với nội dung tài liệu
    - CHỈ dùng thông tin từ tài liệu - KHÔNG bịa đặt thông tin mới
-   - Kiểm kỹ SỐ LẦN trước khi trả về correctIndex
+   - Kiểm kỹ đáp án trước khi trả về correctIndex hoặc answer
    - Nếu không chắc chắn 100%, hãy tạo câu hỏi khác
-4. Format bắt buộc:
+4. Format bắt buộc (thay đổi theo dạng bài):
    {
+     ${typeInstructions},
      "question": "câu hỏi đơn giản, tiếng Việt, phù hợp tiểu học",
-     "options": ["lựa chọn A", "lựa chọn B", "lựa chọn C", "lựa chọn D"],
-     "correctIndex": 0,
      "explanation": "giải thích tại sao đáp án đó đúng dựa trên tài liệu"
    }
-5. ĐÚNG 4 lựa chọn mỗi câu, correctIndex từ 0-3
-6. Các lựa chọn sai phải hợp lý, không hoàn toàn sai
-7. Tiếng Việt đơn giản, phù hợp học sinh tiểu học
-8. NGUYÊN TẮC VÀNG: Đáp án = sự thật trong tài liệu, KHÔNG phải thông tin bịa đặt`;
+5. Chỉ tạo đúng dạng "${state.questionType}", không trộn dạng khác.
+6. Với matching, số phần tử trong pairs và correctMatches phải bằng nhau; right phải được xáo trộn.
+7. Với fill-blank và short-answer, câu trả lời phải ngắn, rõ ràng và bám sát tài liệu.
+8. Các lựa chọn sai phải hợp lý, không hoàn toàn sai
+9. Tiếng Việt đơn giản, phù hợp học sinh tiểu học
+10. NGUYÊN TẮC VÀNG: Đáp án = sự thật trong tài liệu, KHÔNG phải thông tin bịa đặt`;
 
   const userPrompt = `CHỈ dùng nội dung từ tài liệu dưới đây. KHÔNG tạo thông tin mới. KHÔNG bịa đặt.
 
@@ -561,25 +628,35 @@ ${state.extractedText}
 YÊU CẦU:
 - Tạo ${state.qCount} câu hỏi
 - Độ khó: ${state.difficulty}
+- Dạng bài: ${state.questionType}
 ${hint ? '- Ghi chú: ' + hint : ''}
 
 KIỂM SOÁT CHẤT LƯỢNG:
 1. Mỗi đáp án phải ĐÚNG 100% - kiểm kỹ từng câu
-2. correctIndex PHẢI trỏ đến đáp án đúng (0-3)
+2. Đáp án phải đúng schema của dạng "${state.questionType}"
 3. Không bao giờ tạo câu hỏi có logic lỗi
 4. Nếu câu hỏi có vấn đề, bỏ qua - không trả về
 
 OUTPUT: CHỈ mảng JSON bắt đầu "[" kết thúc "]" - không có chữ nào khác`;
 
   try{
+    const session = JSON.parse(localStorage.getItem('learnhub-session') || 'null');
     const response = await fetch('/api/generate-quiz', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${session?.access_token || ''}`
+      },
       body: JSON.stringify({ systemPrompt, userPrompt })
     });
 
     const payload = await response.json().catch(() => ({}));
 
+    if(response.status === 401){
+      localStorage.removeItem('learnhub-session');
+      window.location.replace('/auth');
+      return;
+    }
     if(!response.ok){
       const errorMessage = payload?.error || 'API lỗi: ' + response.status;
       throw new Error(errorMessage);
@@ -632,7 +709,7 @@ OUTPUT: CHỈ mảng JSON bắt đầu "[" kết thúc "]" - không có chữ n�
       throw new Error('Quiz is not an array');
     }
 
-    quiz = quiz.filter(q => q && q.question && Array.isArray(q.options) && q.options.length >= 2 && typeof q.correctIndex === 'number');
+    quiz = quiz.filter(isValidQuestion);
     
     console.log('Final quiz after filter:', JSON.stringify(quiz, null, 2));
 
@@ -675,14 +752,45 @@ function renderQuestion(){
   nextBtn.classList.add('hidden');
 
   optionsWrap.innerHTML = '';
-  const letters = ['A','B','C','D','E','F'];
-  q.options.forEach((opt, idx) => {
-    const btn = document.createElement('button');
-    btn.className = 'option';
-    btn.innerHTML = `<span class="badge">${letters[idx]}</span><span>${escapeHtml(opt)}</span>`;
-    btn.addEventListener('click', () => selectAnswer(idx));
-    optionsWrap.appendChild(btn);
-  });
+  const type = q.type || 'multiple-choice';
+  if(type === 'fill-blank' || type === 'short-answer'){
+    optionsWrap.innerHTML = `<input class="answer-input" id="textAnswer" type="text" placeholder="${type === 'fill-blank' ? 'Nhập từ hoặc cụm từ còn thiếu' : 'Nhập câu trả lời ngắn'}">`;
+    const input = document.getElementById('textAnswer');
+    input.addEventListener('keydown', e => { if(e.key === 'Enter') selectTextAnswer(input.value); });
+    const submit = document.createElement('button');
+    submit.className = 'btn';
+    submit.type = 'button';
+    submit.textContent = 'Kiểm tra đáp án';
+    submit.addEventListener('click', () => selectTextAnswer(input.value));
+    optionsWrap.appendChild(submit);
+  } else if(type === 'matching'){
+    const rights = q.pairs.map(pair => pair.right);
+    q.pairs.forEach((pair, idx) => {
+      const row = document.createElement('div');
+      row.className = 'matching-row';
+      row.innerHTML = `<span>${idx + 1}. ${escapeHtml(pair.left)}</span>`;
+      const select = document.createElement('select');
+      select.dataset.index = idx;
+      select.innerHTML = `<option value="">-- Chọn --</option>${rights.map((right, rightIdx) => `<option value="${rightIdx}">${escapeHtml(right)}</option>`).join('')}`;
+      row.appendChild(select);
+      optionsWrap.appendChild(row);
+    });
+    const submit = document.createElement('button');
+    submit.className = 'btn';
+    submit.type = 'button';
+    submit.textContent = 'Kiểm tra đáp án';
+    submit.addEventListener('click', () => selectMatchingAnswer());
+    optionsWrap.appendChild(submit);
+  } else {
+    const letters = ['A','B','C','D','E','F'];
+    q.options.forEach((opt, idx) => {
+      const btn = document.createElement('button');
+      btn.className = 'option';
+      btn.innerHTML = `<span class="badge">${letters[idx]}</span><span>${escapeHtml(opt)}</span>`;
+      btn.addEventListener('click', () => selectAnswer(idx));
+      optionsWrap.appendChild(btn);
+    });
+  }
 }
 
 function selectAnswer(idx){
@@ -694,6 +802,42 @@ function selectAnswer(idx){
   options[idx].classList.add(isCorrect ? 'correct' : 'wrong');
   if(!isCorrect){
     options[q.correctIndex].classList.add('correct');
+  }
+
+  function normalizeAnswer(value){
+    return String(value || '').trim().toLocaleLowerCase('vi-VN').replace(/\s+/g, ' ');
+  }
+
+  function finishAnswer(isCorrect, chosenText, correctText){
+    const q = state.quiz[state.currentIndex];
+    if(isCorrect) state.score++;
+    state.answers.push({ q, chosenText, correctText, correct: isCorrect });
+    scoreTag.textContent = `⭐ ${state.score} điểm`;
+    feedbackWrap.innerHTML = `<div class="feedback ${isCorrect ? 'good' : 'bad'}">
+      ${isCorrect ? '🎉 Chính xác!' : '💡 Chưa đúng rồi.'} ${escapeHtml(q.explanation || '')}
+    </div>`;
+    optionsWrap.querySelectorAll('input, select, button').forEach(el => { el.disabled = true; });
+    nextBtn.classList.remove('hidden');
+    nextBtn.textContent = state.currentIndex < state.quiz.length - 1 ? 'Câu tiếp theo →' : 'Xem kết quả 🎊';
+  }
+
+  function selectTextAnswer(value){
+    const q = state.quiz[state.currentIndex];
+    const accepted = [q.answer, ...(q.acceptableAnswers || []), ...(q.keywords || [])].filter(Boolean).map(normalizeAnswer);
+    const normalized = normalizeAnswer(value);
+    const isCorrect = normalized.length > 0 && (q.type === 'short-answer'
+      ? accepted.some(answer => normalized.includes(answer))
+      : accepted.includes(normalized));
+    finishAnswer(isCorrect, value, q.answer);
+  }
+
+  function selectMatchingAnswer(){
+    const q = state.quiz[state.currentIndex];
+    const chosen = [...optionsWrap.querySelectorAll('select')].map(select => Number(select.value));
+    const isCorrect = chosen.length === q.correctMatches.length
+      && chosen.every((value, idx) => value === q.correctMatches[idx]);
+    finishAnswer(isCorrect, chosen.map((value) => q.pairs[value]?.right || 'Chưa chọn').join(', '),
+      q.correctMatches.map(value => q.pairs[value]?.right || '').join(', '));
   }
 
   if(isCorrect) state.score++;
@@ -734,8 +878,8 @@ function showResults(){
     <div class="review-item ${a.correct ? '' : 'wrong-item'}">
       <div class="rq">${i+1}. ${escapeHtml(a.q.question)}</div>
       <div class="ra">
-        ${a.correct ? '✅' : '❌'} Bé chọn: ${escapeHtml(a.q.options[a.chosenIndex])}<br>
-        ${!a.correct ? '✔️ Đáp án đúng: ' + escapeHtml(a.q.options[a.q.correctIndex]) + '<br>' : ''}
+        ${a.correct ? '✅' : '❌'} Bé chọn: ${escapeHtml(a.chosenText || a.q.options?.[a.chosenIndex] || '')}<br>
+        ${!a.correct ? '✔️ Đáp án đúng: ' + escapeHtml(a.correctText || a.q.options?.[a.q.correctIndex] || a.q.answer || '') + '<br>' : ''}
         💡 ${escapeHtml(a.q.explanation || '')}
       </div>
     </div>

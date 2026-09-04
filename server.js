@@ -4,6 +4,7 @@ const express = require('express');
 const path = require('path');
 const { generateQuizHTML, generateQuizTXT } = require('./quiz-generator');
 const authRoutes = require('./routes/authRoutes');
+const requireAuth = require('./middleware/requireAuth');
 
 const app = express();
 const PORT = Number(process.env.PORT) || 3000;
@@ -50,6 +51,35 @@ async function resolveModelName() {
   return OLLAMA_MODEL;
 }
 
+function isValidQuestion(q) {
+  if (!q || typeof q.question !== 'string' || !q.question.trim()) return false;
+  const type = q.type || 'multiple-choice';
+
+  if (type === 'multiple-choice' || type === 'true-false') {
+    return Array.isArray(q.options)
+      && q.options.length >= 2
+      && Number.isInteger(q.correctIndex)
+      && q.correctIndex >= 0
+      && q.correctIndex < q.options.length
+      && (type !== 'true-false' || q.options.length === 2);
+  }
+
+  if (type === 'fill-blank' || type === 'short-answer') {
+    return typeof q.answer === 'string' && q.answer.trim().length > 0;
+  }
+
+  if (type === 'matching') {
+    return Array.isArray(q.pairs)
+      && q.pairs.length > 0
+      && q.pairs.every(pair => pair && typeof pair.left === 'string' && typeof pair.right === 'string')
+      && Array.isArray(q.correctMatches)
+      && q.correctMatches.length === q.pairs.length
+      && q.correctMatches.every(index => Number.isInteger(index) && index >= 0 && index < q.pairs.length);
+  }
+
+  return false;
+}
+
 app.use(express.json({ limit: '10mb' }));
 app.use('/api/auth', authRoutes);
 
@@ -57,7 +87,7 @@ app.get('/health', (req, res) => {
   res.json({ ok: true, status: 'healthy', ollama: OLLAMA_BASE_URL, model: OLLAMA_MODEL });
 });
 
-app.post('/api/generate-quiz', async (req, res) => {
+app.post('/api/generate-quiz', requireAuth, async (req, res) => {
   const { systemPrompt, userPrompt } = req.body || {};
 
   if (!systemPrompt || !userPrompt) {
@@ -134,18 +164,7 @@ app.post('/api/generate-quiz', async (req, res) => {
         }
         
         if (Array.isArray(parsedJSON)) {
-          // Filter valid questions and add to collection
-          const validQuestions = parsedJSON.filter(q => {
-            if (!q || !q.question) return false;
-            if (!Array.isArray(q.options) || q.options.length < 4) return false;
-            if (typeof q.correctIndex !== 'number') return false;
-            if (q.correctIndex < 0 || q.correctIndex > 3) return false;
-            
-            // Additional validation: ensure correctIndex points to a valid option
-            if (!q.options[q.correctIndex]) return false;
-            
-            return true;
-          });
+          const validQuestions = parsedJSON.filter(isValidQuestion);
           
           allQuestions.push(...validQuestions);
         }
@@ -160,15 +179,7 @@ app.post('/api/generate-quiz', async (req, res) => {
             }
             
             if (Array.isArray(parsedJSON)) {
-              const validQuestions = parsedJSON.filter(q => {
-                if (!q || !q.question) return false;
-                if (!Array.isArray(q.options) || q.options.length < 4) return false;
-                if (typeof q.correctIndex !== 'number') return false;
-                if (q.correctIndex < 0 || q.correctIndex > 3) return false;
-                if (!q.options[q.correctIndex]) return false;
-                
-                return true;
-              });
+              const validQuestions = parsedJSON.filter(isValidQuestion);
               allQuestions.push(...validQuestions);
             }
           } catch (innerErr) {
@@ -201,7 +212,7 @@ app.post('/api/generate-quiz', async (req, res) => {
 });
 
 // New endpoint to download quiz as file
-app.post('/api/download-quiz', (req, res) => {
+app.post('/api/download-quiz', requireAuth, (req, res) => {
   const { quiz, format = 'html', filename = 'de-on-tap' } = req.body;
 
   if (!quiz || !Array.isArray(quiz)) {

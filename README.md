@@ -77,6 +77,10 @@ Dự án web tạo bộ câu hỏi ôn tập cho học sinh tiểu học bằng 
 
 ## API chính
 
+Các API tạo và tải đề yêu cầu access token Supabase trong header
+`Authorization: Bearer <access_token>`. Người dùng chưa đăng nhập sẽ được
+chuyển tới `/auth`.
+
 ### POST /api/generate-quiz
 
 Tạo câu hỏi trắc nghiệm từ `systemPrompt` và `userPrompt`.
