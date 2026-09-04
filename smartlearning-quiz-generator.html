@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SmartLearning – Trợ lý tạo đề ôn tập AI</title>
+<title>MathJoy – Học toán thật vui</title>
 <script>
   (() => {
     try {
@@ -286,21 +286,99 @@
     text-align:center; color:var(--ink-soft); font-size:12.5px; margin-top:26px; line-height:1.6;
   }
   .hidden{display:none !important;}
+
+  /* Math learning home */
+  .app-shell{max-width:1180px;margin:0 auto;}
+  body{padding:0 0 60px;background:#f5f9ff;color:#1f3152;}
+  .topbar{background:#2f86eb;color:#fff;padding:16px max(20px,calc((100% - 1180px)/2));display:flex;align-items:center;justify-content:space-between;gap:20px;box-shadow:0 4px 16px rgba(35,104,183,.18);}
+  .brand{display:flex;align-items:center;gap:10px;color:#fff;text-decoration:none;}
+  .brand-mark{width:42px;height:34px;position:relative;font-size:28px;line-height:34px;filter:drop-shadow(0 3px 0 rgba(0,0,0,.08));}
+  .brand-name{font:800 27px 'Baloo 2',sans-serif;letter-spacing:.2px;}
+  .brand-subtitle{font-size:11px;font-weight:700;opacity:.88;display:block;margin-top:-7px;}
+  .top-actions{display:flex;align-items:center;gap:10px;}
+  .nav-chip{display:flex;align-items:center;gap:6px;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.22);color:#fff;border-radius:999px;padding:8px 12px;font-weight:700;cursor:pointer;}
+  .avatar{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;background:#ffd455;border:3px solid #fff;color:#674b1b;font-size:21px;}
+  .home{max-width:1180px;margin:0 auto;padding:30px 20px 0;}
+  .welcome{display:flex;align-items:center;justify-content:space-between;gap:24px;margin-bottom:24px;}
+  .welcome h1{font-size:clamp(28px,4vw,42px);color:#153565;margin:0;}
+  .welcome p{color:#6680a5;font-weight:700;margin:4px 0 0;}
+  .mascot{background:#e1f2ff;border-radius:28px;padding:12px 22px;font-size:55px;transform:rotate(2deg);box-shadow:0 12px 0 #c6e6ff;}
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:26px;}
+  .stat{background:#fff;border-radius:18px;padding:16px 18px;border:1px solid #e1ebf7;display:flex;align-items:center;gap:12px;box-shadow:0 8px 22px rgba(45,91,145,.07);}
+  .stat-icon{font-size:27px}.stat strong{display:block;font:800 22px 'Baloo 2',sans-serif;color:#1d4276}.stat span{color:#7890ad;font-size:12px;font-weight:700;}
+  .home-grid{display:grid;grid-template-columns:minmax(0,1.65fr) minmax(280px,.8fr);gap:22px;align-items:start;}
+  .home-panel{background:#fff;border:1px solid #e1ebf7;border-radius:22px;padding:22px;box-shadow:0 10px 30px rgba(45,91,145,.08);}
+  .panel-heading{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:16px}.panel-heading h2{font-size:23px;margin:0;color:#1c3d70}.panel-heading p{margin:3px 0 0;color:#7c91ad;font-size:13px;font-weight:700}.panel-heading a{color:#2784e9;font-weight:800;font-size:13px;cursor:pointer;}
+  .lesson-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;}
+  .lesson{border:0;border-radius:17px;padding:17px;text-align:left;min-height:145px;cursor:pointer;position:relative;overflow:hidden;transition:transform .18s,box-shadow .18s;color:#183a68;}
+  .lesson:hover{transform:translateY(-4px);box-shadow:0 10px 18px rgba(36,95,160,.16)}.lesson small{font-weight:800;opacity:.72}.lesson h3{font:800 21px 'Baloo 2',sans-serif;margin:10px 0 3px}.lesson p{font-size:12px;font-weight:700;opacity:.78;margin:0}.lesson .lesson-art{position:absolute;right:12px;bottom:8px;font-size:38px}.lesson.blue{background:#e3f3ff}.lesson.yellow{background:#fff3c9}.lesson.green{background:#e6f8ed}.lesson.pink{background:#ffe8ee}
+  .daily-card{background:#2f86eb;color:#fff;border-radius:22px;padding:22px;position:relative;overflow:hidden;box-shadow:0 12px 22px rgba(47,134,235,.2)}.daily-card:after{content:'+';position:absolute;right:20px;bottom:-26px;font:800 150px 'Baloo 2';opacity:.12}.daily-card h2{font-size:22px;margin:0}.daily-card p{font-weight:700;line-height:1.5;color:#e7f3ff}.daily-progress{height:10px;background:rgba(255,255,255,.28);border-radius:99px;overflow:hidden;margin:17px 0 8px}.daily-progress span{display:block;height:100%;width:35%;background:#ffd452;border-radius:inherit}.daily-card .btn{position:relative;z-index:1;background:#ffd452;color:#604d18;box-shadow:none;width:100%;justify-content:center;font-size:16px;padding:11px 16px}.quick-list{display:grid;gap:10px;margin-top:18px}.quick-item{display:flex;align-items:center;gap:11px;border:1px solid #e5edf7;border-radius:14px;padding:11px;background:#fbfdff}.quick-item b{font-size:13px}.quick-item small{display:block;color:#8498b2;font-weight:700;margin-top:2px}.quick-icon{width:34px;height:34px;border-radius:11px;display:grid;place-items:center;background:#fff0c5;font-size:18px}
+  .tool-strip{display:flex;gap:12px;flex-wrap:wrap;margin:24px 0}.tool-strip .btn{font-size:14px;padding:11px 16px;background:#fff;color:#2776c5;border:1px solid #cfe2f6;box-shadow:none}.tool-strip .btn.primary{background:#2f86eb;color:#fff;border:0;box-shadow:0 7px 14px rgba(47,134,235,.22)}
+  #uploadCard{margin-top:10px}.section-label{font:800 24px 'Baloo 2',sans-serif;color:#1c3d70;margin:28px 0 12px;}
+  @media(max-width:760px){.topbar{padding:13px 16px}.brand-subtitle{display:none}.nav-chip{font-size:0;padding:8px}.nav-chip:first-child{font-size:13px}.home{padding:24px 14px 0}.welcome{align-items:flex-start}.mascot{font-size:35px;padding:8px 14px}.home-grid{grid-template-columns:1fr}.stats{gap:8px}.stat{padding:12px 9px;gap:7px}.stat-icon{font-size:22px}.stat strong{font-size:18px}.stat span{font-size:10px}.lesson-grid{gap:10px}.lesson{min-height:130px;padding:13px}.lesson h3{font-size:18px}.lesson .lesson-art{font-size:30px}.home-panel{padding:16px}}
+  @media(max-width:430px){.stats{grid-template-columns:1fr}.stat{justify-content:flex-start}.welcome h1{font-size:29px}.mascot{display:none}}
+
+  /* Cute island game screen */
+  body{background:linear-gradient(#23a9ec 0 38%,#76d8f0 38% 51%,#ffe2a1 51% 100%);background-attachment:fixed;overflow-x:hidden;}
+  body:before{content:'☁️        ☁️';position:fixed;inset:36px 0 auto;width:100%;height:60px;color:rgba(255,255,255,.75);font-size:36px;letter-spacing:80px;white-space:nowrap;text-align:center;pointer-events:none;z-index:0;}
+  .topbar{position:relative;z-index:2;background:linear-gradient(180deg,#1789df,#32b6ec);padding:12px max(18px,calc((100% - 1180px)/2));border-bottom:5px solid #0874c4;box-shadow:0 5px 0 rgba(0,86,160,.2);}
+  .brand{background:linear-gradient(180deg,#fff,#dff5ff);border:4px solid #1269b3;border-radius:24px 24px 38px 38px;padding:4px 22px 7px;color:#1452a0;box-shadow:0 5px 0 #075694, inset 0 2px 0 #fff;transform:rotate(-2deg);}
+  .brand-mark{font-size:31px;color:#ff6d2e;text-shadow:2px 2px #ffd43b}.brand-name{font-size:34px;line-height:30px;color:#ffbf18;text-shadow:2px 2px 0 #d64528,-1px -1px 0 #fff}.brand-subtitle{color:#2467a9;font-size:11px;text-align:center;letter-spacing:1px;margin-top:0}
+  .top-actions{gap:8px}.nav-chip{background:#ff6a35;border:3px solid #b93b1f;box-shadow:0 3px 0 #8e2b19;padding:7px 12px}.avatar{border-color:#1269b3;box-shadow:0 3px 0 #075694}
+  .home{position:relative;z-index:1;max-width:1120px;padding:22px 20px 48px;}
+  .home:before{content:'🌴';position:absolute;top:2px;left:-10px;font-size:125px;transform:scaleX(-1);filter:drop-shadow(5px 7px 0 rgba(12,108,93,.2));z-index:-1}.home:after{content:'🌴';position:absolute;top:-3px;right:-5px;font-size:132px;filter:drop-shadow(-5px 7px 0 rgba(12,108,93,.2));z-index:-1}
+  .welcome{margin:26px 0 16px;min-height:120px;justify-content:center;text-align:center}.welcome>div:first-child{background:rgba(255,255,255,.9);border:4px solid #1175c4;border-radius:28px;padding:9px 28px 13px;box-shadow:0 6px 0 #075a9c;transform:rotate(-1deg)}.welcome h1{font-size:33px;color:#f05b26;text-shadow:1px 2px #ffd76a}.welcome p{color:#2771ad;margin:0}.mascot{position:absolute;left:10px;bottom:-8px;background:none;box-shadow:none;font-size:84px;transform:none;filter:drop-shadow(0 5px 0 rgba(68,105,53,.25))}
+  .stats{grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:15px}.stat{background:#fff6d9;border:3px solid #d78b27;border-radius:18px;padding:9px 13px;box-shadow:0 4px 0 #a9651e}.stat-icon{font-size:24px}.stat strong{color:#a64822}.stat span{color:#7f6b46}
+  .home-grid{grid-template-columns:minmax(0,1.7fr) minmax(270px,.75fr);gap:18px}.home-panel{background:rgba(255,249,219,.96);border:4px solid #b96b26;border-radius:20px;padding:18px;box-shadow:0 6px 0 #7a451e}.panel-heading{margin-bottom:12px}.panel-heading h2{color:#a83e1d;font-size:27px}.panel-heading p{color:#8c683e}.panel-heading a{color:#d14a1e}
+  .lesson-grid{gap:12px}.lesson{min-height:122px;border:4px solid #a85b24;border-radius:13px;padding:13px 15px;box-shadow:0 5px 0 #6e3e20;background-image:linear-gradient(rgba(255,255,255,.12),rgba(148,67,15,.05)),repeating-linear-gradient(0deg,transparent 0 8px,rgba(110,53,17,.08) 9px 10px)}.lesson:hover{transform:translateY(-3px) rotate(-1deg);box-shadow:0 8px 0 #6e3e20}.lesson small,.lesson p{color:#7e3b1e;opacity:1}.lesson h3{color:#a52c18;text-shadow:1px 1px #ffe9a8;margin:6px 0 0;font-size:22px}.lesson .lesson-art{font-size:34px;filter:drop-shadow(2px 3px 0 rgba(100,45,10,.22))}.lesson.blue{background-color:#f8bd4d}.lesson.yellow{background-color:#ffd36b}.lesson.green{background-color:#ffbd54}.lesson.pink{background-color:#ffc764}
+  .daily-card{background:linear-gradient(150deg,#ff743c,#ed432b);border:4px solid #a92d20;border-radius:20px;box-shadow:0 6px 0 #7f251c}.daily-card h2{font-size:25px;text-shadow:1px 2px #a72b1a}.daily-card p{color:#fff4c8}.daily-card .btn{background:#ffd13e;color:#9c351e;border:3px solid #b76a18;box-shadow:0 3px 0 #80430f}.home-panel .quick-item{background:#fff9e8;border:2px solid #e2aa45}.tool-strip .btn{background:#fff4c9;border:3px solid #b96b26;color:#a83e1d;box-shadow:0 3px 0 #7a451e}.tool-strip .btn.primary{background:#ff6537;color:#fff;border-color:#ad321d;box-shadow:0 3px 0 #7a2115}
+  .section-label{color:#a83e1d;text-shadow:1px 1px #ffe9a8}.card{border-color:#b96b26;box-shadow:0 6px 0 #7a451e}.btn{border:3px solid #b5311e;box-shadow:0 4px 0 #7c2117}.footnote{color:#795a39}
+  @media(max-width:760px){.home:before{left:-24px;font-size:74px}.home:after{right:-22px;font-size:78px}.welcome{min-height:110px}.welcome>div:first-child{padding:7px 14px}.welcome h1{font-size:26px}.mascot{font-size:56px;left:0}.brand{padding-left:12px;padding-right:12px}.brand-name{font-size:27px}.lesson h3{font-size:18px}.home-grid{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
-<div class="wrap">
-
-  <div class="hero">
-    <div class="logo-badge">📚</div>
-    <div>
-      <h1>SmartLearning</h1>
-      <p>Tải bài học lên — AI tạo ngay bộ câu hỏi ôn tập cho bé</p>
-    </div>
+<header class="topbar">
+  <a class="brand" href="/">
+    <span class="brand-mark">✦</span>
+    <span><span class="brand-name">MathJoy</span><span class="brand-subtitle">HỌC TOÁN THẬT VUI</span></span>
+  </a>
+  <div class="top-actions">
+    <button class="nav-chip" id="streakChip" type="button">🔥 0 ngày</button>
+    <button class="nav-chip" id="logoutBtn" type="button" aria-label="Đăng xuất">↪</button>
+    <div class="avatar" aria-label="Học sinh">🧒</div>
   </div>
+</header>
+<main class="home">
+  <section class="welcome">
+    <div><h1>Chào bạn nhỏ! 👋</h1><p>Cùng khám phá những điều thú vị trong thế giới Toán học nhé.</p></div>
+    <div class="mascot" aria-hidden="true">🧮</div>
+  </section>
+  <section class="stats" aria-label="Tiến độ học tập">
+    <div class="stat"><span class="stat-icon">⭐</span><div><strong id="xpValue">0</strong><span>Điểm hôm nay</span></div></div>
+    <div class="stat"><span class="stat-icon">🏆</span><div><strong id="lessonValue">0</strong><span>Bài đã hoàn thành</span></div></div>
+    <div class="stat"><span class="stat-icon">🎯</span><div><strong>15 phút</strong><span>Mục tiêu mỗi ngày</span></div></div>
+  </section>
+  <div class="home-grid">
+    <section class="home-panel">
+      <div class="panel-heading"><div><h2>Tiếp tục học</h2><p>Chọn một bài để bắt đầu luyện tập</p></div><a id="showAllLessons">Xem tất cả</a></div>
+      <div class="lesson-grid">
+        <button class="lesson blue" data-topic="Phép cộng và trừ" data-mode="add"><small>BÀI 01 · LỚP 1</small><h3>Phép cộng vui vẻ</h3><p>Ôn tập cộng trong phạm vi 20</p><span class="lesson-art">➕</span></button>
+        <button class="lesson yellow" data-topic="Bảng nhân" data-mode="multiply"><small>BÀI 02 · LỚP 2</small><h3>Thợ săn bảng nhân</h3><p>Chinh phục bảng nhân 2, 5, 10</p><span class="lesson-art">✖️</span></button>
+        <button class="lesson green" data-topic="Phân số cơ bản" data-mode="fraction"><small>BÀI 03 · LỚP 4</small><h3>Vương quốc phân số</h3><p>Nhận biết và so sánh phân số</p><span class="lesson-art">🍕</span></button>
+        <button class="lesson pink" data-topic="Hình học" data-mode="geometry"><small>BÀI 04 · LỚP 3</small><h3>Nhà thám hiểm hình học</h3><p>Khám phá chu vi và diện tích</p><span class="lesson-art">📐</span></button>
+      </div>
+      <div class="tool-strip"><button class="btn primary" id="quickPracticeBtn" type="button">⚡ Luyện tập nhanh</button><button class="btn" id="showUploadBtn" type="button">📄 Tạo bài từ tài liệu</button></div>
+    </section>
+    <aside>
+      <section class="daily-card"><h2>Mục tiêu hôm nay</h2><p>Hoàn thành 5 câu hỏi để nhận thêm sao và giữ chuỗi học tập!</p><div class="daily-progress"><span id="dailyProgress"></span></div><small id="dailyLabel">0/5 câu hỏi</small><button class="btn" id="dailyPracticeBtn" type="button">Bắt đầu ngay →</button></section>
+      <section class="home-panel" style="margin-top:18px"><div class="panel-heading"><div><h2>Bài học gợi ý</h2><p>Phù hợp với bạn hôm nay</p></div></div><div class="quick-list"><div class="quick-item"><span class="quick-icon">🧠</span><div><b>Toán mẹo mỗi ngày</b><small>3 phút · Dễ</small></div></div><div class="quick-item"><span class="quick-icon">🧩</span><div><b>Điền số còn thiếu</b><small>5 phút · Vừa</small></div></div><div class="quick-item"><span class="quick-icon">🎨</span><div><b>Hình học quanh em</b><small>7 phút · Dễ</small></div></div></div></section>
+    </aside>
+  </div>
+  <div class="section-label hidden" id="practiceLabel">Tạo bài luyện tập từ tài liệu</div>
+  <div class="wrap">
 
   <!-- STEP 1: upload -->
-  <div class="card" id="uploadCard">
+  <div class="card hidden" id="uploadCard">
     <div class="step-title"><span class="step-num">1</span> Tải tài liệu (Word hoặc PDF)</div>
     <div class="dropzone" id="dropzone">
       <span class="emoji">📄</span>
@@ -394,8 +472,9 @@
     </div>
   </div>
 
-  <p class="footnote">SmartLearning dùng AI để soạn câu hỏi từ nội dung bạn tải lên — nội dung tài liệu chỉ được dùng để tạo đề, không được lưu trữ ở nơi khác.</p>
+  <p class="footnote">MathJoy dùng AI để tạo bài luyện tập phù hợp với nội dung bạn tải lên — tài liệu không được lưu trữ.</p>
 </div>
+</main>
 
 <script>
 pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
@@ -467,6 +546,41 @@ function isValidQuestion(q){
 }
 const reviewToggle = document.getElementById('reviewToggle');
 const reviewList = document.getElementById('reviewList');
+const uploadCard = document.getElementById('uploadCard');
+const practiceLabel = document.getElementById('practiceLabel');
+const lessonButtons = document.querySelectorAll('.lesson');
+const dailyProgress = document.getElementById('dailyProgress');
+const dailyLabel = document.getElementById('dailyLabel');
+const xpValue = document.getElementById('xpValue');
+const lessonValue = document.getElementById('lessonValue');
+const streakChip = document.getElementById('streakChip');
+
+const progressState = JSON.parse(localStorage.getItem('mathjoy-progress') || '{"xp":0,"lessons":0,"answered":0,"streak":0}');
+function saveProgress(){ localStorage.setItem('mathjoy-progress', JSON.stringify(progressState)); }
+function updateProgress(){
+  xpValue.textContent = progressState.xp;
+  lessonValue.textContent = progressState.lessons;
+  streakChip.textContent = `🔥 ${progressState.streak} ngày`;
+  dailyProgress.style.width = `${Math.min(100, (progressState.answered / 5) * 100)}%`;
+  dailyLabel.textContent = `${Math.min(5, progressState.answered)}/5 câu hỏi`;
+}
+updateProgress();
+
+function openPractice(topic = 'Phép cộng và trừ'){
+  practiceLabel.classList.remove('hidden');
+  uploadCard.classList.remove('hidden');
+  hintInput.value = `Toán tiểu học - ${topic}`;
+  uploadCard.scrollIntoView({behavior:'smooth', block:'start'});
+}
+document.getElementById('showUploadBtn').addEventListener('click', () => openPractice());
+document.getElementById('showAllLessons').addEventListener('click', () => openPractice('Toán tiểu học tổng hợp'));
+document.getElementById('dailyPracticeBtn').addEventListener('click', () => openPractice('Phép cộng và trừ'));
+document.getElementById('quickPracticeBtn').addEventListener('click', () => openPractice('Toán mẹo mỗi ngày'));
+lessonButtons.forEach(button => button.addEventListener('click', () => openPractice(button.dataset.topic)));
+document.getElementById('logoutBtn').addEventListener('click', () => {
+  localStorage.removeItem('learnhub-session');
+  window.location.replace('/auth');
+});
 
 // ---------- Upload handling ----------
 dropzone.addEventListener('click', () => fileInput.click());
@@ -868,6 +982,12 @@ function showResults(){
 
   const total = state.quiz.length;
   const pct = Math.round((state.score/total)*100);
+  progressState.xp += state.score * 10;
+  progressState.lessons += 1;
+  progressState.answered += total;
+  progressState.streak = Math.max(1, progressState.streak);
+  saveProgress();
+  updateProgress();
   resultScore.textContent = `${state.score}/${total}`;
 
   if(pct >= 80){ resultEmoji.textContent='🏆'; resultTitle.textContent='Xuất sắc!'; resultMsg.textContent='Bé nắm bài rất chắc rồi đó!'; }
