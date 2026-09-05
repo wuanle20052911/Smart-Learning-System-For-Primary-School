@@ -13,3 +13,21 @@ body { min-height: 100vh; }
 .submit { width:100%; padding:10px; border:2px solid #9d4b1d; border-radius:13px; background:linear-gradient(#ff9415,#ff7010); color:#fff; box-shadow:0 5px 0 #9a431c; cursor:pointer; font:800 12px 'Baloo 2',sans-serif; }.submit:active { transform:translateY(3px); box-shadow:0 2px 0 #9a431c; }.submit:disabled { opacity:.6; cursor:wait; }.message { min-height:16px; margin-top:8px; text-align:center; font-size:10px; font-weight:700; }.message.error { color:#bd3f38; }.message.success { color:#298050; }.switch-text { margin:10px 0 0; color:#ad8d7c; font-size:9px; text-align:center; }.switch-text button { padding:0; border:0; background:none; color:#f2751e; cursor:pointer; font:800 9px 'Quicksand',sans-serif; }.socials,.hidden { display:none!important; }footer { position:absolute; right:0; bottom:19px; left:0; color:rgba(255,255,255,.9); font-size:9px; font-weight:600; text-align:center; }
 @media (max-width:600px) { .auth-shell { padding:18px 16px 82px; }.brand { top:18px; left:16px; }.help-chip,.lesson-chip,.badge-chip,.shape,.bush,.fence { display:none; }.welcome-banner { margin-top:74px; margin-bottom:24px; }.welcome-banner h1 { font-size:20px; }.form-panel { width:min(100%,350px); } footer { bottom:12px; padding:0 12px; } }
 @media (min-width:601px) and (max-height:700px) { .welcome-banner { margin-top:60px; margin-bottom:20px; }.form-panel { transform:scale(.9); transform-origin:top center; } footer { bottom:10px; } }
+
+.corner-math,.study-math,.study-shape{display:none}
+@media (min-width:601px){
+	.corner-math,.study-math{position:absolute;z-index:1;display:block;font-family:'Baloo 2',sans-serif;font-weight:800;line-height:1;box-shadow:0 5px 0 rgba(113,71,49,.2)}
+	.corner-math{padding:12px 17px;border:3px solid #fff;border-radius:18px;font-size:clamp(20px,2.2vw,34px)}
+	.corner-math-top-left{top:17%;left:8%;color:#d85d72;background:#ffd6df;transform:rotate(-7deg)}
+	.corner-math-top-right{top:18%;right:8%;color:#b47b11;background:#ffedaa;transform:rotate(7deg)}
+	.corner-math-bottom-left{bottom:15%;left:8%;color:#3789aa;background:#c9ebf6;transform:rotate(6deg)}
+	.corner-math-bottom-right{right:8%;bottom:15%;color:#32938f;background:#c7eee5;transform:rotate(-6deg)}
+	.study-math{padding:12px 16px;border:3px solid #fff;border-radius:16px;font-size:clamp(16px,1.7vw,26px);line-height:1.2}
+	.study-math-left{top:41%;left:17%;color:#d26b50;background:#ffe0b8;transform:rotate(-4deg)}
+	.study-math-right{top:38%;right:16%;color:#3e9296;background:#d7f2e8;transform:rotate(4deg)}
+	.study-shape{position:absolute;z-index:1;display:block;box-shadow:0 5px 0 rgba(113,71,49,.18)}
+	.study-triangle{top:33%;left:28%;width:0;height:0;border-left:32px solid transparent;border-right:32px solid transparent;border-bottom:58px solid #ee91a3;transform:rotate(-10deg)}
+	.study-rectangle{top:32%;right:27%;width:92px;height:52px;border:5px solid #fff;border-radius:10px;background:#a9d9f0;transform:rotate(9deg)}
+	.study-square{bottom:25%;left:28%;width:64px;height:64px;border:5px solid #fff;border-radius:10px;background:#ffd46e;transform:rotate(8deg)}
+	.study-circle{right:27%;bottom:24%;width:70px;height:70px;border:5px solid #fff;border-radius:50%;background:#ef8792;transform:rotate(-8deg)}
+}
