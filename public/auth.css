@@ -55,3 +55,12 @@ body { min-height: 100vh; }
 	.study-square{bottom:25%;left:28%;width:64px;height:64px;border:5px solid #fff;border-radius:10px;background:#ffd46e;transform:rotate(8deg)}
 	.study-circle{right:27%;bottom:24%;width:70px;height:70px;border:5px solid #fff;border-radius:50%;background:#ef8792;transform:rotate(-8deg)}
 }
+	@media (min-width:601px){
+		.form-panel{width:min(100%,820px);z-index:1}
+		.form-wrap{width:min(100%,470px);margin:145px auto 28px;padding:26px 30px 24px}
+		.study-shape,.corner-math,.study-math{z-index:4}
+		.study-triangle{top:30%;left:14%}
+		.study-rectangle{top:29%;right:13%}
+		.study-square{bottom:22%;left:14%}
+		.study-circle{right:13%;bottom:21%}
+	}
