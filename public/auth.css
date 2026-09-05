@@ -64,3 +64,16 @@ body { min-height: 100vh; }
 		.study-square{bottom:22%;left:14%}
 		.study-circle{right:13%;bottom:21%}
 	}
+
+@media (min-width:601px){
+	.shape{display:none!important}
+	.shape-one{top:22%;left:18%}.shape-two{top:28%;right:18%}.shape-three{top:46%;right:17%;font-size:22px}.shape-four{top:58%;left:19%}.shape-five{top:64%;right:20%;font-size:18px}
+	.corner-math{padding:9px 14px;border-width:3px;border-radius:15px;font-size:clamp(18px,1.8vw,28px);box-shadow:0 4px 0 rgba(113,71,49,.18)}
+	.corner-math-top-left{top:15%;left:5%}.corner-math-top-right{top:16%;right:5%}.corner-math-bottom-left{bottom:13%;left:5%}.corner-math-bottom-right{right:5%;bottom:13%}
+	.study-math{padding:10px 13px;border-width:3px;border-radius:14px;font-size:clamp(15px,1.45vw,22px);box-shadow:0 4px 0 rgba(113,71,49,.16)}
+	.study-math-left{top:39%;left:5%}.study-math-right{top:37%;right:4%}
+	.study-triangle{top:31%;left:20%;border-left-width:25px;border-right-width:25px;border-bottom-width:45px}
+	.study-rectangle{top:29%;right:19%;width:72px;height:41px;border-width:4px}
+	.study-square{bottom:24%;left:20%;width:50px;height:50px;border-width:4px}
+	.study-circle{right:19%;bottom:23%;width:56px;height:56px;border-width:4px}
+}
