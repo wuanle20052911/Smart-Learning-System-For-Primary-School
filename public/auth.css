@@ -15,6 +15,29 @@ body { min-height: 100vh; }
 @media (max-width:600px) { .auth-shell { padding:18px 16px 82px; }.brand { top:18px; left:16px; }.help-chip,.lesson-chip,.badge-chip,.shape,.bush,.fence { display:none; }.welcome-banner { margin-top:74px; margin-bottom:24px; }.welcome-banner h1 { font-size:20px; }.form-panel { width:min(100%,350px); } footer { bottom:12px; padding:0 12px; } }
 @media (min-width:601px) and (max-height:700px) { .welcome-banner { margin-top:60px; margin-bottom:20px; }.form-panel { transform:scale(.9); transform-origin:top center; } footer { bottom:10px; } }
 
+@media (min-width:601px){
+	.form-panel{width:min(100%,520px);padding:0;overflow:hidden;background:#fff;border-radius:28px;box-shadow:0 12px 0 #713e2d}
+	.login-art{position:absolute;inset:0;height:auto;margin:0;border:0;border-radius:0;background:#fff;z-index:0}
+	.login-art img{object-fit:cover;object-position:center center}
+	.form-wrap{position:relative;z-index:1;margin:152px 28px 28px;padding:22px 26px 20px;border:3px solid #75402d;border-radius:20px;background:rgba(255,250,240,.94);box-shadow:0 5px 0 rgba(113,62,45,.3)}
+}
+@media (max-width:600px){
+	.form-panel{width:min(100%,350px);padding:0;overflow:hidden}
+	.login-art{position:absolute;inset:0;height:auto;margin:0;border:0;border-radius:0;z-index:0}
+	.login-art img{object-fit:cover;object-position:center center}
+	.form-wrap{position:relative;z-index:1;margin:112px 14px 18px;padding:18px 16px 15px;border:2px solid #75402d;border-radius:17px;background:rgba(255,250,240,.95)}
+}
+@media (min-width:601px){
+	.form-panel{width:min(100%,760px);background:#a6e2e2}
+	.login-art{background:#a6e2e2}
+	.login-art img{object-fit:contain;object-position:center center}
+	.form-wrap{width:min(100%,390px);margin:152px auto 28px}
+}
+@media (max-width:600px){
+	.login-art{background:#a6e2e2}
+	.login-art img{object-fit:contain;object-position:center center}
+}
+
 .corner-math,.study-math,.study-shape{display:none}
 @media (min-width:601px){
 	.corner-math,.study-math{position:absolute;z-index:1;display:block;font-family:'Baloo 2',sans-serif;font-weight:800;line-height:1;box-shadow:0 5px 0 rgba(113,71,49,.2)}
