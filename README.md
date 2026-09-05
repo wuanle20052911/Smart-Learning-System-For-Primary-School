@@ -54,13 +54,22 @@ Dự án web tạo bộ câu hỏi ôn tập cho học sinh tiểu học bằng 
    - Chạy nội dung file `supabase/001_create_users.sql`.
    - Supabase Auth vẫn quản lý mật khẩu trong `auth.users`; bảng `public.users` chỉ lưu profile và role.
 
-7. Chạy server:
+7. Tạo bảng bài học:
+
+   - Trong **SQL Editor**, chạy tiếp nội dung file `supabase/002_create_lessons.sql`.
+   - Nếu đã có tài khoản giáo viên từ trước, chạy thêm `supabase/003_sync_existing_user_roles.sql` để đồng bộ role.
+   - Chạy `supabase/004_add_lesson_content.sql` để thêm nơi lưu nội dung Word/PDF của từng bài học.
+   - Nếu bấm lưu vẫn bị lỗi quyền, chạy thêm `supabase/005_fix_lesson_policies.sql`.
+   - Tài khoản đăng ký với vai trò **Giáo viên** có thể mở `http://localhost:3000/teacher` để thêm, sửa, xoá và xuất bản bài học.
+   - Trang học sinh chỉ hiển thị các bài học đã được giáo viên xuất bản.
+
+8. Chạy server:
 
    ```bash
    npm start
    ```
 
-8. Mở trình duyệt tại:
+9. Mở trình duyệt tại:
 
    ```text
    http://localhost:3000
@@ -74,6 +83,8 @@ Dự án web tạo bộ câu hỏi ôn tập cho học sinh tiểu học bằng 
 - `routes/authRoutes.js`: định tuyến `/api/auth/login` và `/api/auth/register`.
 - `controllers/authController.js`: kiểm tra input và định dạng response.
 - `models/userModel.js`: giao tiếp với Supabase Auth.
+- `supabase/002_create_lessons.sql`: bảng bài học và chính sách RLS.
+- `views/teacher.html` và `public/teacher.*`: bảng điều khiển bài học của giáo viên.
 
 ## API chính
 

@@ -1,53 +1,56 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="vi">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>LearnHub | Sign in</title>
+  <title>MathJoy | Đăng nhập</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/public/auth.css">
 </head>
 <body>
   <main class="auth-shell">
-    <section class="brand-panel">
-      <a class="brand" href="/"><span class="brand-mark">⌂</span><strong>LearnHub</strong></a>
-      <div class="brand-copy">
-        <p class="eyebrow">WELCOME TO THE FUTURE OF LEARNING</p>
-        <h1>Unlock your potential, one module at a time</h1>
-        <p class="intro">Join learners worldwide mastering new skills and advancing their futures with our learning platform.</p>
-        <div class="learning-art" aria-hidden="true"><span>75%</span><span>✦</span><span>↗</span><b>LEARN<br>GROW<br>ACHIEVE</b></div>
-      </div>
-      <blockquote>“The intuitive interface and rich content options make learning feel effortless.”<cite>Sarah Jenkins · Director of Engineering</cite></blockquote>
+    <a class="brand" href="/" aria-label="MathJoy trang chủ"><span class="brand-mark">➗</span><span><strong>MathJoy</strong><small>HỌC TOÁN THẬT VUI</small></span></a>
+    <a class="help-chip" href="#help">Trợ giúp học tập</a>
+    <div class="floating-chip lesson-chip">💡 Học vui hơn mỗi ngày!</div>
+    <div class="floating-chip badge-chip">🏆 Nhận 100+ huy hiệu</div>
+    <span class="shape shape-one">✦</span><span class="shape shape-two">━</span><span class="shape shape-three">%</span><span class="shape shape-four">÷</span><span class="shape shape-five">+</span>
+    <div class="bush bush-left" aria-hidden="true"><i></i><i></i><i></i><b></b><b></b></div>
+    <div class="bush bush-right" aria-hidden="true"><i></i><i></i><i></i><b></b><b></b></div>
+    <div class="fence fence-left" aria-hidden="true"><i></i><i></i><i></i></div>
+    <div class="fence fence-right" aria-hidden="true"><i></i><i></i><i></i></div>
+
+    <section class="welcome-banner">
+      <h1>Chào mừng bạn nhỏ đến với MathJoy! 👋</h1>
+      <p>Cùng khám phá những điều thú vị trong thế giới Toán học nhé.</p>
     </section>
 
     <section class="form-panel">
       <div class="form-wrap">
-        <a class="brand mobile-brand" href="/"><span class="brand-mark">⌂</span><strong>LearnHub</strong></a>
-        <div class="tabs" role="tablist">
-          <button class="tab active" data-mode="login" role="tab">Sign in</button>
-          <button class="tab" data-mode="register" role="tab">Create account</button>
-        </div>
         <div class="heading">
-          <h2 id="form-title">Welcome back</h2>
-          <p id="form-description">Please enter your credentials to access your student dashboard.</p>
+          <h2 id="form-title">Đăng nhập cổng học tập</h2>
+          <p id="form-description">Chọn đúng vai trò của mình để bắt đầu nhé</p>
         </div>
+        <p class="section-label role-label">1. VAI TRÒ CỦA BẠN LÀ:</p>
+        <div class="role-picker" aria-label="Chọn vai trò">
+          <button type="button" class="role-button active" data-role="student"><span class="role-icon">⌂</span><b>Học sinh</b></button>
+          <button type="button" class="role-button" data-role="teacher"><span class="role-icon">▣</span><b>Giáo viên</b></button>
+          <button type="button" class="role-button" data-role="admin"><span class="role-icon">♙</span><b>Quản lý</b></button>
+        </div>
+        <p class="section-label">2. NHẬP THÔNG TIN TÀI KHOẢN:</p>
         <form id="auth-form">
-          <div class="field register-only hidden"><label for="full-name">Full name</label><input id="full-name" type="text" autocomplete="name" placeholder="Alex Morrison"></div>
-          <div class="field"><label for="email">Email address</label><input id="email" type="email" autocomplete="email" placeholder="alex.morrison@design.edu" required></div>
-          <div class="field"><label for="password">Password</label><div class="password-input"><input id="password" type="password" autocomplete="current-password" placeholder="••••••••" required><button type="button" id="toggle-password" aria-label="Show password">◉</button></div></div>
-          <div class="form-options login-only"><label class="checkbox"><input id="remember" type="checkbox" checked> Remember me</label><a href="#" id="forgot-link">Forgot password?</a></div>
-          <button class="submit" id="submit-button" type="submit">Sign in</button>
+          <div class="field register-only hidden"><label for="full-name">Tên đầy đủ</label><input id="full-name" type="text" autocomplete="name" placeholder="Nguyễn Văn An"></div>
+          <div class="field"><label for="email">Tên đăng nhập hoặc Email</label><div class="input-with-icon"><span>♙</span><input id="email" type="email" autocomplete="email" placeholder="Viết tài khoản học tập vào đây..." required></div></div>
+          <div class="field"><div class="label-row"><label for="password">Mật khẩu bí mật</label><a href="#" id="forgot-link" class="login-only">Quên mật khẩu?</a></div><div class="password-input"><span>♧</span><input id="password" type="password" autocomplete="current-password" placeholder="••••••••" required><button type="button" id="toggle-password" aria-label="Hiện mật khẩu">◉</button></div></div>
+          <button class="submit" id="submit-button" type="submit">ĐĂNG NHẬP NGAY </button>
         </form>
         <div id="message" class="message" role="status"></div>
-        <div class="divider login-only"><span>or sign in with</span></div>
-        <div class="socials login-only"><button type="button" class="social" data-provider="google">G&nbsp;&nbsp; Google</button><button type="button" class="social" data-provider="azure">⊗&nbsp;&nbsp; Microsoft</button></div>
-        <p class="switch-text"><span id="switch-label">Don't have an account?</span> <button type="button" id="switch-mode">Create account</button></p>
-        <footer><a href="#">Terms of Service</a><a href="#">Privacy Policy</a><a href="#">Need Help?</a></footer>
+        <div class="socials login-only hidden"><button type="button" class="social" data-provider="google">Google</button><button type="button" class="social" data-provider="azure">Microsoft</button></div>
+        <p class="switch-text"><span id="switch-label">Chưa có tài khoản MathJoy?</span> <button type="button" id="switch-mode">Đăng ký thành viên</button></p>
       </div>
     </section>
+    <footer><span>© 2026 MathJoy Việt Nam. Phát triển bởi những người yêu Toán dành cho trẻ em Việt Nam.</span></footer>
   </main>
-  <script src="/public/auth.js"></script>
+  <script src="/public/auth.js?v=2"></script>
 </body>
 </html>
-

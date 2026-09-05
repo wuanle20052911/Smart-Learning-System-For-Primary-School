@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MathJoy | Bảng giáo viên</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/public/teacher.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+</head>
+<body>
+  <main class="teacher-shell">
+    <header class="teacher-header">
+      <div><a href="/" class="brand">✦ MathJoy</a><p>Quản lý bài học</p></div>
+      <div class="header-actions"><a href="/learn">Trang học sinh</a><button class="logout-button" id="logoutBtn" type="button" aria-label="Đăng xuất" title="Đăng xuất">↪</button></div>
+    </header>
+    <section class="intro"><div><h1>Bảng điều khiển giáo viên</h1><p>Thêm, chỉnh sửa và xuất bản các bài học cho học sinh.</p></div><button class="primary" id="newLessonBtn" type="button">+ Thêm bài học</button></section>
+    <p id="message" class="message" role="status"></p>
+    <section class="layout">
+      <form class="panel lesson-form hidden" id="lessonForm">
+        <h2 id="formTitle">Thêm bài học</h2>
+        <input id="lessonId" type="hidden">
+        <label>Tên bài học<input id="title" required maxlength="120" placeholder="Ví dụ: Phép cộng vui vẻ"></label>
+        <label>Mô tả<textarea id="description" rows="3" placeholder="Mục tiêu hoặc nội dung chính"></textarea></label>
+        <div class="two-cols"><label>Môn học<input id="subject" value="Toán"></label><label>Lớp<input id="grade" value="Tiểu học"></label></div>
+        <div class="two-cols"><label>Chủ đề<input id="topic" placeholder="Phép cộng và trừ"></label><label>Biểu tượng<input id="icon" value="📚" maxlength="4"></label></div>
+        <div class="two-cols"><label>Màu thẻ<select id="color"><option value="blue">Xanh dương</option><option value="yellow">Vàng</option><option value="green">Xanh lá</option><option value="pink">Hồng</option></select></label><label class="checkbox"><input id="published" type="checkbox"> Xuất bản ngay</label></div>
+        <label>Tài liệu bài học (.docx hoặc .pdf)<input id="lessonFile" type="file" accept=".docx,.pdf"><small id="fileStatus">Chưa có tài liệu</small></label>
+        <div id="contentPreview" class="content-preview hidden"></div>
+        <input id="content" type="hidden"><input id="source_filename" type="hidden">
+        <div class="form-actions"><button class="primary" type="submit">Lưu bài học</button><button id="cancelBtn" type="button">Huỷ</button></div>
+      </form>
+      <section class="panel"><div class="panel-title"><h2>Bài học của tôi</h2><span id="lessonCount">0 bài</span></div><div id="lessonList" class="lesson-list"><p>Đang tải...</p></div></section>
+    </section>
+  </main>
+  <script src="/public/teacher.js"></script>
+</body>
+</html>

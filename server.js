@@ -4,6 +4,7 @@ const express = require('express');
 const path = require('path');
 const { generateQuizHTML, generateQuizTXT } = require('./quiz-generator');
 const authRoutes = require('./routes/authRoutes');
+const lessonRoutes = require('./routes/lessonRoutes');
 const requireAuth = require('./middleware/requireAuth');
 
 const app = express();
@@ -82,6 +83,7 @@ function isValidQuestion(q) {
 
 app.use(express.json({ limit: '10mb' }));
 app.use('/api/auth', authRoutes);
+app.use('/api/lessons', lessonRoutes);
 
 app.get('/health', (req, res) => {
   res.json({ ok: true, status: 'healthy', ollama: OLLAMA_BASE_URL, model: OLLAMA_MODEL });
@@ -241,14 +243,23 @@ app.post('/api/download-quiz', requireAuth, (req, res) => {
   }
 });
 
-app.use(express.static(__dirname));
+app.use('/public', express.static(path.join(__dirname, 'public')));
 
 app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'smartlearning-quiz-generator.html'));
+  res.setHeader('Cache-Control', 'no-store');
+  res.sendFile(path.join(__dirname, 'views', 'auth.html'));
 });
 
 app.get('/auth', (req, res) => {
-  res.sendFile(path.join(__dirname, 'views', 'auth.html'));
+  res.redirect('/');
+});
+
+app.get('/learn', (req, res) => {
+  res.sendFile(path.join(__dirname, 'views', 'quiz-generator.html'));
+});
+
+app.get('/teacher', (req, res) => {
+  res.sendFile(path.join(__dirname, 'views', 'teacher.html'));
 });
 
 app.use((req, res) => {

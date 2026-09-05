@@ -14,22 +14,25 @@ async function login(req, res) {
 
   try {
     const data = await userModel.signIn(email.trim().toLowerCase(), password);
-    return res.json({ user: data.user, session: data.session });
+    return res.json({ user: data.user, profile: data.profile, session: data.session });
   } catch (error) {
     return res.status(401).json({ error: error.message || 'Unable to sign in.' });
   }
 }
 
 async function register(req, res) {
-  const { email, password, fullName } = req.body || {};
+  const { email, password, fullName, role = 'student' } = req.body || {};
   const validationError = validateCredentials(email, password);
   if (validationError) return res.status(400).json({ error: validationError });
   if (!fullName || fullName.trim().length < 2) {
     return res.status(400).json({ error: 'Please enter your full name.' });
   }
+  if (!['student', 'teacher'].includes(role)) {
+    return res.status(400).json({ error: 'Invalid account role.' });
+  }
 
   try {
-    const data = await userModel.register(email.trim().toLowerCase(), password, fullName.trim());
+    const data = await userModel.register(email.trim().toLowerCase(), password, fullName.trim(), role);
     return res.status(201).json({
       user: data.user,
       session: data.session,
@@ -41,4 +44,3 @@ async function register(req, res) {
 }
 
 module.exports = { login, register };
-

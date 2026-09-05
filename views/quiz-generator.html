@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MathJoy – Học toán thật vui</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <link rel="stylesheet" href="/public/quiz-generator.css">
+</head>
+<body>
+<header class="topbar">
+  <a class="brand" href="/">
+    <span class="brand-mark">✦</span>
+    <span><span class="brand-name">MathJoy</span><span class="brand-subtitle">HỌC TOÁN THẬT VUI</span></span>
+  </a>
+  <div class="top-actions">
+    <button class="nav-chip" id="streakChip" type="button">🔥 0 ngày</button>
+    <a class="nav-chip hidden" id="teacherLink" href="/teacher">Bảng giáo viên</a>
+    <button class="nav-chip" id="logoutBtn" type="button" aria-label="Đăng xuất">↪</button>
+    <div class="avatar" aria-label="Học sinh">🧒</div>
+  </div>
+</header>
+<main class="home">
+  <section class="welcome">
+    <div><h1>Chào bạn nhỏ! 👋</h1><p>Cùng khám phá những điều thú vị trong thế giới Toán học nhé.</p></div>
+    <div class="mascot" aria-hidden="true">🧮</div>
+  </section>
+  <section class="stats" aria-label="Tiến độ học tập">
+    <div class="stat"><span class="stat-icon">⭐</span><div><strong id="xpValue">0</strong><span>Điểm hôm nay</span></div></div>
+    <div class="stat"><span class="stat-icon">🏆</span><div><strong id="lessonValue">0</strong><span>Bài đã hoàn thành</span></div></div>
+    <div class="stat"><span class="stat-icon">🎯</span><div><strong>15 phút</strong><span>Mục tiêu mỗi ngày</span></div></div>
+  </section>
+  <div class="home-grid">
+    <section class="home-panel">
+      <div class="panel-heading"><div><h2>Tiếp tục học</h2><p>Chọn một bài để bắt đầu luyện tập</p></div><a id="showAllLessons">Xem tất cả</a></div>
+      <div class="lesson-grid" id="lessonGrid"><p class="lesson-empty">Đang tải bài học...</p></div>
+      <div class="tool-strip"><button class="btn primary" id="quickPracticeBtn" type="button">⚡ Luyện tập nhanh</button><button class="btn" id="showUploadBtn" type="button">📄 Tạo bài từ tài liệu</button></div>
+    </section>
+    <aside>
+      <section class="daily-card"><h2>Mục tiêu hôm nay</h2><p>Hoàn thành 5 câu hỏi để nhận thêm sao và giữ chuỗi học tập!</p><div class="daily-progress"><span id="dailyProgress"></span></div><small id="dailyLabel">0/5 câu hỏi</small><button class="btn" id="dailyPracticeBtn" type="button">Bắt đầu ngay →</button></section>
+      <section class="home-panel" style="margin-top:18px"><div class="panel-heading"><div><h2>Bài học gợi ý</h2><p>Phù hợp với bạn hôm nay</p></div></div><div class="quick-list"><div class="quick-item"><span class="quick-icon">🧠</span><div><b>Toán mẹo mỗi ngày</b><small>3 phút · Dễ</small></div></div><div class="quick-item"><span class="quick-icon">🧩</span><div><b>Điền số còn thiếu</b><small>5 phút · Vừa</small></div></div><div class="quick-item"><span class="quick-icon">🎨</span><div><b>Hình học quanh em</b><small>7 phút · Dễ</small></div></div></div></section>
+    </aside>
+  </div>
+  <div class="section-label hidden" id="practiceLabel">Tạo bài luyện tập từ tài liệu</div>
+  <div class="wrap">
+
+  <!-- STEP 1: upload -->
+  <div class="card hidden" id="uploadCard">
+    <div class="step-title"><span class="step-num">1</span> Tải tài liệu (Word hoặc PDF)</div>
+    <div class="dropzone" id="dropzone">
+      <span class="emoji">📄</span>
+      <strong>Bấm để chọn file</strong> hoặc kéo thả vào đây<br>
+      <small>Hỗ trợ .docx và .pdf</small>
+      <input type="file" id="fileInput" accept=".docx,.pdf">
+    </div>
+    <div id="fileChipWrap"></div>
+    <div class="preview-box" id="previewBox"></div>
+    <div class="error-box hidden" id="uploadError"></div>
+  </div>
+
+  <!-- STEP 2: settings -->
+  <div class="card hidden" id="settingsCard">
+    <div class="step-title"><span class="step-num">2</span> Tuỳ chỉnh đề ôn tập</div>
+    <div class="settings-grid">
+      <div class="field">
+        <label>Độ khó</label>
+        <div class="pill-group" id="difficultyGroup">
+          <button class="pill active" data-val="dễ">😊 Dễ</button>
+          <button class="pill" data-val="vừa">🙂 Vừa</button>
+          <button class="pill" data-val="khó">🤔 Khó</button>
+        </div>
+      </div>
+      <div class="field">
+        <label>Số câu hỏi</label>
+        <div class="num-stepper">
+          <button id="decBtn" type="button">−</button>
+          <span id="qCountLabel">5</span>
+          <button id="incBtn" type="button">+</button>
+        </div>
+      </div>
+    </div>
+    <div class="field" style="margin-top:18px;">
+      <label>Dạng bài tập</label>
+      <div class="pill-group" id="questionTypeGroup">
+        <button class="pill active" data-val="multiple-choice">🔘 Trắc nghiệm</button>
+        <button class="pill" data-val="true-false">✅ Đúng / Sai</button>
+        <button class="pill" data-val="fill-blank">✏️ Điền vào chỗ trống</button>
+        <button class="pill" data-val="matching">🔗 Nối</button>
+        <button class="pill" data-val="short-answer">💬 Trả lời ngắn</button>
+      </div>
+    </div>
+    <div class="field" style="margin-top:18px;">
+      <label>Lớp / chủ đề (không bắt buộc — giúp AI ra câu hỏi sát hơn)</label>
+      <input type="text" id="hintInput" placeholder="VD: Toán lớp 4 – Phân số">
+    </div>
+    <div class="btn-row">
+      <button class="btn" id="generateBtn">✨ Tạo bộ câu hỏi</button>
+    </div>
+    <div class="error-box hidden" id="genError"></div>
+  </div>
+
+  <!-- LOADING -->
+  <div class="card hidden" id="loadingCard">
+    <div class="loading-wrap">
+      <div class="spinner"></div>
+      <p id="loadingText">AI đang đọc tài liệu và soạn câu hỏi...</p>
+    </div>
+  </div>
+
+  <!-- QUIZ -->
+  <div class="card hidden" id="quizCard">
+    <div class="quiz-header">
+      <div class="q-count" id="qCounter">Câu 1/5</div>
+      <div class="progress-track"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+      <div class="score-tag" id="scoreTag">⭐ 0 điểm</div>
+    </div>
+    <div class="question-card">
+      <div class="q-text" id="qText"></div>
+      <div class="options" id="optionsWrap"></div>
+      <div id="feedbackWrap"></div>
+    </div>
+    <div class="btn-row">
+      <button class="btn secondary hidden" id="nextBtn">Câu tiếp theo →</button>
+    </div>
+  </div>
+
+  <!-- RESULTS -->
+  <div class="card hidden" id="resultsCard">
+    <div class="results">
+      <div class="big-emoji" id="resultEmoji">🎉</div>
+      <h2 id="resultTitle">Hoàn thành!</h2>
+      <div class="score-big" id="resultScore">0/0</div>
+      <p id="resultMsg" style="font-weight:600; color:var(--ink-soft);"></p>
+      <div class="btn-row">
+        <button class="btn" id="retryBtn">🔁 Làm bộ đề mới</button>
+        <button class="btn secondary" id="reviewToggle">📖 Xem lại đáp án</button>
+      </div>
+      <div class="review-list hidden" id="reviewList"></div>
+    </div>
+  </div>
+
+  <p class="footnote">MathJoy dùng AI để tạo bài luyện tập phù hợp với nội dung bạn tải lên — tài liệu không được lưu trữ.</p>
+</div>
+</main>
+
+<script src="/public/quiz-generator.js"></script>
+</body>
+</html>
