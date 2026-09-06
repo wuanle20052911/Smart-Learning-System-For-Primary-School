@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MathJoy</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/public/css/quiz-generator.css">
+  <link rel="stylesheet" href="/public/css/account.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="/learn"><span class="brand-mark">✦</span><span><span class="brand-name">MathJoy</span><span class="brand-subtitle">HỌC TOÁN THẬT VUI</span></span></a>
+    <div class="top-actions">
+      <a class="nav-chip" href="/learn">Trang học tập</a>
+      <button class="nav-chip" id="logoutBtn" type="button">Đăng xuất</button>
+    </div>
+  </header>
+  <main class="account-page">
+    <a class="back-link" href="/learn">← Về trang học tập</a>
+    <h1 id="pageTitle">Thông tin cá nhân</h1>
+    <section id="profilePanel" class="account-card">
+      <div class="profile-avatar-wrap">
+        <button id="avatarEditTrigger" class="avatar-edit-trigger" type="button" aria-label="Chỉnh sửa avatar" aria-expanded="false">
+          <img id="profileAvatarImage" class="profile-avatar-image" src="/public/img/avt/0ccb37e913a1419dc0063d7251243783.jpg" alt="Avatar học sinh">
+          <span class="avatar-edit-hint">Bạn muốn chỉnh sửa?</span>
+        </button>
+      </div>
+      <div id="avatarPicker" class="avatar-picker hidden" aria-label="Chọn avatar">
+        <div id="avatarOptions" class="avatar-options"></div>
+      </div>
+      <form id="profileForm" class="profile-form">
+        <label>Họ tên<input id="profileFullName" type="text" required maxlength="120"></label>
+        <label>Email<input id="profileEmail" type="email" readonly></label>
+        <label>Giới tính<select id="profileGender"><option value="">Chưa cập nhật</option><option value="male">Nam</option><option value="female">Nữ</option><option value="other">Khác</option></select></label>
+        <label>Ngày sinh<input id="profileBirthDate" type="date"></label>
+        <label>Lớp<input id="profileClass" type="text" readonly placeholder="Chưa được xếp lớp"></label>
+        <label>Vai trò<input id="profileRole" type="text" readonly></label>
+        <button class="save-profile" type="submit">Lưu thông tin</button>
+        <p id="profileMessage" class="profile-message" role="status"></p>
+      </form>
+    </section>
+    <section id="historyPanel" class="account-card hidden">
+      <div id="historyList" class="history-list"><p>Đang tải lịch sử làm bài...</p></div>
+    </section>
+  </main>
+  <script src="/public/js/account.js"></script>
+</body>
+</html>

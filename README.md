@@ -60,6 +60,12 @@ Dự án web tạo bộ câu hỏi ôn tập cho học sinh tiểu học bằng 
    - Nếu đã có tài khoản giáo viên từ trước, chạy thêm `supabase/003_sync_existing_user_roles.sql` để đồng bộ role.
    - Chạy `supabase/004_add_lesson_content.sql` để thêm nơi lưu nội dung Word/PDF của từng bài học.
    - Nếu bấm lưu vẫn bị lỗi quyền, chạy thêm `supabase/005_fix_lesson_policies.sql`.
+   - Chạy `supabase/006_create_quiz_attempts.sql` để lưu lịch sử làm bài và cho phép giáo viên theo dõi kết quả.
+   - Nếu đã chạy các migration trước đó, chạy thêm `supabase/009_store_quiz_answers.sql` để lưu đề, đáp án đã chọn và các câu trả lời sai.
+   - Chạy `supabase/010_add_profile_details.sql` để cho phép học sinh cập nhật họ tên, giới tính và ngày sinh; lớp học chỉ được hiển thị.
+   - Chạy `supabase/011_add_student_to_class.sql` để giáo viên thêm học sinh vào lớp bằng email.
+   - Chạy `supabase/007_create_mvp_learning.sql` để tạo lớp học, môn/chủ đề/kỹ năng, bài tập, câu hỏi và lượt nộp bài.
+   - Nếu gặp lỗi `infinite recursion detected in policy for relation classes/class_members`, chạy thêm `supabase/008_fix_class_rls_recursion.sql`.
    - Tài khoản đăng ký với vai trò **Giáo viên** có thể mở `http://localhost:3000/teacher` để thêm, sửa, xoá và xuất bản bài học.
    - Trang học sinh chỉ hiển thị các bài học đã được giáo viên xuất bản.
 

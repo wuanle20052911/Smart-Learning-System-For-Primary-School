@@ -274,8 +274,19 @@
   .brand-name{font:800 27px 'Baloo 2',sans-serif;letter-spacing:.2px;}
   .brand-subtitle{font-size:11px;font-weight:700;opacity:.88;display:block;margin-top:-7px;}
   .top-actions{display:flex;align-items:center;gap:10px;}
-  .nav-chip{display:flex;align-items:center;gap:6px;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.22);color:#fff;border-radius:999px;padding:8px 12px;font-weight:700;cursor:pointer;}
-  .avatar{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;background:#ffd455;border:3px solid #fff;color:#674b1b;font-size:21px;}
+  .nav-chip{display:flex;align-items:center;gap:6px;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.22);color:#fff;border-radius:999px;padding:8px 12px;font:800 14px 'Quicksand',sans-serif;cursor:pointer;text-decoration:none;}
+  .avatar{width:38px;height:38px;padding:0;border-radius:50%;display:grid;place-items:center;background:transparent;border:3px solid #075694;color:#674b1b;font-size:21px;overflow:hidden;}
+  .avatar img{width:100%;height:100%;object-fit:cover;border-radius:50%}
+  .avatar-icon{width:18px;height:18px;display:block;position:relative}.avatar-icon:before{content:'';position:absolute;width:8px;height:8px;border-radius:50%;background:#674b1b;top:0;left:5px}.avatar-icon:after{content:'';position:absolute;width:16px;height:8px;border-radius:10px 10px 4px 4px;background:#674b1b;bottom:0;left:1px}
+  .profile-menu-wrap{position:relative}
+  .avatar{cursor:pointer}
+  .profile-menu{position:absolute;right:0;top:50px;width:220px;max-width:calc(100vw - 28px);background:#fff9e8;color:#5d4028;border:3px solid #b96b26;border-radius:18px;padding:8px;box-shadow:0 8px 0 rgba(122,69,30,.25);z-index:20}
+  .profile-link{display:block;padding:11px 12px;border-radius:11px;color:#7e3b1e;font-weight:800;text-decoration:none}.profile-link:hover,.profile-link:focus{background:#ffd36b;color:#a83e1d}
+  .profile-card{display:flex;align-items:center;gap:10px;padding:8px;border-radius:13px;background:#ffd36b;border:2px solid #d78b27}
+  .profile-avatar{width:42px;height:42px;display:grid;place-items:center;border-radius:50%;background:#fff6d9;font-size:25px}
+  .profile-card strong,.profile-card small{display:block}.profile-card strong{color:#a83e1d;font:800 17px 'Baloo 2',sans-serif}.profile-card small{color:#7e3b1e;font-size:11px;font-weight:700}
+  .profile-section{padding:10px 4px 2px}.profile-section h3{margin:0 0 6px;color:#a83e1d;font:800 17px 'Baloo 2',sans-serif}.profile-section p{margin:4px 0;font-size:12px;font-weight:600;word-break:break-word}
+  .history-list{display:grid;gap:6px;max-height:180px;overflow:auto}.history-list>p{color:#8c683e}.history-item{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:7px 8px;background:#fff;border:2px solid #e2aa45;border-radius:10px}.history-item strong,.history-item small{display:block}.history-item strong{font-size:12px;color:#7e3b1e}.history-item small{font-size:10px;color:#8c683e}.history-item>b{color:#d14a1e;font:800 16px 'Baloo 2',sans-serif;white-space:nowrap}
   .home{max-width:1180px;margin:0 auto;padding:30px 20px 0;}
   .welcome{display:flex;align-items:center;justify-content:space-between;gap:24px;margin-bottom:24px;}
   .welcome h1{font-size:clamp(28px,4vw,42px);color:#153565;margin:0;}
@@ -287,14 +298,21 @@
   .home-grid{display:grid;grid-template-columns:minmax(0,1.65fr) minmax(280px,.8fr);gap:22px;align-items:start;}
   .home-panel{background:#fff;border:1px solid #e1ebf7;border-radius:22px;padding:22px;box-shadow:0 10px 30px rgba(45,91,145,.08);}
   .panel-heading{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:16px}.panel-heading h2{font-size:23px;margin:0;color:#1c3d70}.panel-heading p{margin:3px 0 0;color:#7c91ad;font-size:13px;font-weight:700}.panel-heading a{color:#2784e9;font-weight:800;font-size:13px;cursor:pointer;}
-  .lesson-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;}
+  .lesson-grid{display:grid;gap:18px;}
+  .lesson-group{display:grid;gap:10px}
+  .grade-heading{margin:0;padding:8px 12px;border-radius:12px;background:#dff1ff;color:#1d65a6;font:800 21px 'Baloo 2',sans-serif}
+  .chapter-group{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;padding-left:12px}
+  .chapter-group h4{grid-column:1/-1;margin:0;color:#557493;font-size:14px}
   .lesson-empty{grid-column:1/-1;text-align:center;color:#7890ad;font-weight:700;padding:24px;}
+  .assignment-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-top:18px}
+  .assignment-card{display:grid;gap:5px;text-align:left;padding:14px;border:3px solid #b96b26;border-radius:15px;background:#fff3c9;color:#7e3b1e;cursor:pointer;box-shadow:0 4px 0 #7a451e}
+  .assignment-card strong{font:800 19px 'Baloo 2',sans-serif;color:#a52c18}.assignment-card small,.assignment-card span{font-weight:700;font-size:12px}
   .lesson{border:0;border-radius:17px;padding:17px;text-align:left;min-height:145px;cursor:pointer;position:relative;overflow:hidden;transition:transform .18s,box-shadow .18s;color:#183a68;}
   .lesson:hover{transform:translateY(-4px);box-shadow:0 10px 18px rgba(36,95,160,.16)}.lesson small{font-weight:800;opacity:.72}.lesson h3{font:800 21px 'Baloo 2',sans-serif;margin:10px 0 3px}.lesson p{font-size:12px;font-weight:700;opacity:.78;margin:0}.lesson .lesson-art{position:absolute;right:12px;bottom:8px;font-size:38px}.lesson.blue{background:#e3f3ff}.lesson.yellow{background:#fff3c9}.lesson.green{background:#e6f8ed}.lesson.pink{background:#ffe8ee}
   .daily-card{background:#2f86eb;color:#fff;border-radius:22px;padding:22px;position:relative;overflow:hidden;box-shadow:0 12px 22px rgba(47,134,235,.2)}.daily-card:after{content:'+';position:absolute;right:20px;bottom:-26px;font:800 150px 'Baloo 2';opacity:.12}.daily-card h2{font-size:22px;margin:0}.daily-card p{font-weight:700;line-height:1.5;color:#e7f3ff}.daily-progress{height:10px;background:rgba(255,255,255,.28);border-radius:99px;overflow:hidden;margin:17px 0 8px}.daily-progress span{display:block;height:100%;width:35%;background:#ffd452;border-radius:inherit}.daily-card .btn{position:relative;z-index:1;background:#ffd452;color:#604d18;box-shadow:none;width:100%;justify-content:center;font-size:16px;padding:11px 16px}.quick-list{display:grid;gap:10px;margin-top:18px}.quick-item{display:flex;align-items:center;gap:11px;border:1px solid #e5edf7;border-radius:14px;padding:11px;background:#fbfdff}.quick-item b{font-size:13px}.quick-item small{display:block;color:#8498b2;font-weight:700;margin-top:2px}.quick-icon{width:34px;height:34px;border-radius:11px;display:grid;place-items:center;background:#fff0c5;font-size:18px}
   .tool-strip{display:flex;gap:12px;flex-wrap:wrap;margin:24px 0}.tool-strip .btn{font-size:14px;padding:11px 16px;background:#fff;color:#2776c5;border:1px solid #cfe2f6;box-shadow:none}.tool-strip .btn.primary{background:#2f86eb;color:#fff;border:0;box-shadow:0 7px 14px rgba(47,134,235,.22)}
   #uploadCard{margin-top:10px}.section-label{font:800 24px 'Baloo 2',sans-serif;color:#1c3d70;margin:28px 0 12px;}
-  @media(max-width:760px){.topbar{padding:13px 16px}.brand-subtitle{display:none}.nav-chip{font-size:0;padding:8px}.nav-chip:first-child{font-size:13px}.home{padding:24px 14px 0}.welcome{align-items:flex-start}.mascot{font-size:35px;padding:8px 14px}.home-grid{grid-template-columns:1fr}.stats{gap:8px}.stat{padding:12px 9px;gap:7px}.stat-icon{font-size:22px}.stat strong{font-size:18px}.stat span{font-size:10px}.lesson-grid{gap:10px}.lesson{min-height:130px;padding:13px}.lesson h3{font-size:18px}.lesson .lesson-art{font-size:30px}.home-panel{padding:16px}}
+  @media(max-width:760px){.topbar{padding:13px 16px}.brand-subtitle{display:none}.nav-chip{font-size:0;padding:8px}.nav-chip:first-child{font-size:13px}.home{padding:24px 14px 0}.welcome{align-items:flex-start}.mascot{font-size:35px;padding:8px 14px}.home-grid{grid-template-columns:1fr}.stats{gap:8px}.stat{padding:12px 9px;gap:7px}.stat-icon{font-size:22px}.stat strong{font-size:18px}.stat span{font-size:10px}.lesson-grid{gap:10px}.assignment-grid{grid-template-columns:1fr}.chapter-group{grid-template-columns:1fr;padding-left:0}.lesson{min-height:130px;padding:13px}.lesson h3{font-size:18px}.lesson .lesson-art{font-size:30px}.home-panel{padding:16px}}
   @media(max-width:430px){.stats{grid-template-columns:1fr}.stat{justify-content:flex-start}.welcome h1{font-size:29px}.mascot{display:none}}
 
   /* Cute island game screen */

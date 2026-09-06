@@ -8,7 +8,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-  <link rel="stylesheet" href="/public/quiz-generator.css">
+  <link rel="stylesheet" href="/public/css/quiz-generator.css">
 </head>
 <body>
 <header class="topbar">
@@ -19,8 +19,14 @@
   <div class="top-actions">
     <button class="nav-chip" id="streakChip" type="button">🔥 0 ngày</button>
     <a class="nav-chip hidden" id="teacherLink" href="/teacher">Bảng giáo viên</a>
-    <button class="nav-chip" id="logoutBtn" type="button" aria-label="Đăng xuất">↪</button>
-    <div class="avatar" aria-label="Học sinh">🧒</div>
+      <button class="nav-chip" id="logoutBtn" type="button" aria-label="Đăng xuất">Đăng xuất</button>
+      <div class="profile-menu-wrap">
+      <button class="avatar" id="avatarBtn" type="button" aria-label="Mở menu tài khoản" aria-expanded="false"><img id="homeAvatarImage" src="/public/img/avt/0ccb37e913a1419dc0063d7251243783.jpg" alt=""></button>
+      <div class="profile-menu hidden" id="profileMenu">
+        <a class="profile-link" href="/profile">Thông tin cá nhân</a>
+        <a class="profile-link" href="/history">Lịch sử làm bài</a>
+      </div>
+    </div>
   </div>
 </header>
 <main class="home">
@@ -37,6 +43,7 @@
     <section class="home-panel">
       <div class="panel-heading"><div><h2>Tiếp tục học</h2><p>Chọn một bài để bắt đầu luyện tập</p></div><a id="showAllLessons">Xem tất cả</a></div>
       <div class="lesson-grid" id="lessonGrid"><p class="lesson-empty">Đang tải bài học...</p></div>
+      <div class="assignment-grid" id="assignmentGrid"><p class="lesson-empty">Đang tải bài tập được giao...</p></div>
       <div class="tool-strip"><button class="btn primary" id="quickPracticeBtn" type="button">⚡ Luyện tập nhanh</button><button class="btn" id="showUploadBtn" type="button">📄 Tạo bài từ tài liệu</button></div>
     </section>
     <aside>
@@ -146,6 +153,6 @@
 </div>
 </main>
 
-<script src="/public/quiz-generator.js"></script>
+<script src="/public/js/quiz-generator.js"></script>
 </body>
 </html>

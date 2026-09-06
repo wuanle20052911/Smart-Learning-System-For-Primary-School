@@ -4,6 +4,8 @@ create table if not exists public.users (
   id uuid primary key references auth.users(id) on delete cascade,
   email text not null unique,
   full_name text not null,
+  gender text,
+  birth_date date,
   avatar_url text,
   role text not null default 'student' check (role in ('student', 'teacher', 'admin')),
   created_at timestamptz not null default timezone('utc', now()),

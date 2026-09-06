@@ -17,7 +17,7 @@ async function requireAuth(req, res, next) {
 
     const { data: profile, error: profileError } = await client
       .from('users')
-      .select('id, email, full_name, role')
+      .select('id, email, full_name, gender, birth_date, avatar_url, role')
       .eq('id', data.user.id)
       .single();
     if (profileError) {

@@ -2,9 +2,14 @@ require('dotenv').config();
 
 const express = require('express');
 const path = require('path');
+const fs = require('fs');
 const { generateQuizHTML, generateQuizTXT } = require('./quiz-generator');
 const authRoutes = require('./routes/authRoutes');
 const lessonRoutes = require('./routes/lessonRoutes');
+const quizAttemptRoutes = require('./routes/quizAttemptRoutes');
+const assignmentRoutes = require('./routes/assignmentRoutes');
+const submissionRoutes = require('./routes/submissionRoutes');
+const catalogRoutes = require('./routes/catalogRoutes');
 const requireAuth = require('./middleware/requireAuth');
 
 const app = express();
@@ -83,7 +88,25 @@ function isValidQuestion(q) {
 
 app.use(express.json({ limit: '10mb' }));
 app.use('/api/auth', authRoutes);
+app.get('/api/profile-avatars', async (req, res) => {
+  try {
+    const avatarDirectory = path.join(__dirname, 'public', 'img', 'avt');
+    const files = await fs.promises.readdir(avatarDirectory);
+    const avatars = files
+      .filter((file) => /\.(png|jpe?g|webp|gif)$/i.test(file))
+      .sort()
+      .map((file) => `/public/img/avt/${file}`);
+    return res.json({ avatars });
+  } catch (error) {
+    console.error('Could not list profile avatars:', error);
+    return res.status(500).json({ error: 'Không thể tải danh sách avatar.' });
+  }
+});
 app.use('/api/lessons', lessonRoutes);
+app.use('/api/attempts', quizAttemptRoutes);
+app.use('/api/assignments', assignmentRoutes);
+app.use('/api/submissions', submissionRoutes);
+app.use('/api/catalog', catalogRoutes);
 
 app.get('/health', (req, res) => {
   res.json({ ok: true, status: 'healthy', ollama: OLLAMA_BASE_URL, model: OLLAMA_MODEL });
@@ -256,6 +279,10 @@ app.get('/auth', (req, res) => {
 
 app.get('/learn', (req, res) => {
   res.sendFile(path.join(__dirname, 'views', 'quiz-generator.html'));
+});
+
+app.get(['/profile', '/history'], (req, res) => {
+  res.sendFile(path.join(__dirname, 'views', 'account.html'));
 });
 
 app.get('/teacher', (req, res) => {

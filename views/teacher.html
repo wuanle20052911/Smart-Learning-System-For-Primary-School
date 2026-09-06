@@ -6,7 +6,7 @@
   <title>MathJoy | Bảng giáo viên</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/public/teacher.css">
+  <link rel="stylesheet" href="/public/css/teacher.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 </head>
@@ -22,19 +22,51 @@
       <form class="panel lesson-form hidden" id="lessonForm">
         <h2 id="formTitle">Thêm bài học</h2>
         <input id="lessonId" type="hidden">
-        <label>Tên bài học<input id="title" required maxlength="120" placeholder="Ví dụ: Phép cộng vui vẻ"></label>
+        <label>Tên bài<input id="title" required maxlength="120" placeholder="Ví dụ: Phép cộng vui vẻ"></label>
         <label>Mô tả<textarea id="description" rows="3" placeholder="Mục tiêu hoặc nội dung chính"></textarea></label>
-        <div class="two-cols"><label>Môn học<input id="subject" value="Toán"></label><label>Lớp<input id="grade" value="Tiểu học"></label></div>
-        <div class="two-cols"><label>Chủ đề<input id="topic" placeholder="Phép cộng và trừ"></label><label>Biểu tượng<input id="icon" value="📚" maxlength="4"></label></div>
+        <div class="two-cols"><label>Môn học<input id="subject" value="Toán"></label><label>Lớp<input id="grade" value="Lớp 1" placeholder="Ví dụ: Lớp 4"></label></div>
+        <div class="two-cols"><label>Chương<input id="topic" placeholder="Ví dụ: Chương 1 - Phép cộng"></label><label>Biểu tượng<input id="icon" value="📚" maxlength="4"></label></div>
         <div class="two-cols"><label>Màu thẻ<select id="color"><option value="blue">Xanh dương</option><option value="yellow">Vàng</option><option value="green">Xanh lá</option><option value="pink">Hồng</option></select></label><label class="checkbox"><input id="published" type="checkbox"> Xuất bản ngay</label></div>
         <label>Tài liệu bài học (.docx hoặc .pdf)<input id="lessonFile" type="file" accept=".docx,.pdf"><small id="fileStatus">Chưa có tài liệu</small></label>
         <div id="contentPreview" class="content-preview hidden"></div>
         <input id="content" type="hidden"><input id="source_filename" type="hidden">
         <div class="form-actions"><button class="primary" type="submit">Lưu bài học</button><button id="cancelBtn" type="button">Huỷ</button></div>
       </form>
-      <section class="panel"><div class="panel-title"><h2>Bài học của tôi</h2><span id="lessonCount">0 bài</span></div><div id="lessonList" class="lesson-list"><p>Đang tải...</p></div></section>
+      <section class="panel"><div class="panel-title"><h2>Lớp học → Chương → Bài</h2><span id="lessonCount">0 bài</span></div><div id="lessonList" class="lesson-list"><p>Đang tải...</p></div></section>
+    </section>
+    <section class="panel attempts-panel">
+      <div class="panel-title"><h2>📊 Kết quả học sinh</h2><span id="attemptCount">0 lượt</span></div>
+      <div id="attemptList" class="attempt-list"><p>Đang tải...</p></div>
+    </section>
+    <section class="panel class-management-panel">
+      <div class="panel-title"><h2>🏫 Quản lý lớp học</h2><span>Tạo lớp mới</span></div>
+      <form id="classForm" class="assignment-form">
+        <div class="two-cols"><label>Tên lớp<input id="className" required placeholder="Ví dụ: 4A"></label><label>Khối<input id="classGrade" required placeholder="Ví dụ: Lớp 4"></label></div>
+        <button class="primary" type="submit">+ Tạo lớp học</button>
+      </form>
+    </section>
+    <section class="panel member-management-panel">
+      <div class="panel-title"><h2>👩‍🎓 Thêm học sinh</h2><span>Thêm bằng email</span></div>
+      <form id="memberForm" class="assignment-form member-form">
+        <div class="two-cols"><label>Lớp học<select id="memberClassId" required><option value="">Chọn lớp học</option></select></label><label>Email học sinh<input id="memberEmail" type="email" required placeholder="hocsinh@example.com"></label></div>
+        <button class="secondary" type="submit">+ Thêm học sinh vào lớp</button>
+      </form>
+    </section>
+    <section class="panel assignment-panel">
+      <div class="panel-title"><h2>📝 Tạo bài tập</h2><span>Multiple choice · Đúng/Sai · Điền khuyết</span></div>
+      <form id="assignmentForm" class="assignment-form">
+        <div class="two-cols"><label>Tên bài tập<input id="assignmentTitle" required placeholder="Ví dụ: Ôn tập phân số"></label><label>Lớp học<select id="assignmentClassId"><option value="">Chọn lớp học</option></select></label></div>
+        <div class="two-cols"><label>Độ khó<select id="assignmentDifficulty"><option value="easy">Dễ</option><option value="medium">Vừa</option><option value="hard">Khó</option></select></label><label>Hạn nộp<input id="assignmentDueAt" type="datetime-local"></label></div>
+        <div class="question-builder">
+          <div class="question-builder-heading"><b>Danh sách câu hỏi</b><button id="addQuestionBtn" class="secondary" type="button">+ Thêm câu hỏi</button></div>
+          <div id="questionList"></div>
+        </div>
+        <textarea id="assignmentQuestions" class="hidden" aria-hidden="true"></textarea>
+        <label class="checkbox"><input id="assignmentPublished" type="checkbox"> Giao bài ngay</label>
+        <button class="primary" type="submit">Lưu bài tập</button>
+      </form>
     </section>
   </main>
-  <script src="/public/teacher.js"></script>
+  <script src="/public/js/teacher.js"></script>
 </body>
 </html>

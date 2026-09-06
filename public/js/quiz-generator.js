@@ -18,7 +18,9 @@ const state = {
   quiz: [],
   currentIndex: 0,
   score: 0,
-  answers: [] // {questionIndex, chosen, correct}
+  answers: [], // {questionIndex, chosen, correct}
+  activeLesson: null,
+  activeAssignment: null
 };
 
 // ---------- Elements ----------
@@ -84,8 +86,18 @@ const dailyLabel = document.getElementById('dailyLabel');
 const xpValue = document.getElementById('xpValue');
 const lessonValue = document.getElementById('lessonValue');
 const streakChip = document.getElementById('streakChip');
+const avatarBtn = document.getElementById('avatarBtn');
+const profileMenu = document.getElementById('profileMenu');
+const assignmentGrid = document.getElementById('assignmentGrid');
 
 const progressState = JSON.parse(localStorage.getItem('mathjoy-progress') || '{"xp":0,"lessons":0,"answered":0,"streak":0}');
+const session = (() => {
+  try { return JSON.parse(localStorage.getItem('learnhub-session') || 'null'); } catch { return null; }
+})();
+const homeAvatarImage = document.getElementById('homeAvatarImage');
+if (homeAvatarImage && session?.profile?.avatar_url) {
+  homeAvatarImage.src = session.profile.avatar_url;
+}
 function saveProgress(){ localStorage.setItem('mathjoy-progress', JSON.stringify(progressState)); }
 function updateProgress(){
   xpValue.textContent = progressState.xp;
@@ -113,20 +125,123 @@ async function loadPublishedLessons(){
     lessonGrid.innerHTML = '<p class="lesson-empty">Chưa có bài học được xuất bản.</p>';
     return;
   }
+  const grouped = new Map();
   lessons.forEach((lesson) => {
-    const button = document.createElement('button');
-    button.className = `lesson ${lesson.color}`;
-    button.dataset.topic = lesson.topic || lesson.title;
-    button.dataset.lessonId = lesson.id;
-    button.innerHTML = `<small>${escapeHtml(lesson.subject)} · ${escapeHtml(lesson.grade)}</small><h3>${escapeHtml(lesson.title)}</h3><p>${escapeHtml(lesson.description)}</p><span class="lesson-art">${escapeHtml(lesson.icon)}</span>`;
-    button.addEventListener('click', () => openPractice(button.dataset.topic, lesson));
-    lessonGrid.appendChild(button);
+    const grade = lesson.grade || 'Chưa phân loại lớp';
+    const chapter = lesson.topic || 'Chưa phân loại chương';
+    if(!grouped.has(grade)) grouped.set(grade, new Map());
+    if(!grouped.get(grade).has(chapter)) grouped.get(grade).set(chapter, []);
+    grouped.get(grade).get(chapter).push(lesson);
+  });
+  grouped.forEach((chapters, grade) => {
+    const gradeSection = document.createElement('section');
+    gradeSection.className = 'lesson-group';
+    gradeSection.innerHTML = `<h3 class="grade-heading">${escapeHtml(grade)}</h3>`;
+    chapters.forEach((chapterLessons, chapter) => {
+      const chapterSection = document.createElement('div');
+      chapterSection.className = 'chapter-group';
+      chapterSection.innerHTML = `<h4>${escapeHtml(chapter)}</h4>`;
+      chapterLessons.forEach((lesson) => {
+        const button = document.createElement('button');
+        button.className = `lesson ${lesson.color}`;
+        button.innerHTML = `<small>${escapeHtml(lesson.subject)}</small><h3>${escapeHtml(lesson.title)}</h3><p>${escapeHtml(lesson.description)}</p><span class="lesson-art">${escapeHtml(lesson.icon)}</span>`;
+        button.addEventListener('click', () => openPractice(lesson.topic || lesson.title, lesson));
+        chapterSection.appendChild(button);
+      });
+      gradeSection.appendChild(chapterSection);
+    });
+    lessonGrid.appendChild(gradeSection);
   });
 }
 
-const session = (() => {
-  try { return JSON.parse(localStorage.getItem('learnhub-session') || 'null'); } catch { return null; }
-})();
+async function loadAssignments(){
+  const response = await fetch('/api/assignments/published', { headers: { Authorization: `Bearer ${getSessionToken()}` } });
+  if(!response.ok) throw new Error('Không thể tải bài tập.');
+  const assignments = (await response.json()).assignments || [];
+  assignmentGrid.innerHTML = assignments.length ? assignments.map((assignment) => `
+    <button class="assignment-card" data-assignment-id="${assignment.id}">
+      <small>📝 ${escapeHtml(assignment.difficulty)}</small>
+      <strong>${escapeHtml(assignment.title)}</strong>
+      <span>${assignment.question_count} câu${assignment.due_at ? ` · Hạn ${new Date(assignment.due_at).toLocaleDateString('vi-VN')}` : ''}</span>
+    </button>
+  `).join('') : '<p class="lesson-empty">Chưa có bài tập được giao.</p>';
+}
+assignmentGrid.addEventListener('click', async (event) => {
+  const button = event.target.closest('[data-assignment-id]');
+  if(!button) return;
+  const response = await fetch(`/api/assignments/${button.dataset.assignmentId}`, { headers: { Authorization: `Bearer ${getSessionToken()}` } });
+  if(!response.ok){ assignmentGrid.innerHTML = '<p class="lesson-empty">Không thể mở bài tập.</p>'; return; }
+  const assignment = (await response.json()).assignment;
+  state.activeAssignment = assignment;
+  state.activeLesson = { id: assignment.id, title: assignment.title, grade: 'Bài tập', topic: assignment.title };
+  state.quiz = assignment.questions;
+  state.currentIndex = 0;
+  state.score = 0;
+  state.answers = [];
+  startQuiz();
+});
+async function saveAttempt(){
+  const questions = state.answers.map((answer) => ({
+    type: answer.q.type || 'multiple-choice',
+    question: answer.q.question,
+    options: answer.q.options || [],
+    pairs: answer.q.pairs || [],
+    correctIndex: answer.q.correctIndex ?? null,
+    answer: answer.q.answer || null,
+    correctMatches: answer.q.correctMatches || [],
+    explanation: answer.q.explanation || '',
+    chosenAnswer: answer.chosenText || answer.q.options?.[answer.chosenIndex] || '',
+    correctAnswer: answer.correctText || answer.q.options?.[answer.q.correctIndex] || answer.q.answer || '',
+    isCorrect: answer.correct
+  }));
+  const response = await fetch('/api/attempts', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getSessionToken()}` },
+    body: JSON.stringify({
+      lesson_id: state.activeAssignment ? null : (state.activeLesson?.id || null),
+      title: state.activeLesson?.title || 'Bài luyện tập tự do',
+      grade: state.activeLesson?.grade || 'Tiểu học',
+      chapter: state.activeLesson?.topic || 'Luyện tập nhanh',
+      score: state.score,
+      total: state.quiz.length,
+      questions,
+      incorrect_answers: questions.filter((question) => !question.isCorrect)
+    })
+  });
+  if(!response.ok){
+    const payload = await response.json().catch(() => ({}));
+    throw new Error(payload.error || 'Không thể lưu kết quả bài làm.');
+  }
+}
+async function saveAssignmentSubmission(){
+  const answers = state.answers.map((answer) => answer.chosenIndex ?? answer.chosenText ?? null);
+  const response = await fetch('/api/submissions', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getSessionToken()}` },
+    body: JSON.stringify({ assignment_id: state.activeAssignment.id, answers })
+  });
+  if(!response.ok){
+    const payload = await response.json().catch(() => ({}));
+    throw new Error(payload.error || 'Không thể lưu bài nộp.');
+  }
+}
+avatarBtn.addEventListener('click', (event) => {
+  event.stopPropagation();
+  const isHidden = profileMenu.classList.toggle('hidden');
+  avatarBtn.setAttribute('aria-expanded', String(!isHidden));
+});
+document.addEventListener('click', (event) => {
+  if(!profileMenu.contains(event.target) && event.target !== avatarBtn){
+    profileMenu.classList.add('hidden');
+    avatarBtn.setAttribute('aria-expanded', 'false');
+  }
+});
+document.addEventListener('keydown', (event) => {
+  if(event.key === 'Escape'){
+    profileMenu.classList.add('hidden');
+    avatarBtn.setAttribute('aria-expanded', 'false');
+  }
+});
 if(['teacher', 'admin'].includes(session?.profile?.role || session?.user?.user_metadata?.role)){
   document.getElementById('teacherLink').classList.remove('hidden');
 }
@@ -134,8 +249,13 @@ loadPublishedLessons().catch((error) => {
   console.error(error);
   lessonGrid.innerHTML = '<p class="lesson-empty">Không thể tải bài học lúc này.</p>';
 });
+loadAssignments().catch((error) => {
+  console.error(error);
+  assignmentGrid.innerHTML = '<p class="lesson-empty">Không thể tải bài tập lúc này.</p>';
+});
 
 function openPractice(topic = 'Phép cộng và trừ', lesson = null){
+  state.activeLesson = lesson;
   practiceLabel.classList.remove('hidden');
   hintInput.value = `Toán tiểu học - ${topic}`;
   if(lesson?.content){
@@ -565,6 +685,12 @@ function showResults(){
   progressState.answered += total;
   progressState.streak = Math.max(1, progressState.streak);
   saveProgress();
+  Promise.all([
+    saveAttempt(),
+    ...(state.activeAssignment ? [saveAssignmentSubmission()] : [])
+  ]).catch((error) => {
+    console.error('Could not save quiz attempt:', error);
+  });
   updateProgress();
   resultScore.textContent = `${state.score}/${total}`;
 

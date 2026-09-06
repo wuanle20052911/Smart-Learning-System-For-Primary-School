@@ -8,7 +8,7 @@ function normalizeLesson(body = {}) {
     description: typeof body.description === 'string' ? body.description.trim() : '',
     subject: typeof body.subject === 'string' ? body.subject.trim() : 'Toán',
     grade: typeof body.grade === 'string' ? body.grade.trim() : 'Tiểu học',
-    topic: typeof body.topic === 'string' ? body.topic.trim() : '',
+    topic: typeof body.topic === 'string' && body.topic.trim() ? body.topic.trim() : 'Chưa phân loại',
     content: typeof body.content === 'string' ? body.content.trim().slice(0, 18000) : '',
     source_filename: typeof body.source_filename === 'string' ? body.source_filename.trim().slice(0, 255) : null,
     icon: typeof body.icon === 'string' ? body.icon.trim() : '📚',
