@@ -12,7 +12,26 @@ const questionList = document.getElementById('questionList');
 let questionCount = 0;
 const fields = ['title', 'description', 'subject', 'grade', 'topic', 'icon', 'color', 'published', 'content', 'source_filename'];
 let lessons = [];
+let demoMode = false;
+const demoLessons = [
+  { id: 'demo-1', title: 'Phép cộng trong phạm vi 100', description: 'Luyện tập cộng có nhớ cho học sinh lớp 3.', subject: 'Toán', grade: 'Lớp 3A', icon: '＋', color: 'blue', published: true },
+  { id: 'demo-2', title: 'Bảng nhân 2 và 5', description: 'Ôn tập bảng nhân qua bài tập ngắn.', subject: 'Toán', grade: 'Lớp 3A', icon: '×', color: 'yellow', published: true },
+  { id: 'demo-3', title: 'So sánh số tự nhiên', description: 'Nhận biết số lớn hơn, bé hơn và bằng nhau.', subject: 'Toán', grade: 'Lớp 4B', icon: '≤', color: 'green', published: false }
+];
+const demoStudents = [
+  ['Nguyễn Minh An', '3A', '12 / 14', '82%', '2', '9'],
+  ['Trần Gia Hân', '3A', '10 / 14', '74%', '5', '7'],
+  ['Lê Hoàng Nam', '4B', '8 / 12', '68%', '8', '5']
+];
 pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+function setWorkspaceView(view){
+  document.querySelectorAll('.workspace-tab').forEach((tab) => tab.classList.toggle('active', tab.dataset.view === view));
+  document.querySelectorAll('.workspace-section').forEach((section) => section.classList.toggle('hidden', section.dataset.section !== view));
+  if(view === 'lessons') form.classList.add('hidden');
+}
+document.querySelectorAll('.workspace-tab').forEach((tab) => tab.addEventListener('click', () => setWorkspaceView(tab.dataset.view)));
+document.querySelectorAll('[data-open-view]').forEach((button) => button.addEventListener('click', () => setWorkspaceView(button.dataset.openView)));
 
 function authHeaders(json = false){ return { Authorization: `Bearer ${token}`, ...(json ? {'Content-Type':'application/json'} : {}) }; }
 function escapeHtml(value){ return String(value || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
@@ -110,17 +129,31 @@ document.getElementById('lessonFile').addEventListener('change', async (event) =
   }
 });
 function renderLessons(){
-  document.getElementById('lessonCount').textContent = `${lessons.length} bài`;
-  if(!lessons.length){ list.innerHTML = '<p>Chưa có bài học. Hãy tạo bài đầu tiên.</p>'; return; }
+  const visibleLessons = demoMode ? demoLessons : lessons;
+  const setText = (id, value) => { const element = document.getElementById(id); if (element) element.textContent = value; };
+  setText('lessonCount', `${visibleLessons.length} bài`);
+  setText('overviewLessonCount', visibleLessons.length);
+  const recent = document.getElementById('recentLessons');
+  if (recent) recent.innerHTML = visibleLessons.length ? visibleLessons.slice(0, 4).map((lesson) => `<div class="recent-item"><span class="recent-icon">${escapeHtml(lesson.icon || '•')}</span><span><b>${escapeHtml(lesson.title)}</b><small>${escapeHtml(lesson.subject || 'Chưa phân loại')} · ${lesson.published ? 'Đã xuất bản' : 'Bản nháp'}</small></span></div>`).join('') : '<p class="empty-state">Chưa có bài học. Tạo nội dung đầu tiên để bắt đầu.</p>';
+  const studentBody = document.querySelector('.student-table tbody');
+  if (studentBody) studentBody.innerHTML = demoMode ? demoStudents.map((student) => `<tr><td><b>${student[0]}</b></td><td>${student[1]}</td><td>${student[2]}</td><td><strong class="demo-score">${student[3]}</strong></td><td><span class="demo-status">Đang học</span></td></tr>`).join('') : '<tr><td colspan="5"><div class="student-empty"><span class="empty-avatar">+</span><b>Chưa có dữ liệu học sinh</b><p>API danh sách học sinh sẽ được kết nối để hiển thị thông tin lớp của bạn tại đây.</p></div></td></tr>';
+  const proficiency = document.querySelector('.proficiency-empty');
+  if (proficiency) {
+    proficiency.classList.toggle('demo-proficiency', demoMode);
+    proficiency.innerHTML = demoMode
+      ? demoStudents.map((student) => `<div class="proficiency-row"><b>${student[0]}</b><span>${student[2]}</span><strong>${student[3]}</strong><i>${student[4]}</i><i>${student[5]}</i><i>${Number(student[5]) + 12}</i></div>`).join('')
+      : '<span>+</span><b>Chưa có dữ liệu học sinh</b><small>Khi có danh sách học sinh, tiến độ và điểm số sẽ hiển thị tại đây.</small>';
+  }
+  if(!visibleLessons.length){ list.innerHTML = '<p>Chưa có bài học. Hãy tạo bài đầu tiên.</p>'; return; }
   const grouped = new Map();
-  lessons.forEach((lesson) => {
+  visibleLessons.forEach((lesson) => {
     const grade = lesson.grade || 'Chưa phân loại lớp';
     const chapter = lesson.topic || 'Chưa phân loại chương';
     if(!grouped.has(grade)) grouped.set(grade, new Map());
     if(!grouped.get(grade).has(chapter)) grouped.get(grade).set(chapter, []);
     grouped.get(grade).get(chapter).push(lesson);
   });
-  list.innerHTML = [...grouped].map(([grade, chapters]) => `<section class="lesson-group"><h3 class="grade-heading">${escapeHtml(grade)}</h3>${[...chapters].map(([chapter, chapterLessons]) => `<div class="chapter-group"><h4>${escapeHtml(chapter)}</h4>${chapterLessons.map((lesson) => `<article class="lesson-item"><div><h3>${escapeHtml(lesson.icon)} ${escapeHtml(lesson.title)}</h3><p>${escapeHtml(lesson.description || 'Chưa có mô tả')}</p><span class="lesson-meta">${escapeHtml(lesson.subject)} · <b class="${lesson.published ? 'published' : 'draft'}">${lesson.published ? 'Đã xuất bản' : 'Bản nháp'}</b></span></div><div class="lesson-actions"><button data-edit="${lesson.id}">Sửa</button><button class="delete" data-delete="${lesson.id}">Xoá</button></div></article>`).join('')}</div>`).join('')}</section>`).join('');
+  list.innerHTML = [...grouped].map(([grade, chapters]) => `<section class="lesson-group"><h3 class="grade-heading">${escapeHtml(grade)}</h3>${[...chapters].map(([chapter, chapterLessons]) => `<div class="chapter-group"><h4>${escapeHtml(chapter)}</h4>${chapterLessons.map((lesson) => `<article class="lesson-item"><div><h3>${escapeHtml(lesson.icon)} ${escapeHtml(lesson.title)}</h3><p>${escapeHtml(lesson.description || 'Chưa có mô tả')}</p><span class="lesson-meta">${escapeHtml(lesson.subject)} · <b class="${lesson.published ? 'published' : 'draft'}">${lesson.published ? 'Đã xuất bản' : 'Bản nháp'}</b></span></div><div class="lesson-actions">${demoMode ? '<span class="demo-label">Mẫu</span>' : `<button data-edit="${lesson.id}">Sửa</button><button class="delete" data-delete="${lesson.id}">Xoá</button>`}</div></article>`).join('')}</div>`).join('')}</section>`).join('');
 }
 function renderAttempts(attempts){
   document.getElementById('attemptCount').textContent = `${attempts.length} lượt`;
@@ -232,7 +265,8 @@ memberForm.addEventListener('submit', async (event) => {
   showMessage('Đã thêm học sinh vào lớp.', 'success');
   memberForm.reset();
 });
-document.getElementById('newLessonBtn').addEventListener('click', () => { resetForm(); form.classList.remove('hidden'); });
+document.getElementById('newLessonBtn').addEventListener('click', () => { setWorkspaceView('lessons'); resetForm(); form.classList.remove('hidden'); });
+document.getElementById('demoDataBtn').addEventListener('click', () => { demoMode = !demoMode; document.getElementById('demoDataBtn').textContent = demoMode ? 'Tắt dữ liệu mẫu' : 'Xem dữ liệu mẫu'; document.body.classList.toggle('demo-mode', demoMode); renderLessons(); });
 document.getElementById('cancelBtn').addEventListener('click', resetForm);
 document.getElementById('logoutBtn').addEventListener('click', () => { localStorage.removeItem('learnhub-session'); window.location.replace('/'); });
 document.getElementById('addQuestionBtn').addEventListener('click', addQuestion);
