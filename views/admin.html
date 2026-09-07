@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MathJoy | Quản lý</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Quicksand:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/public/css/admin.css">
+</head>
+<body>
+  <main class="admin-shell">
+    <header class="topbar">
+      <div><a class="brand" href="/admin">✦ MathJoy</a><p>Cổng quản lý nhà trường</p></div>
+      <div class="actions"><a href="/learn">Trang học tập</a><button id="logoutBtn" type="button">Đăng xuất</button></div>
+    </header>
+    <section class="intro"><span class="eyebrow">KHU VỰC QUẢN LÝ</span><h1>Quản lý lớp học</h1><p>Tạo lớp, chỉ định giáo viên và thêm học sinh.</p></section>
+    <p id="message" class="message" role="status"></p>
+    <div class="grid">
+      <section class="card">
+        <h2>+ Tạo lớp học</h2>
+        <form id="classForm">
+          <label>Tên lớp<input id="className" required maxlength="80" placeholder="Ví dụ: 4A"></label>
+          <label>Khối<input id="classGrade" required maxlength="40" placeholder="Ví dụ: Lớp 4"></label>
+          <label>Giáo viên phụ trách<select id="classTeacher"><option value="">Chưa chỉ định</option></select></label>
+          <button class="primary" type="submit">Tạo lớp</button>
+        </form>
+      </section>
+      <section class="card">
+        <h2>+ Thêm học sinh</h2>
+        <form id="memberForm">
+          <label>Lớp học<select id="memberClass" required><option value="">Chọn lớp học</option></select></label>
+          <label>Email học sinh<input id="memberEmail" type="email" required placeholder="hocsinh@example.com"></label>
+          <button class="primary" type="submit">Thêm vào lớp</button>
+        </form>
+      </section>
+    </div>
+    <section class="card class-list-card">
+      <div class="heading"><h2>Danh sách lớp</h2><span id="classCount">0 lớp</span></div>
+      <div id="classList"><p>Đang tải...</p></div>
+    </section>
+  </main>
+  <script src="/public/js/admin.js"></script>
+</body>
+</html>

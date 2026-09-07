@@ -18,7 +18,7 @@ function getSession(){
 
 function redirectByRole(session){
   const role = session?.profile?.role || session?.user?.user_metadata?.role || 'student';
-  window.location.replace(role === 'teacher' || role === 'admin' ? '/teacher' : '/learn');
+  window.location.replace(role === 'admin' ? '/admin' : (role === 'teacher' ? '/teacher' : '/learn'));
 }
 
 roleButtons.forEach((button) => button.addEventListener('click', () => {

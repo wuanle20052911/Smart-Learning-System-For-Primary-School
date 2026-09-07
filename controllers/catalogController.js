@@ -5,6 +5,11 @@ function teacherOnly(req, res, next) {
   return next();
 }
 
+function adminOnly(req, res, next) {
+  if (req.profile?.role !== 'admin') return res.status(403).json({ error: 'Chỉ quản lý mới có quyền thực hiện thao tác này.' });
+  return next();
+}
+
 async function listSubjects(req, res) {
   try { return res.json({ subjects: await catalogModel.list(catalogModel.getSupabaseClient(req.accessToken), 'subjects') }); }
   catch (error) { console.error(error); return res.status(500).json({ error: 'Không thể tải môn học.' }); }
@@ -33,7 +38,13 @@ async function listSkills(req, res) {
 }
 
 async function listClasses(req, res) {
-  try { return res.json({ classes: await catalogModel.listClasses(catalogModel.getSupabaseClient(req.accessToken), req.user.id) }); }
+  try {
+    const client = catalogModel.getSupabaseClient(req.accessToken);
+    const classes = req.profile.role === 'admin'
+      ? await catalogModel.listManagedClasses(client)
+      : await catalogModel.listClasses(client, req.user.id);
+    return res.json({ classes });
+  }
   catch (error) { console.error(error); return res.status(500).json({ error: 'Không thể tải lớp học.' }); }
 }
 
@@ -53,7 +64,13 @@ async function createSkill(req, res) {
 }
 
 async function createClass(req, res) {
-  try { return res.status(201).json({ class: await catalogModel.create(catalogModel.getSupabaseClient(req.accessToken), 'classes', { name: req.body?.name?.trim(), grade: req.body?.grade?.trim(), created_by: req.user.id }) }); }
+  try {
+    const client = catalogModel.getSupabaseClient(req.accessToken);
+    const item = req.profile.role === 'admin'
+      ? await catalogModel.managerCreateClass(client, req.body?.name?.trim(), req.body?.grade?.trim(), req.body?.teacher_id || null)
+      : await catalogModel.create(client, 'classes', { name: req.body?.name?.trim(), grade: req.body?.grade?.trim(), created_by: req.user.id });
+    return res.status(201).json({ class: item });
+  }
   catch (error) { return res.status(400).json({ error: error.message || 'Không thể tạo lớp học.' }); }
 }
 
@@ -65,7 +82,9 @@ async function addClassMember(req, res) {
   }
   try {
     return res.status(201).json({
-      member: await catalogModel.addClassMember(catalogModel.getSupabaseClient(req.accessToken), classId, email)
+      member: req.profile.role === 'admin'
+        ? await catalogModel.managerAddClassMember(catalogModel.getSupabaseClient(req.accessToken), classId, email)
+        : await catalogModel.addClassMember(catalogModel.getSupabaseClient(req.accessToken), classId, email)
     });
   } catch (error) {
     console.error('Could not add student to class:', error);
@@ -73,4 +92,17 @@ async function addClassMember(req, res) {
   }
 }
 
-module.exports = { teacherOnly, listSubjects, listTopics, listSkills, listClasses, createSubject, createTopic, createSkill, createClass, addClassMember };
+async function listManagementOptions(req, res) {
+  try {
+    const client = catalogModel.getSupabaseClient(req.accessToken);
+    return res.json({
+      teachers: await catalogModel.listTeachers(client),
+      classes: await catalogModel.listManagedClasses(client)
+    });
+  } catch (error) {
+    console.error('Could not load management options:', error);
+    return res.status(500).json({ error: 'Không thể tải dữ liệu quản lý lớp.' });
+  }
+}
+
+module.exports = { teacherOnly, adminOnly, listSubjects, listTopics, listSkills, listClasses, listManagementOptions, createSubject, createTopic, createSkill, createClass, addClassMember };

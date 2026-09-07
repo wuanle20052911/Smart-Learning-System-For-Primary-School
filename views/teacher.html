@@ -17,7 +17,7 @@
 <body>
   <main class="teacher-shell">
     <header class="teacher-header">
-      <div><a href="/" class="brand">✦ MathJoy</a><p>Quản lý bài học</p></div>
+      <div><a href="/" class="brand">✦ MathJoy</a><p id="headerSubtitle">Quản lý bài học</p></div>
       <div class="header-actions"><a href="/learn">Trang học sinh</a><button class="logout-button" id="logoutBtn" type="button" aria-label="Đăng xuất" title="Đăng xuất">↪</button></div>
     </header>
     <section class="intro"><div><p class="eyebrow">KHU VỰC GIÁO VIÊN</p><h1>Bảng điều khiển</h1><p>Quản lý nội dung và giao hoạt động học tập từ một nơi.</p></div><div class="intro-actions"><button class="secondary-button" id="demoDataBtn" type="button">Xem dữ liệu mẫu</button><button class="primary" id="newLessonBtn" type="button">+ Tạo bài học</button></div></section>
@@ -66,6 +66,7 @@
       <div class="panel-title"><h2>🏫 Quản lý lớp học</h2><span>Tạo lớp mới</span></div>
       <form id="classForm" class="assignment-form">
         <div class="two-cols"><label>Tên lớp<input id="className" required placeholder="Ví dụ: 4A"></label><label>Khối<input id="classGrade" required placeholder="Ví dụ: Lớp 4"></label></div>
+        <label id="teacherField" class="hidden">Giáo viên phụ trách<select id="classTeacher"><option value="">Chưa chỉ định</option></select></label>
         <button class="primary" type="submit">+ Tạo lớp học</button>
       </form>
     </section>

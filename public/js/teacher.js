@@ -1,6 +1,12 @@
 const token = (() => {
   try { return JSON.parse(localStorage.getItem('learnhub-session') || 'null')?.access_token || ''; } catch { return ''; }
 })();
+const currentSession = (() => { try { return JSON.parse(localStorage.getItem('learnhub-session') || 'null'); } catch { return null; } })();
+const isManager = currentSession?.profile?.role === 'admin';
+if (!isManager) {
+  document.querySelector('.class-management-panel')?.classList.add('hidden');
+  document.querySelector('.member-management-panel')?.classList.add('hidden');
+}
 const form = document.getElementById('lessonForm');
 const list = document.getElementById('lessonList');
 const message = document.getElementById('message');
@@ -168,9 +174,16 @@ function renderAttempts(attempts){
   `).join('') : '<p>Chưa có học sinh nào hoàn thành bài.</p>';
 }
 async function loadClasses(){
-  const response = await fetch('/api/catalog/classes', {headers: authHeaders()});
+  const response = await fetch(isManager ? '/api/catalog/management/options' : '/api/catalog/classes', {headers: authHeaders()});
   if(!response.ok) throw new Error('Không thể tải lớp học.');
-  const classes = (await response.json()).classes || [];
+  const data = await response.json();
+  const classes = data.classes || [];
+  if (isManager) {
+    document.getElementById('teacherField').classList.remove('hidden');
+    document.getElementById('headerSubtitle').textContent = 'Quản lý lớp học';
+    document.getElementById('classTeacher').innerHTML = '<option value="">Chưa chỉ định</option>' +
+      (data.teachers || []).map((teacher) => `<option value="${teacher.id}">${escapeHtml(teacher.full_name)} · ${escapeHtml(teacher.email)}</option>`).join('');
+  }
   const options = '<option value="">Chọn lớp học</option>' + classes.map((item) => `<option value="${item.id}">${escapeHtml(item.name)} · ${escapeHtml(item.grade)}</option>`).join('');
   document.getElementById('assignmentClassId').innerHTML = options;
   document.getElementById('memberClassId').innerHTML = options;
@@ -241,7 +254,8 @@ classForm.addEventListener('submit', async (event) => {
     headers: authHeaders(true),
     body: JSON.stringify({
       name: document.getElementById('className').value,
-      grade: document.getElementById('classGrade').value
+      grade: document.getElementById('classGrade').value,
+      teacher_id: isManager ? document.getElementById('classTeacher').value || null : undefined
     })
   });
   const data = await response.json().catch(() => ({}));

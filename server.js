@@ -289,6 +289,10 @@ app.get('/teacher', (req, res) => {
   res.sendFile(path.join(__dirname, 'views', 'teacher.html'));
 });
 
+app.get('/admin', (req, res) => {
+  res.sendFile(path.join(__dirname, 'views', 'admin.html'));
+});
+
 app.use((req, res) => {
   res.status(404).json({ error: 'Not found' });
 });
