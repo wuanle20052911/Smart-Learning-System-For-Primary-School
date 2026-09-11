@@ -267,10 +267,14 @@ app.post('/api/download-quiz', requireAuth, (req, res) => {
 });
 
 app.use('/public', express.static(path.join(__dirname, 'public')));
+const reactDist = path.join(__dirname, 'client', 'dist');
+app.use(express.static(reactDist));
 
 app.get('/', (req, res) => {
   res.setHeader('Cache-Control', 'no-store');
-  res.sendFile(path.join(__dirname, 'views', 'auth.html'));
+  res.sendFile(path.join(reactDist, 'index.html'), (error) => {
+    if (error) res.sendFile(path.join(__dirname, 'views', 'auth.html'));
+  });
 });
 
 app.get('/auth', (req, res) => {
@@ -278,15 +282,21 @@ app.get('/auth', (req, res) => {
 });
 
 app.get('/learn', (req, res) => {
-  res.sendFile(path.join(__dirname, 'views', 'quiz-generator.html'));
+  res.sendFile(path.join(reactDist, 'index.html'), (error) => {
+    if (error) res.sendFile(path.join(__dirname, 'views', 'quiz-generator.html'));
+  });
 });
 
 app.get(['/profile', '/history'], (req, res) => {
-  res.sendFile(path.join(__dirname, 'views', 'account.html'));
+  res.sendFile(path.join(reactDist, 'index.html'), (error) => {
+    if (error) res.sendFile(path.join(__dirname, 'views', 'account.html'));
+  });
 });
 
 app.get('/teacher', (req, res) => {
-  res.sendFile(path.join(__dirname, 'views', 'teacher.html'));
+  res.sendFile(path.join(reactDist, 'index.html'), (error) => {
+    if (error) res.sendFile(path.join(__dirname, 'views', 'teacher.html'));
+  });
 });
 
 app.get('/admin', (req, res) => {
