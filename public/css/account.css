@@ -1,9 +1,9 @@
-body{padding:0 0 60px;background:#f5f9ff;color:#1f3152;font-family:'Quicksand',sans-serif}
+body{padding:0 0 60px;background:radial-gradient(circle at 8% 12%,rgba(255,201,74,.35),transparent 40%),radial-gradient(circle at 92% 8%,rgba(58,166,217,.25),transparent 38%),radial-gradient(circle at 85% 90%,rgba(255,107,74,.18),transparent 40%),var(--cream);color:#1f3152;font-family:'Quicksand',sans-serif}
 body:before{display:none!important;content:none!important}
-.account-page{max-width:760px;margin:0 auto;padding:34px 20px}
+.account-page{width:min(1180px,calc(100% - 48px));max-width:none;margin:0 auto;padding:42px 0 70px}
 .back-link{color:#2784e9;font-weight:800;text-decoration:none}
 .account-page h1{margin:20px 0 14px;color:#153565;font:800 34px 'Baloo 2',sans-serif}
-.account-card{background:#fff;border:1px solid #e1ebf7;border-radius:22px;padding:22px;box-shadow:0 10px 30px rgba(45,91,145,.08)}
+.account-card{background:#fff;border:1px solid #e1ebf7;border-radius:22px;padding:30px;box-shadow:0 10px 30px rgba(45,91,145,.08)}
 .profile-avatar-wrap{display:flex;justify-content:center;margin:-2px 0 18px}
 .avatar-edit-trigger{position:relative;width:92px;height:92px;padding:0;border:0;border-radius:50%;background:transparent;cursor:pointer}.avatar-edit-trigger:focus-visible{outline:3px solid #8bc7ff;outline-offset:4px}.avatar-edit-hint{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:12px;border-radius:50%;background:rgba(21,53,101,.72);color:#fff;font:800 11px 'Quicksand',sans-serif;line-height:1.2;text-align:center;opacity:0;transform:scale(.86);transition:opacity .2s ease,transform .2s ease}.avatar-edit-trigger:hover .avatar-edit-hint,.avatar-edit-trigger:focus-visible .avatar-edit-hint{opacity:1;transform:scale(1)}
 .profile-avatar-image{width:92px;height:92px;object-fit:cover;border-radius:50%;padding:0;background:transparent;border:4px solid #2f86eb;box-shadow:0 5px 0 #b9d8f7}
@@ -11,9 +11,16 @@ body:before{display:none!important;content:none!important}
 .profile-form{display:grid;gap:14px}.profile-form label{display:grid;gap:6px;color:#557493;font-weight:800;font-size:13px}.profile-form input,.profile-form select{box-sizing:border-box;width:100%;padding:10px 12px;border:2px solid #d8e6f4;border-radius:10px;color:#1f3152;background:#fff;font:600 14px 'Quicksand',sans-serif}.profile-form input[readonly]{background:#f1f5f9;color:#7890ad;cursor:not-allowed}.save-profile{justify-self:start;border:0;border-radius:999px;padding:11px 18px;background:#2f86eb;color:#fff;font:800 14px 'Quicksand',sans-serif;cursor:pointer}.save-profile:disabled{opacity:.6;cursor:wait}.profile-message{margin:0;font-weight:700}.profile-message.success{color:#198754}.profile-message.error{color:#d14a1e}
 .account-card p{margin:10px 0;font-weight:600;word-break:break-word}
 .account-card b{color:#557493}
-.history-list{display:grid;gap:8px}.history-list>p,.attempt-empty{color:#7890ad;font-weight:700}
-.history-item{padding:10px;background:#fff9e8;border:2px solid #e2aa45;border-radius:10px}
-.history-item summary{display:flex;justify-content:space-between;align-items:center;gap:8px;cursor:pointer;list-style:none}.history-item summary::-webkit-details-marker{display:none}
-.history-item strong,.history-item small{display:block}.history-item strong{font-size:14px;color:#7e3b1e}.history-item small{font-size:11px;color:#8c683e}.history-item>b{color:#d14a1e;font:800 18px 'Baloo 2',sans-serif;white-space:nowrap}
+.history-list{display:grid;gap:16px;max-height:none;overflow:visible}.history-list>p,.attempt-empty{color:#7890ad;font-weight:700}
+.history-item{padding:0;background:#fff9e8;border:2px solid #e2aa45;border-radius:16px;overflow:hidden}
+.history-item[open]{box-shadow:0 8px 20px rgba(180,111,36,.12)}
+.history-item summary{display:flex;justify-content:space-between;align-items:center;gap:16px;padding:17px 20px;cursor:pointer;list-style:none}.history-item summary::-webkit-details-marker{display:none}
+.history-item summary:hover{background:#fff1c9}
+.history-item strong,.history-item small{display:block}.history-item strong{font-size:16px;color:#7e3b1e}.history-item small{margin-top:4px;font-size:12px;color:#8c683e}.history-item>b{color:#d14a1e;font:800 22px 'Baloo 2',sans-serif;white-space:nowrap}
+.history-answers{display:grid;gap:12px;padding:0 20px 20px}
+.history-answers article{padding:15px 17px;background:#fff;border:1px solid #f0dfbd;border-left:6px solid #35a66a;border-radius:12px;box-shadow:0 2px 6px rgba(100,70,30,.05)}
+.history-answers article.incorrect{border-left-color:#e85b4d}
+.history-answers article p{margin:8px 0;color:#5d4028;font-size:15px;font-weight:700}
+.history-answers article small{display:block;margin-top:6px;color:#80684f;line-height:1.55}
 .attempt-details{display:grid;gap:7px;margin-top:12px;padding-top:10px;border-top:1px solid #e2aa45}.question-review{display:grid;gap:3px;padding:8px;background:#fff;border-radius:8px;color:#5d4028;font-size:12px}.question-review span,.question-review small{line-height:1.45}.question-review.incorrect{border-left:4px solid #d14a1e}.question-review small{color:#8c683e}
-@media(max-width:600px){.topbar{padding:13px 16px}.account-page{padding:24px 14px}.account-page h1{font-size:29px}.nav-chip{font-size:0;padding:8px}.nav-chip:first-child{font-size:13px}}
+@media(max-width:600px){.topbar{padding:13px 16px}.account-page{width:calc(100% - 28px);padding:24px 0 50px}.account-card{padding:18px}.account-page h1{font-size:29px}.nav-chip{font-size:0;padding:8px}.nav-chip:first-child{font-size:13px}}

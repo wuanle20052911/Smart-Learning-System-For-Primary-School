@@ -86,6 +86,24 @@ function isValidQuestion(q) {
   return false;
 }
 
+function normalizeGeneratedQuestion(question) {
+  if (!question || typeof question !== 'object') return null;
+  const normalized = { ...question };
+  const type = normalized.type || 'multiple-choice';
+  if (type === 'multiple-choice' || type === 'true-false') {
+    const candidate = Number.isInteger(normalized.correctIndex)
+      ? normalized.correctIndex
+      : Number.isInteger(normalized.answer)
+        ? normalized.answer
+        : Number(normalized.answer);
+    if (Number.isInteger(candidate)) {
+      normalized.correctIndex = candidate;
+      normalized.answer = candidate;
+    }
+  }
+  return isValidQuestion(normalized) ? normalized : null;
+}
+
 app.use(express.json({ limit: '10mb' }));
 app.use('/api/auth', authRoutes);
 app.get('/api/profile-avatars', async (req, res) => {
@@ -189,7 +207,7 @@ app.post('/api/generate-quiz', requireAuth, async (req, res) => {
         }
         
         if (Array.isArray(parsedJSON)) {
-          const validQuestions = parsedJSON.filter(isValidQuestion);
+          const validQuestions = parsedJSON.map(normalizeGeneratedQuestion).filter(Boolean);
           
           allQuestions.push(...validQuestions);
         }
@@ -204,7 +222,7 @@ app.post('/api/generate-quiz', requireAuth, async (req, res) => {
             }
             
             if (Array.isArray(parsedJSON)) {
-              const validQuestions = parsedJSON.filter(isValidQuestion);
+              const validQuestions = parsedJSON.map(normalizeGeneratedQuestion).filter(Boolean);
               allQuestions.push(...validQuestions);
             }
           } catch (innerErr) {
@@ -267,14 +285,11 @@ app.post('/api/download-quiz', requireAuth, (req, res) => {
 });
 
 app.use('/public', express.static(path.join(__dirname, 'public')));
-const reactDist = path.join(__dirname, 'client', 'dist');
-app.use(express.static(reactDist));
+app.use(express.static(path.join(__dirname, 'dist')));
 
 app.get('/', (req, res) => {
   res.setHeader('Cache-Control', 'no-store');
-  res.sendFile(path.join(reactDist, 'index.html'), (error) => {
-    if (error) res.sendFile(path.join(__dirname, 'views', 'auth.html'));
-  });
+  res.sendFile(path.join(__dirname, 'dist', 'index.html'));
 });
 
 app.get('/auth', (req, res) => {
@@ -282,25 +297,19 @@ app.get('/auth', (req, res) => {
 });
 
 app.get('/learn', (req, res) => {
-  res.sendFile(path.join(reactDist, 'index.html'), (error) => {
-    if (error) res.sendFile(path.join(__dirname, 'views', 'quiz-generator.html'));
-  });
+  res.sendFile(path.join(__dirname, 'dist', 'index.html'));
 });
 
 app.get(['/profile', '/history'], (req, res) => {
-  res.sendFile(path.join(reactDist, 'index.html'), (error) => {
-    if (error) res.sendFile(path.join(__dirname, 'views', 'account.html'));
-  });
+  res.sendFile(path.join(__dirname, 'dist', 'index.html'));
 });
 
 app.get('/teacher', (req, res) => {
-  res.sendFile(path.join(reactDist, 'index.html'), (error) => {
-    if (error) res.sendFile(path.join(__dirname, 'views', 'teacher.html'));
-  });
+  res.sendFile(path.join(__dirname, 'dist', 'index.html'));
 });
 
 app.get('/admin', (req, res) => {
-  res.sendFile(path.join(__dirname, 'views', 'admin.html'));
+  res.sendFile(path.join(__dirname, 'dist', 'index.html'));
 });
 
 app.use((req, res) => {

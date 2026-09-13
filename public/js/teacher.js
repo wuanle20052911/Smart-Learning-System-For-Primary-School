@@ -34,10 +34,14 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs
 function setWorkspaceView(view){
   document.querySelectorAll('.workspace-tab').forEach((tab) => tab.classList.toggle('active', tab.dataset.view === view));
   document.querySelectorAll('.workspace-section').forEach((section) => section.classList.toggle('hidden', section.dataset.section !== view));
+  document.querySelectorAll('.teacher-extra-section').forEach((section) => section.classList.toggle('hidden', section.dataset.extraSection !== view));
   if(view === 'lessons') form.classList.add('hidden');
+  if(view === 'assignments') document.getElementById('actualAssignmentPanel')?.scrollIntoView({behavior:'smooth', block:'start'});
+  if(view === 'students') document.querySelector('.student-panel')?.scrollIntoView({behavior:'smooth', block:'start'});
 }
 document.querySelectorAll('.workspace-tab').forEach((tab) => tab.addEventListener('click', () => setWorkspaceView(tab.dataset.view)));
 document.querySelectorAll('[data-open-view]').forEach((button) => button.addEventListener('click', () => setWorkspaceView(button.dataset.openView)));
+setWorkspaceView('overview');
 
 function authHeaders(json = false){ return { Authorization: `Bearer ${token}`, ...(json ? {'Content-Type':'application/json'} : {}) }; }
 function escapeHtml(value){ return String(value || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }

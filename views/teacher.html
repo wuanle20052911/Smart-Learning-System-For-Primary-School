@@ -38,10 +38,6 @@
       <div class="section-heading"><div><span class="panel-kicker">QUẢN LÝ LỚP HỌC</span><h2>Học sinh của tôi</h2><p>Theo dõi danh sách, tiến độ và kết quả học tập của học sinh.</p></div><button class="secondary-button" type="button" disabled>+ Thêm học sinh</button></div>
       <section class="panel student-panel"><div class="student-toolbar"><label class="search-field"><span>⌕</span><input type="search" placeholder="Tìm theo tên hoặc email" disabled></label><select disabled><option>Tất cả lớp</option></select><select disabled><option>Tất cả trạng thái</option></select></div><div class="student-table-wrap"><table class="student-table"><thead><tr><th>Học sinh</th><th>Lớp</th><th>Bài đã làm</th><th>Điểm trung bình</th><th>Trạng thái</th></tr></thead><tbody><tr><td colspan="5"><div class="student-empty"><span class="empty-avatar">+</span><b>Chưa có dữ liệu học sinh</b><p>API danh sách học sinh sẽ được kết nối để hiển thị thông tin lớp của bạn tại đây.</p></div></td></tr></tbody></table></div></section>
     </section>
-    <section class="assignments-view workspace-section hidden" data-section="assignments">
-      <div class="section-heading"><div><span class="panel-kicker">HOẠT ĐỘNG HỌC TẬP</span><h2>Giao bài tập</h2><p>Tạo một hoạt động có thời hạn và gửi cho lớp học.</p></div><span class="coming-badge">Đang xây dựng API</span></div>
-      <div class="assignment-layout"><section class="panel assignment-panel"><h2>Tạo nhiệm vụ mới</h2><label>Tên bài tập<input placeholder="Ví dụ: Ôn tập phép cộng lớp 3" disabled></label><div class="two-cols"><label>Lớp học<select disabled><option>Chọn lớp học</option></select></label><label>Hạn nộp<input type="date" disabled></label></div><label>Hướng dẫn<textarea rows="4" placeholder="Mô tả yêu cầu cho học sinh" disabled></textarea></label><button class="primary" type="button" disabled>Giao bài tập</button><p class="disabled-note">Tính năng này sẽ hoạt động khi API bài tập được kết nối.</p></section><aside class="panel assignment-info"><span class="action-icon orange">↗</span><h3>Quy trình đề xuất</h3><ol><li>Chọn bài học hoặc bộ câu hỏi.</li><li>Chọn lớp và thời hạn hoàn thành.</li><li>Theo dõi tiến độ nộp bài.</li></ol></aside></div>
-    </section>
     <section class="layout workspace-section hidden" data-section="lessons">
       <form class="panel lesson-form hidden" id="lessonForm">
         <h2 id="formTitle">Thêm bài học</h2>
@@ -58,11 +54,11 @@
       </form>
       <section class="panel"><div class="panel-title"><h2>Lớp học → Chương → Bài</h2><span id="lessonCount">0 bài</span></div><div id="lessonList" class="lesson-list"><p>Đang tải...</p></div></section>
     </section>
-    <section class="panel attempts-panel">
+    <section class="panel attempts-panel teacher-extra-section" data-extra-section="students">
       <div class="panel-title"><h2>📊 Kết quả học sinh</h2><span id="attemptCount">0 lượt</span></div>
       <div id="attemptList" class="attempt-list"><p>Đang tải...</p></div>
     </section>
-    <section class="panel class-management-panel">
+    <section class="panel class-management-panel teacher-extra-section" data-extra-section="students">
       <div class="panel-title"><h2>🏫 Quản lý lớp học</h2><span>Tạo lớp mới</span></div>
       <form id="classForm" class="assignment-form">
         <div class="two-cols"><label>Tên lớp<input id="className" required placeholder="Ví dụ: 4A"></label><label>Khối<input id="classGrade" required placeholder="Ví dụ: Lớp 4"></label></div>
@@ -70,14 +66,14 @@
         <button class="primary" type="submit">+ Tạo lớp học</button>
       </form>
     </section>
-    <section class="panel member-management-panel">
+    <section class="panel member-management-panel teacher-extra-section" data-extra-section="students">
       <div class="panel-title"><h2>👩‍🎓 Thêm học sinh</h2><span>Thêm bằng email</span></div>
       <form id="memberForm" class="assignment-form member-form">
         <div class="two-cols"><label>Lớp học<select id="memberClassId" required><option value="">Chọn lớp học</option></select></label><label>Email học sinh<input id="memberEmail" type="email" required placeholder="hocsinh@example.com"></label></div>
         <button class="secondary" type="submit">+ Thêm học sinh vào lớp</button>
       </form>
     </section>
-    <section class="panel assignment-panel">
+    <section class="panel assignment-panel teacher-extra-section" data-extra-section="assignments" id="actualAssignmentPanel">
       <div class="panel-title"><h2>📝 Tạo bài tập</h2><span>Multiple choice · Đúng/Sai · Điền khuyết</span></div>
       <form id="assignmentForm" class="assignment-form">
         <div class="two-cols"><label>Tên bài tập<input id="assignmentTitle" required placeholder="Ví dụ: Ôn tập phân số"></label><label>Lớp học<select id="assignmentClassId"><option value="">Chọn lớp học</option></select></label></div>

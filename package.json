@@ -4,9 +4,10 @@
   "description": "SmartLearning quiz generator with Express backend for Anthropic API",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js",
+    "start": "npm run build && node server.js",
     "dev": "vite",
-    "build": "vite build"
+    "build": "vite build",
+    "serve": "node server.js"
   },
   "keywords": [
     "smart-learning",
@@ -20,6 +21,8 @@
     "@supabase/supabase-js": "^2.114.0",
     "dotenv": "^16.4.5",
     "express": "^4.21.2",
+    "mammoth": "^1.12.3",
+    "pdfjs-dist": "^6.3.289",
     "react": "^19.1.1",
     "react-dom": "^19.1.1"
   },

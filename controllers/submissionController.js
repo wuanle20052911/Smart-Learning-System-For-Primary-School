@@ -25,8 +25,13 @@ async function create(req, res) {
     return res.status(201).json({ submission, score, correctCount, totalQuestions });
   } catch (error) {
     console.error('Could not submit assignment:', error);
-    return res.status(400).json({ error: error.message || 'Không thể nộp bài tập.' });
+    return res.status(error.code === 'ALREADY_SUBMITTED' ? 409 : 400).json({ error: error.message || 'Không thể nộp bài tập.' });
   }
+}
+
+async function listForStudent(req, res) {
+  try { return res.json({ submissions: await submissionModel.listForStudent(req.accessToken, req.user.id) }); }
+  catch (error) { console.error(error); return res.status(500).json({ error: 'Không thể tải lịch sử bài tập.' }); }
 }
 
 async function listForTeacher(req, res) {
@@ -34,4 +39,4 @@ async function listForTeacher(req, res) {
   catch (error) { console.error(error); return res.status(500).json({ error: 'Không thể tải kết quả bài tập.' }); }
 }
 
-module.exports = { create, listForTeacher };
+module.exports = { create, listForStudent, listForTeacher };

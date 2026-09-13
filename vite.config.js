@@ -1,12 +1,13 @@
+const path = require('path');
 const { defineConfig } = require('vite');
 const react = require('@vitejs/plugin-react');
 
 module.exports = defineConfig({
-  root: 'client',
-  publicDir: false,
   plugins: [react()],
-  build: {
-    outDir: '../client/dist',
-    emptyOutDir: true
-  }
+  build: { outDir: 'dist' },
+  server: {
+    port: 5173,
+    proxy: { '/api': 'http://localhost:3000', '/public': 'http://localhost:3000' }
+  },
+  resolve: { alias: { '@': path.resolve(__dirname, 'src') } }
 });

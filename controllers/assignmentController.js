@@ -7,6 +7,9 @@ function normalize(body = {}) {
   if (typeof body.title !== 'string' || body.title.trim().length < 2 || !questions.length) {
     throw new Error('Bài tập cần có tên và ít nhất một câu hỏi.');
   }
+  if (body.published === true && !body.class_id) {
+    throw new Error('Bài tập đã xuất bản phải được giao cho một lớp.');
+  }
   return {
     assignment: {
       title: body.title.trim().slice(0, 160),
