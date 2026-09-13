@@ -22,6 +22,14 @@ async function listClasses(client, teacherId) {
   return data;
 }
 
+async function listClassStudents(client, classId) {
+  const { data, error } = await client.rpc('teacher_list_class_students', {
+    target_class_id: classId
+  });
+  if (error) throw error;
+  return data || [];
+}
+
 async function addClassMember(client, classId, email) {
   const { data, error } = await client.rpc('add_student_to_class', {
     target_class_id: classId,
@@ -62,4 +70,4 @@ async function managerAddClassMember(client, classId, email) {
   return data;
 }
 
-module.exports = { getSupabaseClient, list, create, listClasses, addClassMember, listTeachers, listManagedClasses, managerCreateClass, managerAddClassMember };
+module.exports = { getSupabaseClient, list, create, listClasses, listClassStudents, addClassMember, listTeachers, listManagedClasses, managerCreateClass, managerAddClassMember };

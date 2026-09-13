@@ -71,6 +71,28 @@ button, input, select { font: inherit; }
 .assigned-question { margin: 16px 0; padding: 18px; border: 2px solid #e2edf8; border-radius: 16px; background: #fff; }
 .assigned-question h3 { margin: 8px 0 14px; color: #243d67; }
 .assignment-result { max-width: 650px; margin: 20px auto; text-align: center; }
+.student-list-panel { padding: 28px; }
+.student-list-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 20px; margin-bottom: 22px; }
+.student-list-head h2 { margin: 5px 0; color: #243d67; }
+.student-list-head p { margin: 0; color: #7890ad; }
+.student-list-head select { min-width: 190px; padding: 11px 12px; border: 2px solid #dce9f5; border-radius: 10px; color: #315c9b; font-weight: 700; }
+.student-list-summary { margin-bottom: 12px; color: #7890ad; }
+.student-list-summary b { margin-right: 6px; color: #2f86eb; font-size: 22px; }
+.student-list-row { display: flex; align-items: center; gap: 12px; padding: 13px 0; border-top: 1px solid #e9f0f6; }
+.student-number { width: 24px; color: #9aaec2; font-weight: 700; text-align: center; }
+.student-list-avatar { display: grid; place-items: center; width: 42px; height: 42px; overflow: hidden; border-radius: 50%; background: #eaf4ff; font-size: 21px; }
+.student-list-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.student-list-row div { flex: 1; min-width: 0; }
+.student-list-row strong, .student-list-row small { display: block; }
+.student-list-row strong { color: #243d67; }
+.student-list-row small, .student-list-row time { color: #7890ad; font-size: 12px; }
+.student-list-row time { white-space: nowrap; }
+.student-list-empty { padding: 38px 10px; color: #7890ad; text-align: center; }
+@media (max-width: 640px) {
+  .student-list-head { align-items: stretch; flex-direction: column; }
+  .student-list-head select { width: 100%; }
+  .student-list-row time { display: none; }
+}
 .assignment-review { margin: 22px 0; text-align: left; }
 .assignment-review h3 { color: #243d67; }
 .assignment-review article { display: grid; gap: 4px; margin: 10px 0; padding: 12px 14px; border-radius: 12px; border-left: 5px solid #d7e4f0; background: #f7fbff; }

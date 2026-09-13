@@ -48,6 +48,19 @@ async function listClasses(req, res) {
   catch (error) { console.error(error); return res.status(500).json({ error: 'Không thể tải lớp học.' }); }
 }
 
+async function listClassStudents(req, res) {
+  if (!['teacher', 'admin'].includes(req.profile?.role)) {
+    return res.status(403).json({ error: 'Chỉ giáo viên mới có quyền xem danh sách học sinh.' });
+  }
+  try {
+    const students = await catalogModel.listClassStudents(catalogModel.getSupabaseClient(req.accessToken), req.params.id);
+    return res.json({ students });
+  } catch (error) {
+    console.error('Could not load class students:', error);
+    return res.status(500).json({ error: 'Không thể tải danh sách học sinh.' });
+  }
+}
+
 async function createSubject(req, res) {
   try { return res.status(201).json({ subject: await catalogModel.create(catalogModel.getSupabaseClient(req.accessToken), 'subjects', { name: req.body?.name?.trim(), description: req.body?.description?.trim() || '', created_by: req.user.id }) }); }
   catch (error) { return res.status(400).json({ error: error.message || 'Không thể tạo môn học.' }); }
@@ -105,4 +118,4 @@ async function listManagementOptions(req, res) {
   }
 }
 
-module.exports = { teacherOnly, adminOnly, listSubjects, listTopics, listSkills, listClasses, listManagementOptions, createSubject, createTopic, createSkill, createClass, addClassMember };
+module.exports = { teacherOnly, adminOnly, listSubjects, listTopics, listSkills, listClasses, listClassStudents, listManagementOptions, createSubject, createTopic, createSkill, createClass, addClassMember };

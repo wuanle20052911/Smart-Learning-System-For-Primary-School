@@ -8,6 +8,7 @@ router.get('/subjects', controller.listSubjects);
 router.get('/topics', controller.listTopics);
 router.get('/skills', controller.listSkills);
 router.get('/classes', controller.listClasses);
+router.get('/classes/:id/students', controller.listClassStudents);
 router.get('/management/options', controller.adminOnly, controller.listManagementOptions);
 router.post('/subjects', controller.teacherOnly, controller.createSubject);
 router.post('/topics', controller.teacherOnly, controller.createTopic);
