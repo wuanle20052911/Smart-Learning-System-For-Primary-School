@@ -369,10 +369,48 @@ function AssignmentStudio({ onMessage }) {
   return <section className="assignment-studio"><div className="studio-intro"><div><span className="panel-kicker">TẠO BÀI TẬP CÙNG AI LOCAL</span><h2>Từ tài liệu đến bài tập cho cả lớp</h2><p>Đang sử dụng Ollama trên máy local, không gửi tài liệu ra dịch vụ bên ngoài.</p></div><span className="studio-steps">1 Tài liệu　→　2 AI local　→　3 Kiểm tra　→　4 Xuất bản</span></div><div className="studio-grid"><section className="teacher-card studio-source"><h3>1. Thêm tài liệu</h3><label className="material-upload"><span>📄</span><b>{materialName || 'Chọn tài liệu PDF hoặc Word'}</b><small>Hỗ trợ .pdf, .docx, .txt, .md</small><input type="file" accept=".pdf,.docx,.txt,.md,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain,text/markdown" onChange={readFile} /></label><textarea value={material} onChange={(event) => setMaterial(event.target.value)} rows="9" placeholder="Hoặc dán nội dung bài học tại đây..." /><button className="teacher-create" onClick={generate} disabled={busy}>{busy ? 'AI local đang tạo...' : '✦ Tạo câu hỏi bằng AI local'}</button><button className="secondary-studio sample-button" type="button" onClick={() => { setQuestions(sampleQuestions); onMessage('Đã nạp dữ liệu mẫu.'); }}>Dùng dữ liệu mẫu</button></section><section className="teacher-card studio-review"><div className="studio-review-head"><div><h3>2. Kiểm tra và chỉnh sửa</h3><small>{questions.length ? `${questions.length} câu hỏi đã tạo` : 'Chưa có câu hỏi'}</small></div><input value={title} onChange={(event) => setTitle(event.target.value)} placeholder="Tên bài tập" /><select value={classId} onChange={(event) => setClassId(event.target.value)}><option value="">Chọn lớp được giao</option>{classes.map((item) => <option value={item.id} key={item.id}>{item.name} · {item.grade}</option>)}</select></div>{questions.length ? questions.map((item, index) => <article className="editable-question" key={index}><div className="editable-question-head"><b>Câu {index + 1}</b><button type="button" onClick={() => setQuestions((items) => items.filter((_, current) => current !== index))}>Xóa</button></div><textarea value={item.question} onChange={(event) => updateQuestion(index, 'question', event.target.value)} rows="2" />{(item.options || []).map((option, optionIndex) => <label key={optionIndex}><span>{String.fromCharCode(65 + optionIndex)}</span><input value={option} onChange={(event) => updateOption(index, optionIndex, event.target.value)} /><input className="answer-radio" type="radio" checked={item.answer === optionIndex} onChange={() => updateQuestion(index, 'answer', optionIndex)} /></label>)}<input value={item.explanation || ''} onChange={(event) => updateQuestion(index, 'explanation', event.target.value)} placeholder="Giải thích đáp án (không bắt buộc)" /></article>) : <div className="studio-empty">Câu hỏi AI tạo ra sẽ xuất hiện ở đây để giáo viên kiểm tra.</div>}<div className="studio-actions"><button className="secondary-studio" type="button" onClick={() => setQuestions((items) => [...items, { ...sampleQuestions[0], question: 'Câu hỏi mới của giáo viên?' }])}>+ Thêm câu hỏi</button><button className="teacher-create" type="button" onClick={publish} disabled={busy || published}>{published ? '✓ Đã xuất bản' : 'Xuất bản cho cả lớp'}</button></div></section></div></section>;
 }
 
+function TeacherClassManagement({ classes, onMessage, onRefresh }) {
+  const [form, setForm] = useState({ name: '', grade: '', teacher_id: '' });
+  const [teachers, setTeachers] = useState([]);
+  const [busy, setBusy] = useState(false);
+  useEffect(() => {
+    api('/api/catalog/management/options')
+      .then((data) => setTeachers(data.teachers || []))
+      .catch((error) => onMessage(`Không thể tải danh sách giáo viên: ${error.message}`));
+  }, [onMessage]);
+  const submit = async (event) => {
+    event.preventDefault();
+    if (!form.name.trim() || !form.grade.trim()) {
+      onMessage('Vui lòng nhập tên lớp và khối học.');
+      return;
+    }
+    setBusy(true);
+    try {
+      await api('/api/catalog/classes', {
+        method: 'POST',
+        body: JSON.stringify({
+          name: form.name,
+          grade: form.grade,
+          teacher_id: form.teacher_id || null
+        })
+      });
+      setForm({ name: '', grade: '', teacher_id: '' });
+      onMessage('Đã tạo lớp học thành công.');
+      onRefresh?.();
+    } catch (error) {
+      onMessage(error.message);
+    } finally {
+      setBusy(false);
+    }
+  };
+  return <section className="teacher-card student-list-panel"><div className="student-list-head"><div><span className="panel-kicker">QUẢN LÝ LỚP HỌC</span><h2>Tạo lớp học mới</h2><p>Thêm lớp, gán giáo viên và quản lý danh sách học sinh.</p></div></div><form onSubmit={submit} className="profile-form"><label>Tên lớp<input value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} placeholder="Ví dụ: 4A" required /></label><label>Khối học<input value={form.grade} onChange={(event) => setForm({ ...form, grade: event.target.value })} placeholder="Ví dụ: Khối 4" required /></label><label>Giáo viên phụ trách<select value={form.teacher_id} onChange={(event) => setForm({ ...form, teacher_id: event.target.value })}><option value="">Chưa chỉ định</option>{teachers.map((teacher) => <option value={teacher.id} key={teacher.id}>{teacher.full_name} · {teacher.email}</option>)}</select></label><button className="teacher-create" type="submit" disabled={busy}>{busy ? 'Đang lưu...' : '＋ Tạo lớp học'}</button></form><div className="student-list-table" style={{ marginTop: 18 }}><div className="student-list-summary"><b>{classes.length}</b><span>lớp đang quản lý</span></div>{classes.length ? classes.map((item) => <article className="student-list-row" key={item.id}><span className="student-number">•</span><div><strong>{item.name} · {item.grade}</strong><small>{item.assigned_teacher_name || 'Chưa chỉ định giáo viên'}</small></div><time>{new Date(item.created_at).toLocaleDateString('vi-VN')}</time></article>) : <p className="student-list-empty">Chưa có lớp học nào.</p>}</div></section>;
+}
+
 function TeacherStudents({ classes, onMessage }) {
   const [classId, setClassId] = useState(classes[0]?.id || '');
   const [students, setStudents] = useState([]);
   const [busy, setBusy] = useState(false);
+  const [email, setEmail] = useState('');
   useEffect(() => {
     if (!classId && classes[0]?.id) setClassId(classes[0].id);
   }, [classId, classes]);
@@ -385,7 +423,26 @@ function TeacherStudents({ classes, onMessage }) {
       .finally(() => setBusy(false));
   }, [classId, onMessage]);
   const selectedClass = classes.find((item) => item.id === classId);
-  return <section className="teacher-card student-list-panel"><div className="student-list-head"><div><span className="panel-kicker">QUẢN LÝ LỚP HỌC</span><h2>Danh sách học sinh</h2><p>{selectedClass ? `${selectedClass.name} · Khối ${selectedClass.grade}` : 'Chọn lớp để xem học sinh'}</p></div><select value={classId} onChange={(event) => setClassId(event.target.value)}><option value="">Chọn lớp</option>{classes.map((item) => <option value={item.id} key={item.id}>{item.name} · {item.grade}</option>)}</select></div>{busy ? <p className="student-list-empty">Đang tải danh sách...</p> : !classId ? <p className="student-list-empty">Bạn chưa có lớp để xem.</p> : students.length ? <div className="student-list-table"><div className="student-list-summary"><b>{students.length}</b><span>học sinh trong lớp</span></div>{students.map((student, index) => <article className="student-list-row" key={student.id}><span className="student-number">{index + 1}</span><span className="student-list-avatar">{student.avatar_url ? <img src={student.avatar_url} alt="" /> : '👧'}</span><div><strong>{student.full_name || 'Chưa cập nhật tên'}</strong><small>{student.email}</small></div><time>Tham gia {new Date(student.joined_at).toLocaleDateString('vi-VN')}</time></article>)}</div> : <p className="student-list-empty">Lớp này chưa có học sinh.</p>}</section>;
+  const addStudent = async (event) => {
+    event.preventDefault();
+    if (!classId || !email.trim()) {
+      onMessage('Vui lòng chọn lớp và nhập email học sinh.');
+      return;
+    }
+    try {
+      await api('/api/catalog/classes/members', {
+        method: 'POST',
+        body: JSON.stringify({ class_id: classId, email: email.trim() })
+      });
+      setEmail('');
+      onMessage('Đã thêm học sinh vào lớp.');
+      const data = await api(`/api/catalog/classes/${classId}/students`);
+      setStudents(data.students || []);
+    } catch (error) {
+      onMessage(error.message);
+    }
+  };
+  return <section className="teacher-card student-list-panel"><div className="student-list-head"><div><span className="panel-kicker">QUẢN LÝ LỚP HỌC</span><h2>Danh sách học sinh</h2><p>{selectedClass ? `${selectedClass.name} · Khối ${selectedClass.grade}` : 'Chọn lớp để xem học sinh'}</p></div><select value={classId} onChange={(event) => setClassId(event.target.value)}><option value="">Chọn lớp</option>{classes.map((item) => <option value={item.id} key={item.id}>{item.name} · {item.grade}</option>)}</select></div><form onSubmit={addStudent} className="profile-form" style={{ marginTop: 18 }}><label>Email học sinh<input type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="student@example.com" required /></label><button className="teacher-create" type="submit">＋ Thêm học sinh</button></form>{busy ? <p className="student-list-empty">Đang tải danh sách...</p> : !classId ? <p className="student-list-empty">Bạn chưa có lớp để xem.</p> : students.length ? <div className="student-list-table"><div className="student-list-summary"><b>{students.length}</b><span>học sinh trong lớp</span></div>{students.map((student, index) => <article className="student-list-row" key={student.id}><span className="student-number">{index + 1}</span><span className="student-list-avatar">{student.avatar_url ? <img src={student.avatar_url} alt="" /> : '👧'}</span><div><strong>{student.full_name || 'Chưa cập nhật tên'}</strong><small>{student.email}</small></div><time>Tham gia {new Date(student.joined_at).toLocaleDateString('vi-VN')}</time></article>)}</div> : <p className="student-list-empty">Lớp này chưa có học sinh.</p>}</section>;
 }
 
 function TeacherOverview({ students, assignments, onOpenAssignments, onOpenStudents }) {
@@ -399,16 +456,22 @@ function TeacherPage() {
   const [classes, setClasses] = useState([]);
   const students = [['Trần Minh Khang', 'Phân số', '4.8/10', 'Cao'], ['Lê Bảo Ngọc', 'Phân số, Hình học', '5.2/10', 'Cao'], ['Nguyễn Hải Nam', 'Phép nhân, chia', '5.6/10', 'Trung bình'], ['Phạm Gia Hân', 'Đo lường', '6.1/10', 'Trung bình']];
   const assignments = [['Luyện tập Phân số (P1)', 'Phân số', '72%', '21/29', 'blue'], ['Phép nhân số tự nhiên', 'Phép nhân, chia', '93%', '27/29', 'green'], ['Hình thoi và hình chữ nhật', 'Hình học', '86%', '25/29', 'yellow'], ['Ôn tập đo lường', 'Đo lường', '100%', '29/29', 'purple']];
-  useEffect(() => {
+  const loadTeacherData = () => {
     Promise.all([api('/api/lessons/mine'), api('/api/catalog/classes')])
       .then(([lessonData, classData]) => { setLessons(lessonData.lessons || []); setClasses(classData.classes || []); })
       .catch((error) => setMessage(`Không thể tải dữ liệu giáo viên: ${error.message}`));
-  }, []);
+  };
+  useEffect(() => { loadTeacherData(); }, []);
   const navItems = [['overview', '⌂', 'Tổng quan'], ['classes', '♧', 'Lớp học'], ['assignments', '▣', 'Bài tập'], ['students', '♙', 'Học sinh'], ['analytics', '▥', 'Phân tích học tập'], ['ai', '✦', 'Đề xuất AI']];
   const openAction = (text, view = 'assignments') => { setActiveView(view); setMessage(text); };
+  const primaryAction = activeView === 'classes'
+    ? { label: '＋ Tạo lớp học', target: 'classes' }
+    : activeView === 'students'
+      ? { label: '＋ Thêm học sinh', target: 'students' }
+      : { label: '＋ Tạo bài tập', target: 'assignments' };
   return <main className="teacher-dashboard">
     <aside className="teacher-sidebar"><div className="teacher-logo">▰</div><div className="teacher-brand">MathJoy<small>Teacher</small></div><nav>{navItems.map(([value, icon, label]) => <button key={value} className={activeView === value ? 'active' : ''} onClick={() => setActiveView(value)}><span>{icon}</span>{label}</button>)}</nav><div className="sidebar-help"><b>▣</b><strong>Mẹo hay cho giáo viên</strong><small>Đọc bài tập ngắn, đều đặn sẽ giúp học sinh tiến bộ hơn!</small><button onClick={() => setMessage('Khu vực hướng dẫn đang được chuẩn bị.')}>Xem thêm</button></div><button className="sidebar-bottom" onClick={() => setMessage('Cài đặt đang được chuẩn bị.')}>⚙ Cài đặt <span>›</span></button><button className="sidebar-bottom" onClick={() => setMessage('Trung tâm trợ giúp đang được chuẩn bị.')}>? Trợ giúp <span>›</span></button></aside>
-    <section className="teacher-main"><header className="teacher-topbar"><div><h1>Dashboard giáo viên</h1><p>Tổng quan tình hình học tập của lớp</p></div><div className="teacher-filters"><button className="teacher-create" onClick={() => setActiveView('assignments')}>＋ Tạo bài tập</button><button className="teacher-logout" onClick={logout}>↪</button></div></header>{message && <div className="teacher-toast">{message}<button onClick={() => setMessage('')}>×</button></div>}{activeView === 'assignments' ? <AssignmentStudio onMessage={setMessage} /> : activeView === 'students' ? <TeacherStudents classes={classes} onMessage={setMessage} /> : activeView === 'overview' ? <TeacherOverview students={students} assignments={assignments} onOpenAssignments={() => setActiveView('assignments')} onOpenStudents={() => setActiveView('students')} /> : <section className="teacher-placeholder teacher-card"><span>✦</span><h2>{navItems.find(([value]) => value === activeView)?.[2]}</h2><p>Khu vực này đang dùng dữ liệu mẫu để bạn xem trước giao diện.</p><button className="teacher-create" onClick={() => setActiveView('overview')}>Về tổng quan</button></section>}</section>
+    <section className="teacher-main"><header className="teacher-topbar"><div><h1>Dashboard giáo viên</h1><p>Tổng quan tình hình học tập của lớp</p></div><div className="teacher-filters"><button className="teacher-create" onClick={() => setActiveView(primaryAction.target)}>{primaryAction.label}</button><button className="teacher-logout" onClick={logout}>↪</button></div></header>{message && <div className="teacher-toast">{message}<button onClick={() => setMessage('')}>×</button></div>}{activeView === 'assignments' ? <AssignmentStudio onMessage={setMessage} /> : activeView === 'classes' ? <TeacherClassManagement classes={classes} onMessage={setMessage} onRefresh={loadTeacherData} /> : activeView === 'students' ? <TeacherStudents classes={classes} onMessage={setMessage} /> : activeView === 'overview' ? <TeacherOverview students={students} assignments={assignments} onOpenAssignments={() => setActiveView('assignments')} onOpenStudents={() => setActiveView('students')} /> : <section className="teacher-placeholder teacher-card"><span>✦</span><h2>{navItems.find(([value]) => value === activeView)?.[2]}</h2><p>Khu vực này đang dùng dữ liệu mẫu để bạn xem trước giao diện.</p><button className="teacher-create" onClick={() => setActiveView('overview')}>Về tổng quan</button></section>}</section>
   </main>;
 }
 
