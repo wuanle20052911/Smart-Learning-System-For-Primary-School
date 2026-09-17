@@ -69,7 +69,20 @@ Dự án web tạo bộ câu hỏi ôn tập cho học sinh tiểu học bằng 
    - Tài khoản đăng ký với vai trò **Giáo viên** có thể mở `http://localhost:3000/teacher` để thêm, sửa, xoá và xuất bản bài học.
    - Trang học sinh chỉ hiển thị các bài học đã được giáo viên xuất bản.
 
-8. Chạy server:
+8. Chạy frontend ở chế độ phát triển:
+
+   ```bash
+   npm run dev
+   ```
+
+   Vite sẽ chạy tại `http://localhost:5173` và chuyển tiếp các request `/api`
+   tới backend ở port `3000`. Trong một terminal khác, chạy backend:
+
+   ```bash
+   npm run serve
+   ```
+
+   Hoặc chạy cả quy trình production:
 
    ```bash
    npm start
@@ -81,16 +94,37 @@ Dự án web tạo bộ câu hỏi ôn tập cho học sinh tiểu học bằng 
    http://localhost:3000
    ```
 
-   Trang đăng nhập/đăng ký: `http://localhost:3000/auth`
+   Trang đăng nhập/đăng ký nằm tại `/` (route `/auth` sẽ chuyển về `/`).
 
-## MVC authentication
+## Kiến trúc ứng dụng
 
-- `views/auth.html` và `public/auth.*`: giao diện LearnHub và logic form.
+Frontend sử dụng React và Vite:
+
+- `index.html`: entrypoint của Vite.
+- `src/main.jsx`: khởi tạo React và render `App`.
+- `src/App.jsx`: điều hướng client-side, kiểm tra session và phân quyền.
+- `src/pages/AdminPage.jsx`: trang quản trị hệ thống.
+- `src/pages/TeacherPage.jsx`: dashboard giáo viên.
+- `src/pages/StudentHomePage.jsx`: trang học tập của học sinh.
+- `src/pages/AuthPage.jsx`: đăng nhập và đăng ký.
+- `src/pages/AccountPage.jsx`: thông tin cá nhân và lịch sử làm bài.
+- `src/components/`: các thành phần UI dùng chung như header, thương hiệu và phân quyền.
+- `src/features/assignments/`: tạo bài tập AI, bài tập được giao và xử lý nộp bài.
+- `src/features/lessons/`: hiển thị bài học và khởi tạo bài tập AI từ bài học.
+- `src/services/`: gọi API, đọc session, điều hướng và đăng xuất.
+- `src/styles.css`: style dùng chung của ứng dụng React.
+- `public/css/`: style theo từng khu vực, được tải theo route.
+
+Backend sử dụng Express theo mô hình routes/controllers/models:
+
 - `routes/authRoutes.js`: định tuyến đăng nhập và API tạo tài khoản giáo viên dành riêng cho quản lý.
 - `controllers/authController.js`: kiểm tra input và định dạng response.
 - `models/userModel.js`: giao tiếp với Supabase Auth.
 - `supabase/002_create_lessons.sql`: bảng bài học và chính sách RLS.
-- `views/teacher.html` và `public/teacher.*`: bảng điều khiển bài học của giáo viên.
+- `server.js`: khởi tạo Express, đăng ký API, phục vụ thư mục `dist` và tài nguyên tĩnh.
+
+Các giao diện HTML/JavaScript cũ trong `views/`, `client/` và `public/js/`
+đã được loại bỏ; toàn bộ giao diện hiện tại chạy từ React/Vite.
 
 ## API chính
 
