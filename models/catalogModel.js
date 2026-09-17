@@ -203,6 +203,22 @@ async function managerAddClassMember(client, classId, email) {
   }
 }
 
+async function managerUpdateClass(client, classId, name, grade, teacherId) {
+  try {
+    const { data, error } = await client.rpc('manager_update_class', {
+      target_class_id: classId, target_name: name, target_grade: grade, target_teacher_id: teacherId
+    });
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    if (process.env.SUPABASE_URL && process.env.SUPABASE_ANON_KEY) throw error;
+    const item = localClassStore.classes.get(classId);
+    if (!item) throw new Error('Không tìm thấy lớp học.');
+    Object.assign(item, { name, grade, assigned_teacher_id: teacherId, assigned_teacher_name: teacherId || null, assigned_teacher_email: teacherId || null });
+    return item;
+  }
+}
+
 module.exports = {
   getSupabaseClient,
   list,
@@ -213,6 +229,7 @@ module.exports = {
   listTeachers,
   listManagedClasses,
   managerCreateClass,
+  managerUpdateClass,
   managerAddClassMember,
   createLocalSchoolClass,
   addLocalStudentToClass,

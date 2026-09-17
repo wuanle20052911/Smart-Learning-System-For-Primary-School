@@ -14,5 +14,6 @@ router.post('/subjects', controller.teacherOnly, controller.createSubject);
 router.post('/topics', controller.teacherOnly, controller.createTopic);
 router.post('/skills', controller.teacherOnly, controller.createSkill);
 router.post('/classes', controller.adminOnly, controller.createClass);
+router.put('/classes/:id', controller.adminOnly, controller.updateClass);
 router.post('/classes/members', controller.adminOnly, controller.addClassMember);
 module.exports = router;

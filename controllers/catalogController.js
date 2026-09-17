@@ -105,6 +105,21 @@ async function addClassMember(req, res) {
   }
 }
 
+async function updateClass(req, res) {
+  const classId = typeof req.params.id === 'string' ? req.params.id : '';
+  const name = typeof req.body?.name === 'string' ? req.body.name.trim() : '';
+  const grade = typeof req.body?.grade === 'string' ? req.body.grade.trim() : '';
+  const teacherId = req.body?.teacher_id || null;
+  if (!classId || !name || !grade) return res.status(400).json({ error: 'Vui lòng nhập đầy đủ tên lớp và khối.' });
+  try {
+    const item = await catalogModel.managerUpdateClass(catalogModel.getSupabaseClient(req.accessToken), classId, name, grade, teacherId);
+    return res.json({ class: item });
+  } catch (error) {
+    console.error('Could not update class:', error);
+    return res.status(400).json({ error: error.message || 'Không thể cập nhật lớp học.' });
+  }
+}
+
 async function listManagementOptions(req, res) {
   try {
     const client = catalogModel.getSupabaseClient(req.accessToken);
@@ -118,4 +133,4 @@ async function listManagementOptions(req, res) {
   }
 }
 
-module.exports = { teacherOnly, adminOnly, listSubjects, listTopics, listSkills, listClasses, listClassStudents, listManagementOptions, createSubject, createTopic, createSkill, createClass, addClassMember };
+module.exports = { teacherOnly, adminOnly, listSubjects, listTopics, listSkills, listClasses, listClassStudents, listManagementOptions, createSubject, createTopic, createSkill, createClass, updateClass, addClassMember };

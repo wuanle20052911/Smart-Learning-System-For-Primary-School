@@ -34,26 +34,47 @@ async function login(req, res) {
   }
 }
 
-async function register(req, res) {
-  const { email, password, fullName, role = 'student' } = req.body || {};
+async function registerStudent(req, res) {
+  const { email, password, fullName } = req.body || {};
   const validationError = validateCredentials(email, password);
   if (validationError) return res.status(400).json({ error: validationError });
-  if (!fullName || fullName.trim().length < 2) {
-    return res.status(400).json({ error: 'Please enter your full name.' });
-  }
-  if (!['student', 'teacher'].includes(role)) {
-    return res.status(400).json({ error: 'Invalid account role.' });
+  if (typeof fullName !== 'string' || fullName.trim().length < 2) {
+    return res.status(400).json({ error: 'Vui lòng nhập họ tên học sinh.' });
   }
 
   try {
-    const data = await userModel.register(email.trim().toLowerCase(), password, fullName.trim(), role);
+    const data = await userModel.registerStudent(email.trim().toLowerCase(), password, fullName.trim());
     return res.status(201).json({
       user: data.user,
       session: data.session,
-      message: data.session ? 'Account created successfully.' : 'Check your email to confirm your account.'
+      message: data.session ? 'Đăng ký học sinh thành công.' : 'Vui lòng kiểm tra email để xác nhận tài khoản.'
     });
   } catch (error) {
-    return res.status(400).json({ error: error.message || 'Unable to create your account.' });
+    return res.status(400).json({ error: error.message || 'Không thể đăng ký tài khoản học sinh.' });
+  }
+}
+
+async function createTeacher(req, res) {
+  if (req.profile?.role !== 'admin') {
+    return res.status(403).json({ error: 'Chỉ quản lý mới có quyền tạo tài khoản giáo viên.' });
+  }
+
+  const { email, password, fullName } = req.body || {};
+  const validationError = validateCredentials(email, password);
+  if (validationError) return res.status(400).json({ error: validationError });
+  if (!fullName || fullName.trim().length < 2) {
+    return res.status(400).json({ error: 'Vui lòng nhập họ tên giáo viên.' });
+  }
+
+  try {
+    const teacher = await userModel.createTeacher(email.trim().toLowerCase(), password, fullName.trim());
+    return res.status(201).json({ teacher, message: 'Đã tạo tài khoản giáo viên.' });
+  } catch (error) {
+    if (error.code === 'email_exists') {
+      return res.status(409).json({ error: 'Email này đã được đăng ký. Vui lòng dùng email khác.' });
+    }
+    console.error('Could not create teacher account:', error);
+    return res.status(400).json({ error: error.message || 'Không thể tạo tài khoản giáo viên.' });
   }
 }
 
@@ -76,4 +97,4 @@ async function getProfile(req, res) {
   }
 }
 
-module.exports = { login, register, updateProfile, getProfile };
+module.exports = { login, registerStudent, createTeacher, updateProfile, getProfile };

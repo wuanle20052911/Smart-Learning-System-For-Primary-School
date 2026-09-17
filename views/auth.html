@@ -40,24 +40,17 @@
       <div class="form-wrap">
         <div class="heading">
           <h2 id="form-title">Đăng nhập cổng học tập</h2>
-          <p id="form-description">Chọn đúng vai trò của mình để bắt đầu nhé</p>
+          <p id="form-description">Nhập thông tin tài khoản để tiếp tục</p>
         </div>
-        <p class="section-label role-label">1. VAI TRÒ CỦA BẠN LÀ:</p>
-        <div class="role-picker" aria-label="Chọn vai trò">
-          <button type="button" class="role-button active" data-role="student"><img class="role-icon" src="/public/img/student.png" alt=""><b>Học sinh</b></button>
-          <button type="button" class="role-button" data-role="teacher"><img class="role-icon" src="/public/img/teacher.png" alt=""><b>Giáo viên</b></button>
-          <button type="button" class="role-button" data-role="admin"><img class="role-icon" src="/public/img/manager.png" alt=""><b>Quản lý</b></button>
-        </div>
-        <p class="section-label">2. NHẬP THÔNG TIN TÀI KHOẢN:</p>
+        <p class="section-label">1. NHẬP THÔNG TIN TÀI KHOẢN:</p>
         <form id="auth-form">
-          <div class="field register-only hidden"><label for="full-name">Tên đầy đủ</label><input id="full-name" type="text" autocomplete="name" placeholder="Nguyễn Văn An"></div>
           <div class="field"><label for="email">Tên đăng nhập hoặc Email</label><div class="input-with-icon"><span>♙</span><input id="email" type="email" autocomplete="email" placeholder="Viết tài khoản học tập vào đây..." required></div></div>
           <div class="field"><div class="label-row"><label for="password">Mật khẩu bí mật</label><a href="#" id="forgot-link" class="login-only">Quên mật khẩu?</a></div><div class="password-input"><span>♧</span><input id="password" type="password" autocomplete="current-password" placeholder="••••••••" required><button type="button" id="toggle-password" aria-label="Hiện mật khẩu">◉</button></div></div>
           <button class="submit" id="submit-button" type="submit">ĐĂNG NHẬP NGAY </button>
         </form>
         <div id="message" class="message" role="status"></div>
         <div class="socials login-only hidden"><button type="button" class="social" data-provider="google">Google</button><button type="button" class="social" data-provider="azure">Microsoft</button></div>
-        <p class="switch-text"><span id="switch-label">Chưa có tài khoản MathJoy?</span> <button type="button" id="switch-mode">Đăng ký thành viên</button></p>
+        <p class="switch-text">Tài khoản giáo viên được tạo bởi quản lý nhà trường.</p>
       </div>
     </section>
     <footer><span>© 2026 MathJoy Việt Nam. Phát triển bởi những người yêu Toán dành cho trẻ em Việt Nam.</span></footer>

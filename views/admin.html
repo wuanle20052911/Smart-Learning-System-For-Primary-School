@@ -18,6 +18,15 @@
     <p id="message" class="message" role="status"></p>
     <div class="grid">
       <section class="card">
+        <h2>+ Tạo tài khoản giáo viên</h2>
+        <form id="teacherForm">
+          <label>Họ tên giáo viên<input id="teacherName" required minlength="2" maxlength="120" placeholder="Nguyễn Văn An"></label>
+          <label>Email<input id="teacherEmail" type="email" required placeholder="giaovien@example.com"></label>
+          <label>Mật khẩu tạm thời<input id="teacherPassword" type="password" required minlength="6" placeholder="Ít nhất 6 ký tự"></label>
+          <button class="primary" type="submit">Tạo tài khoản giáo viên</button>
+        </form>
+      </section>
+      <section class="card">
         <h2>+ Tạo lớp học</h2>
         <form id="classForm">
           <label>Tên lớp<input id="className" required maxlength="80" placeholder="Ví dụ: 4A"></label>

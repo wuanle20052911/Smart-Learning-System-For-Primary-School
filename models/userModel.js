@@ -1,4 +1,5 @@
 const { getSupabaseClient } = require('./supabaseClient');
+const { getSupabaseAdminClient } = require('./supabaseAdminClient');
 
 async function signIn(email, password) {
   const client = getSupabaseClient();
@@ -38,14 +39,37 @@ async function getClass(accessToken, studentId) {
   return data?.classes || null;
 }
 
-async function register(email, password, fullName, role = 'student') {
+async function createTeacher(email, password, fullName) {
+  const client = getSupabaseAdminClient();
+  const { data, error } = await client.auth.admin.createUser({
+    email,
+    password,
+    email_confirm: true,
+    user_metadata: { full_name: fullName }
+  });
+  if (error) throw error;
+
+  const { data: profile, error: profileError } = await client
+    .from('users')
+    .update({ full_name: fullName, role: 'teacher' })
+    .eq('id', data.user.id)
+    .select('id, email, full_name, role')
+    .single();
+  if (profileError) {
+    await client.auth.admin.deleteUser(data.user.id);
+    throw profileError;
+  }
+  return profile;
+}
+
+async function registerStudent(email, password, fullName) {
   const { data, error } = await getSupabaseClient().auth.signUp({
     email,
     password,
-    options: { data: { full_name: fullName, role } }
+    options: { data: { full_name: fullName } }
   });
   if (error) throw error;
   return data;
 }
 
-module.exports = { signIn, register, updateProfile, getClass };
+module.exports = { signIn, registerStudent, createTeacher, updateProfile, getClass };

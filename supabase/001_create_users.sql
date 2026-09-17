@@ -30,11 +30,7 @@ begin
     new.id,
     new.email,
     coalesce(new.raw_user_meta_data->>'full_name', 'Student'),
-    case
-      when new.raw_user_meta_data->>'role' in ('teacher', 'admin')
-        then new.raw_user_meta_data->>'role'
-      else 'student'
-    end
+    'student'
   );
   return new;
 end;

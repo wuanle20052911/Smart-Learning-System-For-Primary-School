@@ -86,7 +86,7 @@ Dự án web tạo bộ câu hỏi ôn tập cho học sinh tiểu học bằng 
 ## MVC authentication
 
 - `views/auth.html` và `public/auth.*`: giao diện LearnHub và logic form.
-- `routes/authRoutes.js`: định tuyến `/api/auth/login` và `/api/auth/register`.
+- `routes/authRoutes.js`: định tuyến đăng nhập và API tạo tài khoản giáo viên dành riêng cho quản lý.
 - `controllers/authController.js`: kiểm tra input và định dạng response.
 - `models/userModel.js`: giao tiếp với Supabase Auth.
 - `supabase/002_create_lessons.sql`: bảng bài học và chính sách RLS.

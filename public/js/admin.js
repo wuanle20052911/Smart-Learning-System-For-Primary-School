@@ -6,6 +6,7 @@
   }
   const token = session.access_token;
   const classForm = document.getElementById('classForm');
+  const teacherForm = document.getElementById('teacherForm');
   const memberForm = document.getElementById('memberForm');
   const teacherSelect = document.getElementById('classTeacher');
   const memberClass = document.getElementById('memberClass');
@@ -15,6 +16,18 @@
   const headers = (json = false) => ({ Authorization: `Bearer ${token}`, ...(json ? { 'Content-Type': 'application/json' } : {}) });
   const escapeHtml = (value) => String(value || '').replace(/[&<>"']/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[character]));
   const showMessage = (text, type) => { message.textContent = text; message.className = `message ${type || ''}`; };
+
+  teacherForm.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const response = await fetch('/api/auth/teachers', { method: 'POST', headers: headers(true), body: JSON.stringify({
+      fullName: document.getElementById('teacherName').value,
+      email: document.getElementById('teacherEmail').value,
+      password: document.getElementById('teacherPassword').value
+    }) });
+    const data = await response.json();
+    if (!response.ok) { showMessage(data.error || 'Không thể tạo tài khoản giáo viên.', 'error'); return; }
+    teacherForm.reset(); showMessage(data.message, 'success'); await loadOptions();
+  });
 
   async function loadOptions() {
     const response = await fetch('/api/catalog/management/options', { headers: headers() });

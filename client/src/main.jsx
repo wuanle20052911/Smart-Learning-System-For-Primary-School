@@ -26,7 +26,6 @@ function Brand({ href = '/' }) {
 
 function AuthPage() {
   const [mode, setMode] = useState('login');
-  const [role, setRole] = useState('student');
   const [form, setForm] = useState({ fullName: '', email: '', password: '' });
   const [message, setMessage] = useState('');
   const [busy, setBusy] = useState(false);
@@ -34,31 +33,30 @@ function AuthPage() {
     event.preventDefault(); setBusy(true); setMessage('');
     try {
       const payload = { email: form.email, password: form.password };
-      if (mode === 'register') Object.assign(payload, { fullName: form.fullName, role });
+      if (mode === 'register') payload.fullName = form.fullName;
       const response = await fetch(`/api/auth/${mode}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || 'Không thể xác thực tài khoản.');
       if (data.session) localStorage.setItem(sessionKey, JSON.stringify({ ...data.session, user: data.user, profile: data.profile }));
       setMessage(data.message || 'Thành công.');
-      if (mode === 'login') setTimeout(() => go(['teacher', 'admin'].includes(data.profile?.role) ? '/teacher' : '/learn'), 500);
+      if (mode === 'login') setTimeout(() => go(data.profile?.role === 'admin' ? '/admin' : data.profile?.role === 'teacher' ? '/teacher' : '/learn'), 500);
     } catch (error) { setMessage(error.message); } finally { setBusy(false); }
   };
   return <main className="auth-shell">
     <Brand /><div className="help-chip">Trợ giúp học tập</div>
     <section className="welcome-banner"><h1>Chào mừng bạn nhỏ đến với MathJoy! 👋</h1><p>Cùng khám phá những điều thú vị trong thế giới Toán học nhé.</p></section>
     <section className="form-panel"><div className="login-art"><img src="/public/img/default.png" alt="" /></div><div className="form-wrap">
-      <div className="heading"><h2>{mode === 'login' ? 'Đăng nhập cổng học tập' : 'Tạo tài khoản MathJoy'}</h2><p>{mode === 'login' ? 'Chọn đúng vai trò của mình để bắt đầu nhé' : 'Bắt đầu hành trình học tập vui vẻ cùng MathJoy nhé'}</p></div>
-      <p className="section-label">1. VAI TRÒ CỦA BẠN LÀ:</p>
-      <div className="role-picker">{[['student', 'student.png', 'Học sinh'], ['teacher', 'teacher.png', 'Giáo viên'], ['admin', 'manager.png', 'Quản lý']].map(([value, image, label]) => <button type="button" className={`role-button ${role === value ? 'active' : ''}`} onClick={() => setRole(value)} key={value}><img className="role-icon" src={`/public/img/${image}`} alt="" /><b>{label}</b></button>)}</div>
-      <p className="section-label">2. NHẬP THÔNG TIN TÀI KHOẢN:</p>
+      <div className="heading"><h2>{mode === 'login' ? 'Đăng nhập cổng học tập' : 'Đăng ký tài khoản học sinh'}</h2><p>{mode === 'login' ? 'Nhập thông tin tài khoản để tiếp tục' : 'Tạo tài khoản để bắt đầu học tập cùng MathJoy'}</p></div>
+      <p className="section-label">NHẬP THÔNG TIN TÀI KHOẢN:</p>
       <form onSubmit={submit}>
-        {mode === 'register' && <div className="field"><label>Tên đầy đủ</label><input value={form.fullName} onChange={(e) => setForm({ ...form, fullName: e.target.value })} required placeholder="Nguyễn Văn An" /></div>}
+        {mode === 'register' && <div className="field"><label>Họ tên học sinh</label><input value={form.fullName} onChange={(e) => setForm({ ...form, fullName: e.target.value })} required minLength="2" placeholder="Nguyễn Văn An" /></div>}
         <div className="field"><label>Tên đăng nhập hoặc Email</label><input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} required placeholder="Viết tài khoản học tập vào đây..." /></div>
         <div className="field"><label>Mật khẩu bí mật</label><input type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} required placeholder="••••••••" /></div>
         <button className="submit" disabled={busy}>{busy ? 'ĐANG XỬ LÝ...' : mode === 'login' ? 'ĐĂNG NHẬP NGAY' : 'ĐĂNG KÝ NGAY 🚀'}</button>
       </form>
       <p className={`message ${message && message.includes('thành công') ? 'success' : 'error'}`}>{message}</p>
-      <p className="switch-text">{mode === 'login' ? 'Chưa có tài khoản MathJoy?' : 'Đã có tài khoản MathJoy?'} <button type="button" onClick={() => { setMode(mode === 'login' ? 'register' : 'login'); setMessage(''); }}>{mode === 'login' ? 'Đăng ký thành viên' : 'Đăng nhập'}</button></p>
+      <p className="switch-text">{mode === 'login' ? 'Chưa có tài khoản học sinh?' : 'Đã có tài khoản?'} <button type="button" onClick={() => { setMode(mode === 'login' ? 'register' : 'login'); setMessage(''); }}>{mode === 'login' ? 'Đăng ký học sinh' : 'Đăng nhập'}</button></p>
+      {mode === 'login' && <p className="switch-text">Tài khoản giáo viên được tạo bởi quản lý nhà trường.</p>}
     </div></section><footer>© 2026 MathJoy Việt Nam.</footer>
   </main>;
 }
