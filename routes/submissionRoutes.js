@@ -8,4 +8,6 @@ router.use(requireAuth);
 router.post('/', submissionController.create);
 router.get('/mine', submissionController.listForStudent);
 router.get('/teacher', assignmentController.teacherOnly, submissionController.listForTeacher);
+router.get('/teacher/:id', assignmentController.teacherOnly, submissionController.getForTeacher);
+router.post('/teacher/:id/feedback', assignmentController.teacherOnly, submissionController.addFeedback);
 module.exports = router;

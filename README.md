@@ -66,6 +66,7 @@ Dự án web tạo bộ câu hỏi ôn tập cho học sinh tiểu học bằng 
    - Chạy `supabase/011_add_student_to_class.sql` để giáo viên thêm học sinh vào lớp bằng email.
    - Chạy `supabase/007_create_mvp_learning.sql` để tạo lớp học, môn/chủ đề/kỹ năng, bài tập, câu hỏi và lượt nộp bài.
    - Nếu gặp lỗi `infinite recursion detected in policy for relation classes/class_members`, chạy thêm `supabase/008_fix_class_rls_recursion.sql`.
+   - Chạy `supabase/016_create_feedback.sql` để giáo viên xem bài nộp chi tiết và lưu nhận xét cho học sinh.
    - Tài khoản đăng ký với vai trò **Giáo viên** có thể mở `http://localhost:3000/teacher` để thêm, sửa, xoá và xuất bản bài học.
    - Trang học sinh chỉ hiển thị các bài học đã được giáo viên xuất bản.
 
@@ -121,6 +122,7 @@ Backend sử dụng Express theo mô hình routes/controllers/models:
 - `controllers/authController.js`: kiểm tra input và định dạng response.
 - `models/userModel.js`: giao tiếp với Supabase Auth.
 - `supabase/002_create_lessons.sql`: bảng bài học và chính sách RLS.
+- `supabase/016_create_feedback.sql`: bảng nhận xét bài nộp và chính sách truy cập cho giáo viên/học sinh.
 - `server.js`: khởi tạo Express, đăng ký API, phục vụ thư mục `dist` và tài nguyên tĩnh.
 
 Các giao diện HTML/JavaScript cũ trong `views/`, `client/` và `public/js/`

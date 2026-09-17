@@ -39,4 +39,22 @@ async function listForTeacher(req, res) {
   catch (error) { console.error(error); return res.status(500).json({ error: 'Không thể tải kết quả bài tập.' }); }
 }
 
-module.exports = { create, listForStudent, listForTeacher };
+async function getForTeacher(req, res) {
+  try { return res.json({ submission: await submissionModel.getForTeacher(req.accessToken, req.user.id, req.params.id) }); }
+  catch (error) { console.error('Could not load teacher submission:', error); return res.status(404).json({ error: 'Không tìm thấy bài nộp hoặc bạn không có quyền xem.' }); }
+}
+
+async function addFeedback(req, res) {
+  const comment = typeof req.body?.comment === 'string' ? req.body.comment.trim() : '';
+  if (!comment) return res.status(400).json({ error: 'Nhận xét không được để trống.' });
+  try {
+    return res.status(201).json({
+      feedback: await submissionModel.addFeedback(req.accessToken, req.user.id, req.params.id, comment)
+    });
+  } catch (error) {
+    console.error('Could not create feedback:', error);
+    return res.status(400).json({ error: error.message || 'Không thể lưu nhận xét.' });
+  }
+}
+
+module.exports = { create, listForStudent, listForTeacher, getForTeacher, addFeedback };

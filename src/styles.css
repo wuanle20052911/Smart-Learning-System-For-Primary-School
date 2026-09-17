@@ -180,6 +180,33 @@ button, input, select { font: inherit; }
 .lesson-inline { margin-bottom: 18px; }
 .lesson-inline .panel-heading { align-items: center; }
 .lesson-close { border: 0; background: transparent; color: #d14a1e; font-weight: 800; cursor: pointer; }
+.submission-list { display: grid; gap: 10px; margin-top: 20px; }
+.submission-row { display: grid; grid-template-columns: minmax(0, 1.5fr) auto auto auto; align-items: center; gap: 18px; width: 100%; padding: 16px 18px; border: 1px solid #e1ebf5; border-radius: 14px; background: #fff; color: #26344d; text-align: left; cursor: pointer; transition: transform .16s ease, border-color .16s ease, box-shadow .16s ease; }
+.submission-row:hover { transform: translateY(-2px); border-color: #66b8e8; box-shadow: 0 8px 18px rgba(57, 123, 171, .12); }
+.submission-row span { display: grid; gap: 4px; min-width: 0; }
+.submission-row strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.submission-row small, .submission-row i { color: #7890ad; font-size: 12px; font-style: normal; }
+.submission-row b { color: #1b79b9; white-space: nowrap; }
+.submission-row em { font-size: 12px; font-style: normal; font-weight: 700; white-space: nowrap; }
+.submission-row .review-status { color: #b17d3f; }
+.submission-row .review-status.reviewed { color: #4b9b6d; }
+.submission-detail { max-width: 980px; margin: 0 auto; }
+.submission-detail .card-heading p { margin: 5px 0 0; color: #7890ad; }
+.submission-questions { display: grid; gap: 12px; margin-top: 20px; }
+.submission-question { padding: 16px 18px; border-left: 5px solid #e0eaf5; border-radius: 12px; background: #f8fbff; }
+.submission-question.correct { border-left-color: #45af76; }
+.submission-question.wrong { border-left-color: #e47a57; }
+.submission-question > span { color: #56718f; font-size: 12px; font-weight: 800; }
+.submission-question h3 { margin: 7px 0; color: #243d61; font-size: 16px; }
+.submission-question p { margin: 5px 0; color: #536d8e; font-size: 14px; }
+.submission-question small { display: block; margin-top: 8px; color: #7890ad; }
+.submission-feedback { margin-top: 24px; padding-top: 20px; border-top: 1px solid #e1ebf5; }
+.submission-feedback h3 { color: #1b447b; }
+.submission-feedback form { display: grid; gap: 10px; }
+.submission-feedback textarea { width: 100%; box-sizing: border-box; resize: vertical; padding: 12px; border: 2px solid #dce8f4; border-radius: 12px; font: 600 14px 'Quicksand', sans-serif; color: #243d61; }
+.feedback-item { display: grid; gap: 4px; margin: 8px 0; padding: 12px 14px; border-radius: 10px; background: #fff8df; color: #705b27; }
+.feedback-item small { color: #9b8752; font-size: 11px; }
+@media (max-width: 760px) { .submission-row { grid-template-columns: 1fr auto; gap: 8px 12px; } .submission-row i, .submission-row em { grid-column: 2; } }
 .teacher-dashboard { display: flex; min-height: 100vh; background: #f7faff; color: #26344d; font-family: 'Quicksand', sans-serif; }
 .teacher-sidebar { width: 235px; flex: 0 0 235px; padding: 23px 14px; background: #fff; border-right: 1px solid #e5edf6; box-sizing: border-box; }
 .teacher-logo { display: grid; place-items: center; width: 52px; height: 52px; margin-bottom: 5px; border-radius: 0 0 13px 0; background: #2168d5; color: #fff; font-size: 26px; }
@@ -205,6 +232,8 @@ button, input, select { font: inherit; }
 .teacher-filters { display: flex; align-items: center; gap: 9px; }
 .teacher-filters select { min-width: 112px; padding: 9px 12px; border: 1px solid #e0e8f1; border-radius: 9px; background: #fff; color: #65748a; font: 700 11px 'Quicksand', sans-serif; }
 .teacher-create { padding: 10px 15px; border: 0; border-radius: 9px; background: #2168d5; color: #fff; font: 800 12px 'Quicksand', sans-serif; box-shadow: 0 4px 10px #2168d533; cursor: pointer; }
+.submission-refresh { align-self: flex-start; width: max-content; padding: 10px 15px; border: 0; border-radius: 9px; background: #2168d5; color: #fff; font: 800 12px 'Quicksand', sans-serif; box-shadow: 0 4px 10px #2168d533; cursor: pointer; white-space: nowrap; }
+.submission-refresh:hover { border-color: #1855b4; background: #1855b4; }
 .teacher-logout { border: 0; background: transparent; color: #7890ad; font-size: 18px; cursor: pointer; }
 .teacher-toast { margin-bottom: 15px; padding: 10px 14px; border-radius: 8px; background: #e9f6ed; color: #258450; font-size: 12px; font-weight: 700; }
 .teacher-toast button { float: right; border: 0; background: transparent; color: inherit; cursor: pointer; }

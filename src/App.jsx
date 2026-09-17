@@ -9,6 +9,7 @@ import Header from './components/Header.jsx';
 import AccessDenied from './components/AccessDenied.jsx';
 import AIQuizGenerator from './features/assignments/AIQuizGenerator.jsx';
 import AssignedWorkView from './features/assignments/AssignedWorkView.jsx';
+import TeacherSubmissions from './features/assignments/TeacherSubmissions.jsx';
 import { AssignmentStudio, TeacherClassManagement, TeacherStudents, TeacherOverview, TeacherAnalytics } from './features/assignments/AssignmentStudio.jsx';
 import LessonView from './features/lessons/LessonView.jsx';
 import { api, readSession, sessionKey } from './services/api.js';
@@ -62,6 +63,7 @@ function App() {
       TeacherStudents={TeacherStudents}
       TeacherOverview={TeacherOverview}
       TeacherAnalytics={TeacherAnalytics}
+      TeacherSubmissions={TeacherSubmissions}
     />;
   }
   if (path === '/profile') return <AccountPage api={api} readSession={readSession} sessionKey={sessionKey} Header={Header} Brand={Brand} go={go} logout={logout} />;
