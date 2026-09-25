@@ -9,6 +9,7 @@ import Header from './components/Header.jsx';
 import AccessDenied from './components/AccessDenied.jsx';
 import AIQuizGenerator from './features/assignments/AIQuizGenerator.jsx';
 import AssignedWorkView from './features/assignments/AssignedWorkView.jsx';
+import AIStudyChat from './features/assignments/AIStudyChat.jsx';
 import TeacherSubmissions from './features/assignments/TeacherSubmissions.jsx';
 import { AssignmentStudio, TeacherClassManagement, TeacherStudents, TeacherOverview, TeacherAnalytics } from './features/assignments/AssignmentStudio.jsx';
 import LessonView from './features/lessons/LessonView.jsx';
@@ -68,7 +69,7 @@ function App() {
   }
   if (path === '/profile') return <AccountPage api={api} readSession={readSession} sessionKey={sessionKey} Header={Header} Brand={Brand} go={go} logout={logout} />;
   if (path === '/history') return <AccountPage history api={api} readSession={readSession} sessionKey={sessionKey} Header={Header} Brand={Brand} go={go} logout={logout} />;
-  return <StudentHomePage api={api} readSession={readSession} Header={Header} Brand={Brand} LessonView={LessonView} AIQuizGenerator={AIQuizGenerator} AssignedWorkView={AssignedWorkView} go={go} logout={logout} />;
+  return <><AIStudyChat api={api} lessons={[]} assignments={[]} progress={{ xp: 0, lessons: 0, answered: 0 }} /><StudentHomePage api={api} readSession={readSession} Header={Header} Brand={Brand} LessonView={LessonView} AIQuizGenerator={AIQuizGenerator} AssignedWorkView={AssignedWorkView} go={go} logout={logout} /></>;
 }
 
 export default App;

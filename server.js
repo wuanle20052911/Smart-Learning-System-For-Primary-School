@@ -254,6 +254,23 @@ app.post('/api/generate-quiz', requireAuth, async (req, res) => {
   }
 });
 
+app.post('/api/ai-chat', requireAuth, async (req, res) => {
+  const { systemPrompt, userPrompt } = req.body || {};
+  if (!systemPrompt || !userPrompt) return res.status(400).json({ error: 'Thiếu nội dung trò chuyện.' });
+  try {
+    const activeModel = await resolveModelName();
+    const installedModels = await getInstalledModels();
+    if (!installedModels.length) return res.status(500).json({ error: `Ollama chưa có model. Hãy chạy: ollama pull ${OLLAMA_MODEL}` });
+    const response = await fetch(`${OLLAMA_BASE_URL}/api/generate`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ model: activeModel, prompt: `${systemPrompt}\n\n${userPrompt}`, format: 'json', stream: false, options: { temperature: 0.4, top_p: 0.9 } }) });
+    if (!response.ok) return res.status(500).json({ error: 'Không thể kết nối với trợ lý AI.' });
+    const data = await response.json();
+    return res.json({ content: [{ type: 'text', text: data?.response || '{}' }] });
+  } catch (error) {
+    console.error('AI chat failed:', error);
+    return res.status(500).json({ error: 'Không thể kết nối tới Ollama. Hãy chạy `ollama serve` trước.', details: error.message });
+  }
+});
+
 // New endpoint to download quiz as file
 app.post('/api/download-quiz', requireAuth, (req, res) => {
   const { quiz, format = 'html', filename = 'de-on-tap' } = req.body;
