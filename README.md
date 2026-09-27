@@ -67,7 +67,8 @@ Dự án web tạo bộ câu hỏi ôn tập cho học sinh tiểu học bằng 
    - Chạy `supabase/007_create_mvp_learning.sql` để tạo lớp học, môn/chủ đề/kỹ năng, bài tập, câu hỏi và lượt nộp bài.
    - Nếu gặp lỗi `infinite recursion detected in policy for relation classes/class_members`, chạy thêm `supabase/008_fix_class_rls_recursion.sql`.
    - Chạy `supabase/016_create_feedback.sql` để giáo viên xem bài nộp chi tiết và lưu nhận xét cho học sinh.
-   - Tài khoản đăng ký với vai trò **Giáo viên** có thể mở `http://localhost:3000/teacher` để thêm, sửa, xoá và xuất bản bài học.
+  - Chạy `supabase/017_lesson_chapters_storage.sql` để liên kết bài học với chương, tạo bucket riêng tư `lesson-materials` và policy đọc các bucket mẫu `Math4`/`Chapter1`.
+  - Tài khoản **Giáo viên** mở `http://localhost:3000/teacher` → **Bài học** để chọn môn, tạo chương, thêm bài học và chọn nguồn file từ máy hoặc bucket mẫu `Math4`/`Chapter1`. Nội dung bài được lưu trong `public.lessons`; `source_bucket` và `source_path` giữ địa chỉ file để backend mở lại bằng signed URL.
    - Trang học sinh chỉ hiển thị các bài học đã được giáo viên xuất bản.
 
 8. Chạy frontend ở chế độ phát triển:

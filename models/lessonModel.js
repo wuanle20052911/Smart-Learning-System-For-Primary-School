@@ -1,6 +1,6 @@
 const { getSupabaseClient } = require('./supabaseClient');
 
-const lessonFields = 'id,title,description,subject,grade,topic,icon,color,published,content,source_filename,created_by,created_at,updated_at';
+const lessonFields = 'id,title,description,subject,grade,topic,topic_id,icon,color,published,content,source_filename,source_bucket,source_path,created_by,created_at,updated_at';
 
 async function listPublished(accessToken) {
   const { data, error } = await getSupabaseClient(accessToken)
@@ -18,6 +18,16 @@ async function listForTeacher(accessToken, userId) {
     .select(lessonFields)
     .eq('created_by', userId)
     .order('updated_at', { ascending: false });
+  if (error) throw error;
+  return data;
+}
+
+async function getById(accessToken, id) {
+  const { data, error } = await getSupabaseClient(accessToken)
+    .from('lessons')
+    .select(lessonFields)
+    .eq('id', id)
+    .maybeSingle();
   if (error) throw error;
   return data;
 }
@@ -53,4 +63,4 @@ async function remove(accessToken, userId, id) {
   if (error) throw error;
 }
 
-module.exports = { listPublished, listForTeacher, create, update, remove };
+module.exports = { listPublished, listForTeacher, getById, create, update, remove };

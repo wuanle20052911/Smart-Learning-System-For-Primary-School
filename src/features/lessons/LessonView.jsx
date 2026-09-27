@@ -4,6 +4,20 @@ export default function LessonView({ lesson, onBack, onComplete, AssignedWorkVie
   if (lesson.isAssignment) return <AssignedWorkView assignment={lesson} onBack={onBack} api={api} />;
   const content = lesson.content?.trim();
   const [showGenerator, setShowGenerator] = useState(false);
+  const [materialError, setMaterialError] = useState('');
+  const openMaterial = async () => {
+    const materialWindow = window.open('about:blank', '_blank');
+    try {
+      const result = await api(`/api/lessons/${lesson.id}/material`);
+      if (!materialWindow) throw new Error('Trình duyệt đang chặn cửa sổ mở tài liệu.');
+      materialWindow.opener = null;
+      materialWindow.location.href = result.url;
+      setMaterialError('');
+    } catch (error) {
+      materialWindow?.close();
+      setMaterialError(error.message || 'Không thể mở tài liệu.');
+    }
+  };
   if (showGenerator) return <AIQuizGenerator lesson={lesson} onBack={() => setShowGenerator(false)} api={api} />;
   return <section className={`home-panel lesson-inline ${lesson.color || 'blue'}`}>
     <div className="panel-heading">
@@ -12,7 +26,7 @@ export default function LessonView({ lesson, onBack, onComplete, AssignedWorkVie
     </div>
     <article className="lesson-detail">
       <div className="lesson-detail-heading"><span className="lesson-detail-icon">{lesson.icon || '📚'}</span><div><small>{lesson.subject || 'Toán'} · {lesson.grade || 'Tiểu học'}</small><h1>{lesson.title}</h1><p>{lesson.description || 'Cùng khám phá bài học này nhé!'}</p></div></div>
-      <div className="lesson-content"><h2>Nội dung bài học</h2>{lesson.source_filename && <p className="lesson-material">📎 Tài liệu: <b>{lesson.source_filename}</b></p>}{content ? <div className="lesson-content-text">{content}</div> : <p>Bài học này chưa có tài liệu chi tiết. Hãy xem hướng dẫn của giáo viên để bắt đầu nhé.</p>}</div>
+      <div className="lesson-content"><h2>Nội dung bài học</h2>{lesson.source_filename && <p className="lesson-material">📎 Tài liệu: <b>{lesson.source_filename}</b>{lesson.source_path && <button className="lesson-material-open" type="button" onClick={openMaterial}>Mở tài liệu</button>}</p>}{materialError && <p className="ai-error">{materialError}</p>}{content ? <div className="lesson-content-text">{content}</div> : <p>Bài học này chưa có tài liệu chi tiết. Hãy xem hướng dẫn của giáo viên để bắt đầu nhé.</p>}</div>
       <div className="lesson-actions">
         <button className="lesson-action-button lesson-ai" type="button" onClick={() => setShowGenerator(true)}><img src="/public/img/star.png" alt="" />TẠO BÀI TẬP TỪ AI</button>
         <button className="lesson-action-button lesson-start" type="button" onClick={onComplete}><img src="/public/img/medal.png" alt="" />ĐÃ HỌC XONG BÀI NÀY ✓</button>

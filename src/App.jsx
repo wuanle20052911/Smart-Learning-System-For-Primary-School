@@ -13,6 +13,7 @@ import AIStudyChat from './features/assignments/AIStudyChat.jsx';
 import TeacherSubmissions from './features/assignments/TeacherSubmissions.jsx';
 import { AssignmentStudio, TeacherClassManagement, TeacherStudents, TeacherOverview, TeacherAnalytics } from './features/assignments/AssignmentStudio.jsx';
 import LessonView from './features/lessons/LessonView.jsx';
+import LessonStudio from './features/lessons/LessonStudio.jsx';
 import { api, readSession, sessionKey } from './services/api.js';
 import { go, logout } from './services/auth.js';
 import './styles.css';
@@ -65,6 +66,7 @@ function App() {
       TeacherOverview={TeacherOverview}
       TeacherAnalytics={TeacherAnalytics}
       TeacherSubmissions={TeacherSubmissions}
+      LessonStudio={LessonStudio}
     />;
   }
   if (path === '/profile') return <AccountPage api={api} readSession={readSession} sessionKey={sessionKey} Header={Header} Brand={Brand} go={go} logout={logout} />;

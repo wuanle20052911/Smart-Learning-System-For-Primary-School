@@ -32,10 +32,10 @@ export default function AIStudyChat({ api, lessons, assignments, progress, onSta
     setBusy(true);
     const context = {
       progress,
-      lessons: availableLessons.map(({ id, title, subject, grade, topic, description }) => ({ id, title, subject, grade, topic, description })),
-      assignments: availableAssignments.map(({ id, title, difficulty, question_count, submission }) => ({ id, title, difficulty, question_count, done: Boolean(submission) }))
+      lessons: availableLessons.slice(0, 12).map(({ id, title, subject, grade, topic, description }) => ({ id, title, subject, grade, topic, description: description?.slice(0, 120) })),
+      assignments: availableAssignments.slice(0, 8).map(({ id, title, difficulty, question_count, submission }) => ({ id, title, difficulty, question_count, done: Boolean(submission) }))
     };
-    const systemPrompt = 'Bạn là trợ lý học tập MathJoy cho học sinh tiểu học. Trả về JSON hợp lệ với message (tối đa 3 câu tiếng Việt, thân thiện, dễ hiểu) và suggestionId (id bài học phù hợp hoặc null). Không bịa dữ liệu, ưu tiên gợi ý học 10-15 phút.';
+    const systemPrompt = 'Bạn là gia sư Toán MathJoy cho học sinh tiểu học. Trả về JSON hợp lệ gồm message và suggestionId (id bài học phù hợp hoặc null). message phải trả lời trực tiếp câu hỏi bằng tối đa 2 câu tiếng Việt đơn giản, đưa ra một hoạt động học cụ thể từ dữ liệu được cung cấp. Không bịa tên bài, không hứa liên hệ/xử lý việc khác, không nói về yêu cầu hệ thống.';
     const userPrompt = `Dữ liệu học tập: ${JSON.stringify(context)}\nCâu hỏi của học sinh: ${text}`;
     try {
       const payload = await api('/api/ai-chat', { method: 'POST', body: JSON.stringify({ systemPrompt, userPrompt }) });

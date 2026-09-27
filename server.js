@@ -17,10 +17,11 @@ const PORT = Number(process.env.PORT) || 3000;
 const OLLAMA_BASE_URL = (process.env.OLLAMA_BASE_URL || 'http://localhost:11434').replace(/\/$/, '');
 const DEFAULT_MODEL = 'deepseek-r1:8b';
 const OLLAMA_MODEL = process.env.OLLAMA_MODEL || DEFAULT_MODEL;
+const OLLAMA_CHAT_MODEL = process.env.OLLAMA_CHAT_MODEL || 'qwen2.5:3b';
 
-async function getInstalledModels() {
+async function getInstalledModels(signal) {
   try {
-    const response = await fetch(`${OLLAMA_BASE_URL}/api/tags`);
+    const response = await fetch(`${OLLAMA_BASE_URL}/api/tags`, { signal });
     if (!response.ok) {
       return [];
     }
@@ -256,18 +257,48 @@ app.post('/api/generate-quiz', requireAuth, async (req, res) => {
 
 app.post('/api/ai-chat', requireAuth, async (req, res) => {
   const { systemPrompt, userPrompt } = req.body || {};
-  if (!systemPrompt || !userPrompt) return res.status(400).json({ error: 'Thiếu nội dung trò chuyện.' });
+  if (typeof systemPrompt !== 'string' || typeof userPrompt !== 'string' || !systemPrompt.trim() || !userPrompt.trim()) {
+    return res.status(400).json({ error: 'Thiếu nội dung trò chuyện.' });
+  }
+  if (systemPrompt.length > 1000 || userPrompt.length > 8000) {
+    return res.status(413).json({ error: 'Nội dung quá dài. Hãy gửi câu hỏi ngắn hơn nhé.' });
+  }
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 18000);
   try {
-    const activeModel = await resolveModelName();
-    const installedModels = await getInstalledModels();
-    if (!installedModels.length) return res.status(500).json({ error: `Ollama chưa có model. Hãy chạy: ollama pull ${OLLAMA_MODEL}` });
-    const response = await fetch(`${OLLAMA_BASE_URL}/api/generate`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ model: activeModel, prompt: `${systemPrompt}\n\n${userPrompt}`, format: 'json', stream: false, options: { temperature: 0.4, top_p: 0.9 } }) });
+    const installedModels = await getInstalledModels(controller.signal);
+    if (!installedModels.length) return res.status(503).json({ error: `Ollama chưa có model. Hãy chạy: ollama pull ${OLLAMA_MODEL}` });
+    const activeModel = installedModels.includes(OLLAMA_CHAT_MODEL)
+      ? OLLAMA_CHAT_MODEL
+      : installedModels.includes(OLLAMA_MODEL)
+        ? OLLAMA_MODEL
+      : installedModels.includes(DEFAULT_MODEL)
+        ? DEFAULT_MODEL
+        : installedModels[0];
+    const response = await fetch(`${OLLAMA_BASE_URL}/api/generate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      signal: controller.signal,
+      body: JSON.stringify({
+        model: activeModel,
+        prompt: `${systemPrompt}\n\n${userPrompt}`,
+        format: 'json',
+        stream: false,
+        keep_alive: '10m',
+        options: { temperature: 0.2, top_p: 0.8, num_predict: 120, num_ctx: 2048 }
+      })
+    });
     if (!response.ok) return res.status(500).json({ error: 'Không thể kết nối với trợ lý AI.' });
     const data = await response.json();
     return res.json({ content: [{ type: 'text', text: data?.response || '{}' }] });
   } catch (error) {
+    if (controller.signal.aborted) {
+      return res.status(504).json({ error: 'AI phản hồi quá 18 giây. Con hãy thử hỏi ngắn hơn nhé.' });
+    }
     console.error('AI chat failed:', error);
     return res.status(500).json({ error: 'Không thể kết nối tới Ollama. Hãy chạy `ollama serve` trước.', details: error.message });
+  } finally {
+    clearTimeout(timeout);
   }
 });
 
