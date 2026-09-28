@@ -11,7 +11,7 @@ import AIQuizGenerator from './features/assignments/AIQuizGenerator.jsx';
 import AssignedWorkView from './features/assignments/AssignedWorkView.jsx';
 import AIStudyChat from './features/assignments/AIStudyChat.jsx';
 import TeacherSubmissions from './features/assignments/TeacherSubmissions.jsx';
-import { AssignmentStudio, TeacherClassManagement, TeacherStudents, TeacherOverview, TeacherAnalytics } from './features/assignments/AssignmentStudio.jsx';
+import { AssignmentStudio, TeacherClassManagement, TeacherStudents, TeacherOverview, TeacherAnalytics, TeacherQuestionBank } from './features/assignments/AssignmentStudio.jsx';
 import LessonView from './features/lessons/LessonView.jsx';
 import LessonStudio from './features/lessons/LessonStudio.jsx';
 import { api, readSession, sessionKey } from './services/api.js';
@@ -65,6 +65,7 @@ function App() {
       TeacherStudents={TeacherStudents}
       TeacherOverview={TeacherOverview}
       TeacherAnalytics={TeacherAnalytics}
+      TeacherQuestionBank={TeacherQuestionBank}
       TeacherSubmissions={TeacherSubmissions}
       LessonStudio={LessonStudio}
     />;

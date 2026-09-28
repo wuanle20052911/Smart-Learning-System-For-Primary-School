@@ -10,6 +10,7 @@ const quizAttemptRoutes = require('./routes/quizAttemptRoutes');
 const assignmentRoutes = require('./routes/assignmentRoutes');
 const submissionRoutes = require('./routes/submissionRoutes');
 const catalogRoutes = require('./routes/catalogRoutes');
+const questionBankRoutes = require('./routes/questionBankRoutes');
 const requireAuth = require('./middleware/requireAuth');
 
 const app = express();
@@ -126,6 +127,7 @@ app.use('/api/attempts', quizAttemptRoutes);
 app.use('/api/assignments', assignmentRoutes);
 app.use('/api/submissions', submissionRoutes);
 app.use('/api/catalog', catalogRoutes);
+app.use('/api/questions', questionBankRoutes);
 
 app.get('/health', (req, res) => {
   res.json({ ok: true, status: 'healthy', ollama: OLLAMA_BASE_URL, model: OLLAMA_MODEL });

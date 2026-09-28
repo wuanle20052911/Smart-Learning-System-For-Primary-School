@@ -19,6 +19,7 @@ export function AssignmentStudio({ onMessage, api }) {
   const [classId, setClassId] = useState('');
   const [busy, setBusy] = useState(false);
   const [published, setPublished] = useState(false);
+  const [savedQuestionIndexes, setSavedQuestionIndexes] = useState([]);
   useEffect(() => { api('/api/catalog/classes').then((data) => setClasses(data.classes || [])).catch((error) => onMessage(`Không thể tải danh sách lớp: ${error.message}`)); }, []);
   const updateQuestion = (index, key, value) => setQuestions((items) => items.map((item, itemIndex) => itemIndex === index ? { ...item, [key]: value } : item));
   const updateOption = (qIndex, optionIndex, value) => setQuestions((items) => items.map((item, index) => index === qIndex ? { ...item, options: item.options.map((option, current) => current === optionIndex ? value : option) } : item));
@@ -49,6 +50,25 @@ export function AssignmentStudio({ onMessage, api }) {
     } catch (error) { onMessage(`Không thể xuất bản bài tập: ${error.message}`); }
     finally { setBusy(false); }
   };
+  const saveToQuestionBank = async (question, index) => {
+    try {
+      await api('/api/questions', {
+        method: 'POST',
+        body: JSON.stringify({
+          type: question.type || 'multiple-choice',
+          question: question.question,
+          options: question.options || [],
+          answer: question.answer,
+          explanation: question.explanation || '',
+          points: 1
+        })
+      });
+      setSavedQuestionIndexes((items) => [...new Set([...items, index])]);
+      onMessage(`Đã lưu câu ${index + 1} vào ngân hàng câu hỏi.`);
+    } catch (error) {
+      onMessage(`Không thể lưu câu hỏi: ${error.message}`);
+    }
+  };
   const readFile = async (event) => {
     const file = event.target.files?.[0]; if (!file) return;
     const extension = file.name.split('.').pop()?.toLowerCase();
@@ -77,7 +97,30 @@ export function AssignmentStudio({ onMessage, api }) {
     if (!text.trim()) { onMessage('File không có nội dung văn bản để AI đọc.'); return; }
     setMaterial(text.slice(0, 18000)); setMaterialName(file.name); onMessage(`Đã đọc tài liệu ${file.name}.`);
   };
-  return <section className="assignment-studio"><div className="studio-intro"><div><span className="panel-kicker">TẠO BÀI TẬP CÙNG AI LOCAL</span><h2>Từ tài liệu đến bài tập cho cả lớp</h2><p>Đang sử dụng Ollama trên máy local, không gửi tài liệu ra dịch vụ bên ngoài.</p></div><span className="studio-steps">1 Tài liệu　→　2 AI local　→　3 Kiểm tra　→　4 Xuất bản</span></div><div className="studio-grid"><section className="teacher-card studio-source"><h3>1. Thêm tài liệu</h3><label className="material-upload"><span>📄</span><b>{materialName || 'Chọn tài liệu PDF hoặc Word'}</b><small>Hỗ trợ .pdf, .docx, .txt, .md</small><input type="file" accept=".pdf,.docx,.txt,.md,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain,text/markdown" onChange={readFile} /></label><textarea value={material} onChange={(event) => setMaterial(event.target.value)} rows="9" placeholder="Hoặc dán nội dung bài học tại đây..." /><button className="teacher-create" onClick={generate} disabled={busy}>{busy ? 'AI local đang tạo...' : '✦ Tạo câu hỏi bằng AI local'}</button><button className="secondary-studio sample-button" type="button" onClick={() => { setQuestions(sampleQuestions); onMessage('Đã nạp dữ liệu mẫu.'); }}>Dùng dữ liệu mẫu</button></section><section className="teacher-card studio-review"><div className="studio-review-head"><div><h3>2. Kiểm tra và chỉnh sửa</h3><small>{questions.length ? `${questions.length} câu hỏi đã tạo` : 'Chưa có câu hỏi'}</small></div><input value={title} onChange={(event) => setTitle(event.target.value)} placeholder="Tên bài tập" /><select value={classId} onChange={(event) => setClassId(event.target.value)}><option value="">Chọn lớp được giao</option>{classes.map((item) => <option value={item.id} key={item.id}>{item.name} · {item.grade}</option>)}</select></div>{questions.length ? questions.map((item, index) => <article className="editable-question" key={index}><div className="editable-question-head"><b>Câu {index + 1}</b><button type="button" onClick={() => setQuestions((items) => items.filter((_, current) => current !== index))}>Xóa</button></div><textarea value={item.question} onChange={(event) => updateQuestion(index, 'question', event.target.value)} rows="2" />{(item.options || []).map((option, optionIndex) => <label key={optionIndex}><span>{String.fromCharCode(65 + optionIndex)}</span><input value={option} onChange={(event) => updateOption(index, optionIndex, event.target.value)} /><input className="answer-radio" type="radio" checked={item.answer === optionIndex} onChange={() => updateQuestion(index, 'answer', optionIndex)} /></label>)}<input value={item.explanation || ''} onChange={(event) => updateQuestion(index, 'explanation', event.target.value)} placeholder="Giải thích đáp án (không bắt buộc)" /></article>) : <div className="studio-empty">Câu hỏi AI tạo ra sẽ xuất hiện ở đây để giáo viên kiểm tra.</div>}<div className="studio-actions"><button className="secondary-studio" type="button" onClick={() => setQuestions((items) => [...items, { ...sampleQuestions[0], question: 'Câu hỏi mới của giáo viên?' }])}>+ Thêm câu hỏi</button><button className="teacher-create" type="button" onClick={publish} disabled={busy || published}>{published ? '✓ Đã xuất bản' : 'Xuất bản cho cả lớp'}</button></div></section></div></section>;
+  return <section className="assignment-studio"><div className="studio-intro"><div><span className="panel-kicker">TẠO BÀI TẬP CÙNG AI LOCAL</span><h2>Từ tài liệu đến bài tập cho cả lớp</h2><p>Đang sử dụng Ollama trên máy local, không gửi tài liệu ra dịch vụ bên ngoài.</p></div><span className="studio-steps">1 Tài liệu　→　2 AI local　→　3 Kiểm tra　→　4 Xuất bản</span></div><div className="studio-grid"><section className="teacher-card studio-source"><h3>1. Thêm tài liệu</h3><label className="material-upload"><span>📄</span><b>{materialName || 'Chọn tài liệu PDF hoặc Word'}</b><small>Hỗ trợ .pdf, .docx, .txt, .md</small><input type="file" accept=".pdf,.docx,.txt,.md,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain,text/markdown" onChange={readFile} /></label><textarea value={material} onChange={(event) => setMaterial(event.target.value)} rows="9" placeholder="Hoặc dán nội dung bài học tại đây..." /><button className="teacher-create" onClick={generate} disabled={busy}>{busy ? 'AI local đang tạo...' : '✦ Tạo câu hỏi bằng AI local'}</button><button className="secondary-studio sample-button" type="button" onClick={() => { setQuestions(sampleQuestions); onMessage('Đã nạp dữ liệu mẫu.'); }}>Dùng dữ liệu mẫu</button></section><section className="teacher-card studio-review"><div className="studio-review-head"><div><h3>2. Kiểm tra và chỉnh sửa</h3><small>{questions.length ? `${questions.length} câu hỏi đã tạo` : 'Chưa có câu hỏi'}</small></div><input value={title} onChange={(event) => setTitle(event.target.value)} placeholder="Tên bài tập" /><select value={classId} onChange={(event) => setClassId(event.target.value)}><option value="">Chọn lớp được giao</option>{classes.map((item) => <option value={item.id} key={item.id}>{item.name} · {item.grade}</option>)}</select></div>{questions.length ? questions.map((item, index) => <article className="editable-question" key={index}><div className="editable-question-head"><b>Câu {index + 1}</b><button type="button" onClick={() => setQuestions((items) => items.filter((_, current) => current !== index))}>Xóa</button></div><textarea value={item.question} onChange={(event) => updateQuestion(index, 'question', event.target.value)} rows="2" />{(item.options || []).map((option, optionIndex) => <label key={optionIndex}><span>{String.fromCharCode(65 + optionIndex)}</span><input value={option} onChange={(event) => updateOption(index, optionIndex, event.target.value)} /><input className="answer-radio" type="radio" checked={item.answer === optionIndex} onChange={() => updateQuestion(index, 'answer', optionIndex)} /></label>)}<input value={item.explanation || ''} onChange={(event) => updateQuestion(index, 'explanation', event.target.value)} placeholder="Giải thích đáp án (không bắt buộc)" /><button className="secondary-studio" type="button" onClick={() => saveToQuestionBank(item, index)} disabled={savedQuestionIndexes.includes(index)}>{savedQuestionIndexes.includes(index) ? '✓ Đã lưu ngân hàng' : '＋ Lưu vào ngân hàng câu hỏi'}</button></article>) : <div className="studio-empty">Câu hỏi AI tạo ra sẽ xuất hiện ở đây để giáo viên kiểm tra.</div>}<div className="studio-actions"><button className="secondary-studio" type="button" onClick={() => setQuestions((items) => [...items, { ...sampleQuestions[0], question: 'Câu hỏi mới của giáo viên?' }])}>+ Thêm câu hỏi</button><button className="teacher-create" type="button" onClick={publish} disabled={busy || published}>{published ? '✓ Đã xuất bản' : 'Xuất bản cho cả lớp'}</button></div></section></div></section>;
+}
+
+export function TeacherQuestionBank({ api, onMessage }) {
+   const [questions, setQuestions] = useState([]);
+   const [busy, setBusy] = useState(true);
+   const load = () => {
+     setBusy(true);
+     api('/api/questions')
+       .then((data) => setQuestions(data.questions || []))
+       .catch((error) => onMessage(`Không thể tải ngân hàng câu hỏi: ${error.message}`))
+       .finally(() => setBusy(false));
+   };
+   useEffect(() => { load(); }, []);
+   const remove = async (id) => {
+     try {
+       await api(`/api/questions/${id}`, { method: 'DELETE' });
+       setQuestions((items) => items.filter((item) => item.id !== id));
+       onMessage('Đã xóa câu hỏi khỏi ngân hàng.');
+     } catch (error) {
+       onMessage(`Không thể xóa câu hỏi: ${error.message}`);
+     }
+   };
+   return <section className="teacher-card student-list-panel"><div className="student-list-head"><div><span className="panel-kicker">TÁI SỬ DỤNG CÂU HỎI</span><h2>Ngân hàng câu hỏi</h2><p>Các câu hỏi giáo viên đã lưu để dùng lại cho nhiều bài tập.</p></div><button className="secondary-studio" type="button" onClick={load}>↻ Làm mới</button></div>{busy ? <p className="student-list-empty">Đang tải...</p> : questions.length ? <div className="submission-list">{questions.map((item) => <article className="submission-row" key={item.id}><span><strong>{item.question}</strong><small>{item.type} · Lưu ngày {new Date(item.created_at).toLocaleDateString('vi-VN')}</small></span><button className="secondary-studio" type="button" onClick={() => remove(item.id)}>Xóa</button></article>)}</div> : <p className="student-list-empty">Chưa có câu hỏi. Hãy lưu câu hỏi sau khi AI tạo và chỉnh sửa.</p>}</section>;
 }
 
 export function TeacherClassManagement({ classes, onMessage, onRefresh }) {
