@@ -1,9 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import mammoth from 'mammoth';
-import { getDocument, GlobalWorkerOptions } from 'pdfjs-dist';
-import pdfWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
-
-GlobalWorkerOptions.workerSrc = pdfWorker;
+import { extractLearningText } from '../../services/learningMaterials.js';
 
 const MAX_FILE_BYTES = 6 * 1024 * 1024;
 const fileTypes = {
@@ -12,24 +8,6 @@ const fileTypes = {
   txt: 'text/plain',
   md: 'text/markdown'
 };
-
-async function extractText(file) {
-  const extension = file.name.split('.').pop()?.toLowerCase();
-  const buffer = await file.arrayBuffer();
-  if (extension === 'txt' || extension === 'md') return file.text();
-  if (extension === 'docx') return (await mammoth.extractRawText({ arrayBuffer: buffer })).value;
-  if (extension === 'pdf') {
-    const pdf = await getDocument({ data: buffer }).promise;
-    const pages = [];
-    for (let pageNumber = 1; pageNumber <= Math.min(pdf.numPages, 40); pageNumber += 1) {
-      const page = await pdf.getPage(pageNumber);
-      const pageContent = await page.getTextContent();
-      pages.push(pageContent.items.map((item) => item.str).join(' '));
-    }
-    return pages.join('\n');
-  }
-  throw new Error('Chỉ hỗ trợ PDF, DOCX, TXT hoặc Markdown.');
-}
 
 async function toBase64(file) {
   const bytes = new Uint8Array(await file.arrayBuffer());
@@ -152,7 +130,7 @@ export default function LessonStudio({ api, onMessage, onRefresh }) {
       return;
     }
     try {
-      const text = await extractText(nextFile);
+      const text = await extractLearningText(nextFile);
       setFile(nextFile);
       setSampleFilePath('');
       setSampleSource(null);
@@ -175,7 +153,7 @@ export default function LessonStudio({ api, onMessage, onRefresh }) {
       if (!response.ok) throw new Error('Không tải được file mẫu từ Supabase Storage.');
       const extension = objectPath.split('.').pop()?.toLowerCase();
       const sampleFile = new File([await response.blob()], objectPath.split('/').pop(), { type: fileTypes[extension] });
-      const text = await extractText(sampleFile);
+      const text = await extractLearningText(sampleFile);
       setContent(text.trim().slice(0, 18000));
       setFile(null);
       setSampleSource({ bucket: sampleBucket, path: objectPath, fileName: sampleFile.name });

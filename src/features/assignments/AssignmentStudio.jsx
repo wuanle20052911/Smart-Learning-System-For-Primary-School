@@ -1,9 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import mammoth from 'mammoth';
-import { getDocument, GlobalWorkerOptions } from 'pdfjs-dist';
-import pdfWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
-
-GlobalWorkerOptions.workerSrc = pdfWorker;
+import { extractLearningText } from '../../services/learningMaterials.js';
 
 export function AssignmentStudio({ onMessage, api }) {
   const sampleQuestions = [
@@ -11,8 +7,10 @@ export function AssignmentStudio({ onMessage, api }) {
     { type: 'multiple-choice', question: 'Kết quả của 2/5 + 1/5 là gì?', options: ['1/5', '2/5', '3/5', '4/5'], answer: 2, explanation: 'Cộng hai tử số và giữ nguyên mẫu số: 2/5 + 1/5 = 3/5.' },
     { type: 'true-false', question: 'Mọi phân số có tử số nhỏ hơn mẫu số đều bé hơn 1.', options: ['Đúng', 'Sai'], answer: 0, explanation: 'Đây là tính chất cơ bản của phân số.' }
   ];
-  const [material, setMaterial] = useState('Phân số là cách biểu diễn một phần của tổng thể. Tử số cho biết số phần được lấy, mẫu số cho biết tổng số phần bằng nhau.');
+  const [material, setMaterial] = useState('');
   const [materialName, setMaterialName] = useState('');
+  const [storageProgress, setStorageProgress] = useState({ done: 0, total: 0 });
+  const [storageLoading, setStorageLoading] = useState(false);
   const [title, setTitle] = useState('Ôn tập Phân số - Phiếu 1');
   const [questions, setQuestions] = useState([]);
   const [classes, setClasses] = useState([]);
@@ -28,7 +26,7 @@ export function AssignmentStudio({ onMessage, api }) {
     setBusy(true);
     try {
       const systemPrompt = 'Bạn là giáo viên tiểu học. Chỉ trả về JSON array. Mỗi câu gồm type, question, options, correctIndex là số nguyên chỉ đáp án đúng bắt đầu từ 0, explanation. Dùng type multiple-choice hoặc true-false.';
-      const payload = await api('/api/generate-quiz', { method: 'POST', body: JSON.stringify({ systemPrompt, userPrompt: `Tài liệu:\n${material.slice(0, 18000)}\nTạo 5 câu hỏi trắc nghiệm tiếng Việt, chính xác, phù hợp học sinh tiểu học.` }) });
+      const payload = await api('/api/generate-quiz', { method: 'POST', body: JSON.stringify({ systemPrompt, userPrompt: `Tài liệu từ các nguồn đã chọn:\n${material}\nChỉ tạo câu hỏi dựa trên tài liệu trên. Tạo 5 câu hỏi trắc nghiệm tiếng Việt, chính xác, phù hợp học sinh tiểu học.` }) });
       const text = (payload.content || []).filter((item) => item.type === 'text').map((item) => item.text).join('').trim();
       const parsed = JSON.parse(text.replace(/^```json\s*/i, '').replace(/```\s*$/, '').trim());
       const generated = (Array.isArray(parsed) ? parsed : parsed.questions || []).map((item) => ({ ...item, answer: Number.isInteger(item.answer) ? item.answer : Number(item.correctIndex) || 0 })).filter((item) => item.question && Array.isArray(item.options));
@@ -71,31 +69,64 @@ export function AssignmentStudio({ onMessage, api }) {
   };
   const readFile = async (event) => {
     const file = event.target.files?.[0]; if (!file) return;
-    const extension = file.name.split('.').pop()?.toLowerCase();
-    let text = '';
     try {
-      if (['txt', 'md'].includes(extension)) {
-        text = await file.text();
-      } else if (extension === 'docx') {
-        const result = await mammoth.extractRawText({ arrayBuffer: await file.arrayBuffer() });
-        text = result.value;
-      } else if (extension === 'pdf') {
-        const pdf = await getDocument({ data: await file.arrayBuffer() }).promise;
-        const pages = [];
-        for (let pageNumber = 1; pageNumber <= Math.min(pdf.numPages, 40); pageNumber += 1) {
-          const page = await pdf.getPage(pageNumber);
-          const content = await page.getTextContent();
-          pages.push(content.items.map((item) => item.str).join(' '));
-        }
-        text = pages.join('\n');
-      } else {
-        event.target.value = ''; setMaterialName(''); onMessage('Chỉ hỗ trợ file .pdf, .docx, .txt hoặc .md.'); return;
-      }
+      const text = await extractLearningText(file);
+      if (!text.trim()) throw new Error('File không có nội dung văn bản để AI đọc.');
+      setMaterial(text.trim());
+      setMaterialName(file.name);
+      onMessage(`Đã đọc tài liệu ${file.name}.`);
     } catch (error) {
       event.target.value = ''; setMaterialName(''); onMessage(`Không đọc được tài liệu: ${error.message}`); return;
     }
-    if (!text.trim()) { onMessage('File không có nội dung văn bản để AI đọc.'); return; }
-    setMaterial(text.slice(0, 18000)); setMaterialName(file.name); onMessage(`Đã đọc tài liệu ${file.name}.`);
+  };
+  const loadStorageMaterials = async () => {
+    setStorageLoading(true);
+    setStorageProgress({ done: 0, total: 0 });
+    try {
+      const bucketNames = ['Math4', 'Chapter1'];
+      const bucketResults = await Promise.all(bucketNames.map(async (bucket) => {
+        const result = await api(`/api/lessons/storage-files?bucket=${encodeURIComponent(bucket)}`);
+        return (result.files || []).map((file) => ({ ...file, bucket }));
+      }));
+      const files = bucketResults.flat();
+      if (!files.length) throw new Error('Không tìm thấy file PDF, DOCX, TXT, Markdown, CSV hoặc JSON trong hai bucket.');
+      setStorageProgress({ done: 0, total: files.length });
+      const documents = new Array(files.length).fill('');
+      const failures = [];
+      let nextIndex = 0;
+      let completed = 0;
+      const readNext = async () => {
+        while (nextIndex < files.length) {
+          const index = nextIndex;
+          nextIndex += 1;
+          const file = files[index];
+          try {
+            const signed = await api(`/api/lessons/storage-file-url?bucket=${encodeURIComponent(file.bucket)}&path=${encodeURIComponent(file.path)}`);
+            const response = await fetch(signed.url);
+            if (!response.ok) throw new Error('Tải file thất bại.');
+            const localFile = new File([await response.blob()], file.name.split('/').pop());
+            const text = await extractLearningText(localFile);
+            if (!text.trim()) throw new Error('Không trích xuất được chữ.');
+            documents[index] = `Nguồn: ${file.bucket}/${file.path}\n${text.trim()}`;
+          } catch (error) {
+            failures.push(`${file.bucket}/${file.path}: ${error.message}`);
+          } finally {
+            completed += 1;
+            setStorageProgress({ done: completed, total: files.length });
+          }
+        }
+      };
+      await Promise.all(Array.from({ length: Math.min(4, files.length) }, () => readNext()));
+      const loadedDocuments = documents.filter(Boolean);
+      if (!loadedDocuments.length) throw new Error(failures[0] || 'Không đọc được nội dung file nào trong Storage.');
+      setMaterial(loadedDocuments.join('\n\n---\n\n'));
+      setMaterialName(`${loadedDocuments.length}/${files.length} file từ Math4 và Chapter1`);
+      onMessage(`Đã nạp nội dung từ ${loadedDocuments.length}/${files.length} file Storage.${failures.length ? ` Bỏ qua ${failures.length} file không đọc được.` : ''}`);
+    } catch (error) {
+      onMessage(`Không thể nạp dữ liệu Storage: ${error.message}`);
+    } finally {
+      setStorageLoading(false);
+    }
   };
   return <section className="assignment-studio"><div className="studio-intro"><div><span className="panel-kicker">TẠO BÀI TẬP CÙNG AI LOCAL</span><h2>Từ tài liệu đến bài tập cho cả lớp</h2><p>Đang sử dụng Ollama trên máy local, không gửi tài liệu ra dịch vụ bên ngoài.</p></div><span className="studio-steps">1 Tài liệu　→　2 AI local　→　3 Kiểm tra　→　4 Xuất bản</span></div><div className="studio-grid"><section className="teacher-card studio-source"><h3>1. Thêm tài liệu</h3><label className="material-upload"><span>📄</span><b>{materialName || 'Chọn tài liệu PDF hoặc Word'}</b><small>Hỗ trợ .pdf, .docx, .txt, .md</small><input type="file" accept=".pdf,.docx,.txt,.md,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain,text/markdown" onChange={readFile} /></label><textarea value={material} onChange={(event) => setMaterial(event.target.value)} rows="9" placeholder="Hoặc dán nội dung bài học tại đây..." /><button className="teacher-create" onClick={generate} disabled={busy}>{busy ? 'AI local đang tạo...' : '✦ Tạo câu hỏi bằng AI local'}</button><button className="secondary-studio sample-button" type="button" onClick={() => { setQuestions(sampleQuestions); onMessage('Đã nạp dữ liệu mẫu.'); }}>Dùng dữ liệu mẫu</button></section><section className="teacher-card studio-review"><div className="studio-review-head"><div><h3>2. Kiểm tra và chỉnh sửa</h3><small>{questions.length ? `${questions.length} câu hỏi đã tạo` : 'Chưa có câu hỏi'}</small></div><input value={title} onChange={(event) => setTitle(event.target.value)} placeholder="Tên bài tập" /><select value={classId} onChange={(event) => setClassId(event.target.value)}><option value="">Chọn lớp được giao</option>{classes.map((item) => <option value={item.id} key={item.id}>{item.name} · {item.grade}</option>)}</select></div>{questions.length ? questions.map((item, index) => <article className="editable-question" key={index}><div className="editable-question-head"><b>Câu {index + 1}</b><button type="button" onClick={() => setQuestions((items) => items.filter((_, current) => current !== index))}>Xóa</button></div><textarea value={item.question} onChange={(event) => updateQuestion(index, 'question', event.target.value)} rows="2" />{(item.options || []).map((option, optionIndex) => <label key={optionIndex}><span>{String.fromCharCode(65 + optionIndex)}</span><input value={option} onChange={(event) => updateOption(index, optionIndex, event.target.value)} /><input className="answer-radio" type="radio" checked={item.answer === optionIndex} onChange={() => updateQuestion(index, 'answer', optionIndex)} /></label>)}<input value={item.explanation || ''} onChange={(event) => updateQuestion(index, 'explanation', event.target.value)} placeholder="Giải thích đáp án (không bắt buộc)" /><button className="secondary-studio" type="button" onClick={() => saveToQuestionBank(item, index)} disabled={savedQuestionIndexes.includes(index)}>{savedQuestionIndexes.includes(index) ? '✓ Đã lưu ngân hàng' : '＋ Lưu vào ngân hàng câu hỏi'}</button></article>) : <div className="studio-empty">Câu hỏi AI tạo ra sẽ xuất hiện ở đây để giáo viên kiểm tra.</div>}<div className="studio-actions"><button className="secondary-studio" type="button" onClick={() => setQuestions((items) => [...items, { ...sampleQuestions[0], question: 'Câu hỏi mới của giáo viên?' }])}>+ Thêm câu hỏi</button><button className="teacher-create" type="button" onClick={publish} disabled={busy || published}>{published ? '✓ Đã xuất bản' : 'Xuất bản cho cả lớp'}</button></div></section></div></section>;
 }

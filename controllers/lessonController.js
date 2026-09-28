@@ -5,9 +5,10 @@ const path = require('path');
 
 const colors = new Set(['blue', 'yellow', 'green', 'pink']);
 const materialBucket = 'lesson-materials';
-const sampleBuckets = new Set(['Math4', 'Chapter1']);
+const chapterStorageBuckets = new Set(['Chapter1', 'Chapter2', 'Chapter3']);
+const sampleBuckets = new Set(['Math4', ...chapterStorageBuckets]);
 const sourceBuckets = new Set([materialBucket, ...sampleBuckets]);
-const allowedExtensions = new Set(['pdf', 'docx', 'txt', 'md']);
+const allowedExtensions = new Set(['pdf', 'doc', 'docx', 'docm', 'odt', 'rtf', 'ppt', 'pptx', 'xls', 'xlsx', 'csv', 'json', 'txt', 'md']);
 const allowedMaterialTypes = new Set([
   'application/pdf',
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
@@ -41,45 +42,83 @@ function normalizeLesson(body = {}) {
   return lesson;
 }
 
+async function getStorageFiles(accessToken, bucket) {
+  const storage = getSupabaseClient(accessToken).storage.from(bucket);
+  const files = [];
+  const visit = async (folder = '') => {
+    for (let offset = 0; ; offset += 100) {
+      const { data, error } = await storage.list(folder, {
+        limit: 100,
+        offset,
+        sortBy: { column: 'name', order: 'asc' }
+      });
+      if (error) throw error;
+      if (!data?.length) break;
+      for (const item of data) {
+        const itemPath = folder ? `${folder}/${item.name}` : item.name;
+        if (item.id === null && !item.metadata) {
+          await visit(itemPath);
+          continue;
+        }
+        const extension = item.name.split('.').pop()?.toLowerCase();
+        if (!allowedExtensions.has(extension)) continue;
+        files.push({
+          name: itemPath,
+          path: itemPath,
+          size: item.metadata?.size || 0,
+          updatedAt: item.updated_at || item.created_at || null
+        });
+      }
+      if (data.length < 100) break;
+    }
+  };
+  await visit();
+  return files;
+}
+
 async function listStorageFiles(req, res) {
   const bucket = req.query.bucket;
   if (!sampleBuckets.has(bucket)) return res.status(400).json({ error: 'Bucket mẫu không hợp lệ.' });
   try {
-    const storage = getSupabaseClient(req.accessToken).storage.from(bucket);
-    const files = [];
-    const visit = async (folder = '', depth = 0) => {
-      if (depth > 4 || files.length >= 300) return;
-      for (let offset = 0; offset < 1000 && files.length < 300; offset += 100) {
-        const { data, error } = await storage.list(folder, {
-          limit: 100,
-          offset,
-          sortBy: { column: 'name', order: 'asc' }
-        });
-        if (error) throw error;
-        if (!data?.length) break;
-        for (const item of data) {
-          const itemPath = folder ? `${folder}/${item.name}` : item.name;
-          if (item.id === null && !item.metadata) {
-            await visit(itemPath, depth + 1);
-            continue;
-          }
-          const extension = item.name.split('.').pop()?.toLowerCase();
-          if (!allowedExtensions.has(extension)) continue;
-          files.push({
-            name: itemPath,
-            path: itemPath,
-            size: item.metadata?.size || 0,
-            updatedAt: item.updated_at || item.created_at || null
-          });
-        }
-        if (data.length < 100) break;
-      }
-    };
-    await visit();
-    return res.json({ bucket, files });
+    return res.json({ bucket, files: await getStorageFiles(req.accessToken, bucket) });
   } catch (error) {
     console.error(`Could not list ${bucket} sample files:`, error);
     return res.status(500).json({ error: `Không thể đọc file trong bucket ${bucket}. Hãy kiểm tra policy Storage.` });
+  }
+}
+
+function listStorageChapters(req, res) {
+  return res.json({ chapters: Array.from(chapterStorageBuckets) });
+}
+
+async function listStorageChapterFiles(req, res) {
+  const { bucket } = req.params;
+  if (!chapterStorageBuckets.has(bucket)) return res.status(404).json({ error: 'Không tìm thấy chương học.' });
+  try {
+    return res.json({ bucket, files: await getStorageFiles(req.accessToken, bucket) });
+  } catch (error) {
+    console.error(`Could not list student chapter files for ${bucket}:`, error);
+    return res.status(500).json({ error: `Không thể tải tài liệu của ${bucket}. Hãy kiểm tra policy Storage.` });
+  }
+}
+
+async function createStorageChapterFileUrl(req, res) {
+  const { bucket } = req.params;
+  const objectPath = req.query.path;
+  const extension = typeof objectPath === 'string' ? objectPath.split('.').pop()?.toLowerCase() : '';
+  if (!chapterStorageBuckets.has(bucket) || typeof objectPath !== 'string' || !objectPath.trim() || !allowedExtensions.has(extension)) {
+    return res.status(400).json({ error: 'Đường dẫn tài liệu chương không hợp lệ.' });
+  }
+  try {
+    const { data, error } = await getSupabaseClient(req.accessToken)
+      .storage
+      .from(bucket)
+      .createSignedUrl(objectPath, 60);
+    if (error) throw error;
+    return res.json({ url: data.signedUrl });
+  } catch (error) {
+    console.error(`Could not sign student chapter file URL for ${bucket}:`, error);
+    return res.status(500).json({ error: 'Không thể mở tài liệu. Hãy kiểm tra policy Storage.' });
   }
 }
 
@@ -223,4 +262,4 @@ async function remove(req, res) {
   }
 }
 
-module.exports = { listPublished, listMine, getMaterial, listStorageFiles, createStorageFileUrl, teacherOnly, uploadMaterial, create, update, remove };
+module.exports = { listPublished, listMine, getMaterial, listStorageFiles, listStorageChapters, listStorageChapterFiles, createStorageChapterFileUrl, createStorageFileUrl, teacherOnly, uploadMaterial, create, update, remove };
