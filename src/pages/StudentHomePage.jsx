@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { extractLearningText } from '../services/learningMaterials.js';
 
 function formatFileSize(bytes) {
   if (!bytes) return 'Tài liệu';
@@ -11,11 +12,16 @@ function getFileType(fileName) {
   return fileName.split('.').pop()?.toUpperCase() || 'FILE';
 }
 
+function getLessonCode(chapter, index) {
+  return `Bài ${index + 1}`;
+}
+
 export default function StudentHomePage({ api, readSession, Header, Brand, AssignedWorkView, go, logout }) {
   const [chapters, setChapters] = useState([]);
   const [chapterFiles, setChapterFiles] = useState([]);
   const [assignments, setAssignments] = useState([]);
   const [selectedChapter, setSelectedChapter] = useState('');
+  const [selectedFile, setSelectedFile] = useState(null);
   const [selectedAssignment, setSelectedAssignment] = useState(null);
   const [loadingChapters, setLoadingChapters] = useState(true);
   const [loadingFiles, setLoadingFiles] = useState(false);
@@ -56,18 +62,17 @@ export default function StudentHomePage({ api, readSession, Header, Brand, Assig
   };
 
   const openStorageFile = async (file) => {
-    const fileWindow = window.open('about:blank', '_blank');
-    if (!fileWindow) {
-      setError('Trình duyệt đang chặn cửa sổ mở tài liệu.');
-      return;
-    }
     try {
       const result = await api(`/api/lessons/storage-chapters/${encodeURIComponent(selectedChapter)}/file-url?path=${encodeURIComponent(file.path)}`);
-      fileWindow.opener = null;
-      fileWindow.location.href = result.url;
+      const response = await fetch(result.url);
+      if (!response.ok) throw new Error('Không tải được nội dung từ Supabase Storage.');
+      const documentFile = new File([await response.blob()], file.name);
+      const text = await extractLearningText(documentFile);
+      const fileIndex = chapterFiles.findIndex((item) => item.path === file.path);
+      setSelectedFile({ ...file, code: getLessonCode(selectedChapter, fileIndex), text });
+      setError('');
     } catch (openError) {
-      fileWindow.close();
-      setError(openError.message || 'Không thể mở tài liệu Supabase.');
+      setError(openError.message || 'Không thể đọc nội dung tài liệu Supabase.');
     }
   };
 
@@ -95,9 +100,14 @@ export default function StudentHomePage({ api, readSession, Header, Brand, Assig
       <div className="home-grid">
         <section className="home-panel">
           {selectedAssignment ? <AssignedWorkView assignment={selectedAssignment} onBack={() => setSelectedAssignment(null)} api={api} /> : <>
-            <div className="panel-heading"><div><h2>{selectedChapter ? `Chương ${selectedChapter.replace(/^Chapter/i, '')}` : 'Chọn chương học'}</h2><p>{selectedChapter ? `${chapterFiles.length} bài học trong chương` : 'Chọn một chương để xem các bài học'}</p></div>{selectedChapter && <button className="chapter-back" type="button" onClick={() => { setSelectedChapter(''); setChapterFiles([]); }}>← Tất cả chương</button>}</div>
-            {error && <p className="message error">{error}</p>}
-            {loadingChapters ? <p className="lesson-empty">Đang tải chương từ Supabase Storage...</p> : selectedChapter ? loadingFiles ? <p className="lesson-empty">Đang tải file bài học...</p> : chapterFiles.length ? <div className="lesson-grid">{chapterFiles.map((file) => <button className={`lesson ${['blue', 'yellow', 'green', 'pink'][chapterFiles.indexOf(file) % 4]}`} type="button" key={file.path} onClick={() => openStorageFile(file)}><small>{getFileType(file.name)} · {formatFileSize(file.size)}</small><h3>{file.name.split('/').pop()}</h3><p>{file.path.includes('/') ? file.path : `Chương ${selectedChapter.replace(/^Chapter/i, '')}`}</p><span className="lesson-art">📄</span><span className="lesson-completed" aria-label="Mở tài liệu">↗</span></button>)}</div> : <p className="lesson-empty">Chương này chưa có file bài học.</p> : chapters.length ? <div className="chapter-grid">{chapters.map((chapter, index) => <button className="chapter-card" type="button" key={chapter} onClick={() => chooseChapter(chapter)}><span className="chapter-card-icon">{['📘', '🧮', '✏️', '📐'][index % 4]}</span><span className="chapter-card-copy"><small>Supabase Storage</small><strong>Chương {chapter.replace(/^Chapter/i, '')}</strong><span>Mở danh sách bài học</span></span><span className="chapter-card-arrow" aria-hidden="true">›</span></button>)}</div> : <p className="lesson-empty">Chưa tìm thấy chương trong Supabase Storage.</p>}
+            {selectedFile ? <>
+              <div className="panel-heading"><div><h2>{selectedFile.code}</h2><p>Chương {selectedChapter.replace(/^Chapter/i, '')} · {getFileType(selectedFile.name)} · {formatFileSize(selectedFile.size)}</p></div><button className="chapter-back" type="button" onClick={() => setSelectedFile(null)}>← Danh sách bài</button></div>
+              <article className="storage-document-content">{selectedFile.text ? selectedFile.text : 'Tài liệu này chưa có nội dung văn bản để hiển thị.'}</article>
+            </> : <>
+              <div className="panel-heading"><div><h2>{selectedChapter ? `Chương ${selectedChapter.replace(/^Chapter/i, '')}` : 'Chọn chương học'}</h2><p>{selectedChapter ? `${chapterFiles.length} bài học trong chương` : 'Chọn một chương để xem các bài học'}</p></div>{selectedChapter && <button className="chapter-back" type="button" onClick={() => { setSelectedChapter(''); setChapterFiles([]); }}>← Tất cả chương</button>}</div>
+              {error && <p className="message error">{error}</p>}
+              {loadingChapters ? <p className="lesson-empty">Đang tải chương từ Supabase Storage...</p> : selectedChapter ? loadingFiles ? <p className="lesson-empty">Đang tải file bài học...</p> : chapterFiles.length ? <div className="lesson-grid">{chapterFiles.map((file, index) => <button className={`lesson ${['blue', 'yellow', 'green', 'pink'][index % 4]}`} type="button" key={file.path} onClick={() => openStorageFile(file)}><small>{getFileType(file.name)} · {formatFileSize(file.size)}</small><h3>{getLessonCode(selectedChapter, index)}</h3><p className="storage-original-name">Bài học trong chương</p><span className="lesson-art">📄</span><span className="storage-open-cue" aria-hidden="true">Mở bài</span></button>)}</div> : <p className="lesson-empty">Chương này chưa có file bài học.</p> : chapters.length ? <div className="chapter-grid">{chapters.map((chapter, index) => <button className="chapter-card" type="button" key={chapter} onClick={() => chooseChapter(chapter)}><span className="chapter-card-icon">{['📘', '🧮', '✏️', '📐'][index % 4]}</span><span className="chapter-card-copy"><small>Supabase Storage</small><strong>Chương {chapter.replace(/^Chapter/i, '')}</strong><span>Mở danh sách bài học</span></span><span className="chapter-card-arrow" aria-hidden="true">›</span></button>)}</div> : <p className="lesson-empty">Chưa tìm thấy chương trong Supabase Storage.</p>}
+            </>}
           </>}
         </section>
         <aside>

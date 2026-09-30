@@ -9,6 +9,7 @@ const chapterStorageBuckets = new Set(['Chapter1', 'Chapter2', 'Chapter3']);
 const sampleBuckets = new Set(['Math4', ...chapterStorageBuckets]);
 const sourceBuckets = new Set([materialBucket, ...sampleBuckets]);
 const allowedExtensions = new Set(['pdf', 'doc', 'docx', 'docm', 'odt', 'rtf', 'ppt', 'pptx', 'xls', 'xlsx', 'csv', 'json', 'txt', 'md']);
+const readableChapterExtensions = new Set(['pdf', 'docx', 'csv', 'json', 'txt', 'md']);
 const allowedMaterialTypes = new Set([
   'application/pdf',
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
@@ -42,7 +43,7 @@ function normalizeLesson(body = {}) {
   return lesson;
 }
 
-async function getStorageFiles(accessToken, bucket) {
+async function getStorageFiles(accessToken, bucket, supportedExtensions = allowedExtensions) {
   const storage = getSupabaseClient(accessToken).storage.from(bucket);
   const files = [];
   const visit = async (folder = '') => {
@@ -61,7 +62,7 @@ async function getStorageFiles(accessToken, bucket) {
           continue;
         }
         const extension = item.name.split('.').pop()?.toLowerCase();
-        if (!allowedExtensions.has(extension)) continue;
+        if (!supportedExtensions.has(extension)) continue;
         files.push({
           name: itemPath,
           path: itemPath,
@@ -73,7 +74,7 @@ async function getStorageFiles(accessToken, bucket) {
     }
   };
   await visit();
-  return files;
+  return files.sort((left, right) => left.name.localeCompare(right.name, undefined, { numeric: true, sensitivity: 'base' }));
 }
 
 async function listStorageFiles(req, res) {
@@ -95,7 +96,7 @@ async function listStorageChapterFiles(req, res) {
   const { bucket } = req.params;
   if (!chapterStorageBuckets.has(bucket)) return res.status(404).json({ error: 'Không tìm thấy chương học.' });
   try {
-    return res.json({ bucket, files: await getStorageFiles(req.accessToken, bucket) });
+    return res.json({ bucket, files: await getStorageFiles(req.accessToken, bucket, readableChapterExtensions) });
   } catch (error) {
     console.error(`Could not list student chapter files for ${bucket}:`, error);
     return res.status(500).json({ error: `Không thể tải tài liệu của ${bucket}. Hãy kiểm tra policy Storage.` });
@@ -106,7 +107,7 @@ async function createStorageChapterFileUrl(req, res) {
   const { bucket } = req.params;
   const objectPath = req.query.path;
   const extension = typeof objectPath === 'string' ? objectPath.split('.').pop()?.toLowerCase() : '';
-  if (!chapterStorageBuckets.has(bucket) || typeof objectPath !== 'string' || !objectPath.trim() || !allowedExtensions.has(extension)) {
+  if (!chapterStorageBuckets.has(bucket) || typeof objectPath !== 'string' || !objectPath.trim() || !readableChapterExtensions.has(extension)) {
     return res.status(400).json({ error: 'Đường dẫn tài liệu chương không hợp lệ.' });
   }
   try {

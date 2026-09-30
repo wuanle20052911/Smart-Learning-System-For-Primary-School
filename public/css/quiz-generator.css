@@ -328,6 +328,9 @@
   .chapter-subject{margin:-5px 0 12px;color:#8c683e;font-size:12px;font-weight:700}
   .chapter-back{flex:0 0 auto;padding:8px 11px;border:2px solid #b96b26;border-radius:10px;background:#fff4c9;color:#a83e1d;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer}
   .chapter-back:hover{background:#ffe5a0}
+  .storage-document-content{max-height:70vh;overflow:auto;padding:18px;border:3px solid #b96b26;border-radius:14px;background:#fff9e8;color:#533b2a;box-shadow:0 4px 0 #7a451e;font:600 14px/1.75 'Quicksand',sans-serif;white-space:pre-wrap;overflow-wrap:anywhere}
+  .lesson .storage-original-name{max-width:calc(100% - 35px);margin:5px 0 0;overflow-wrap:anywhere;font-size:11px}
+  .lesson .storage-open-cue{position:relative;z-index:1;display:inline-block;margin-top:8px;color:#a83e1d;font-size:11px;font-weight:800}
   .lesson-empty{grid-column:1/-1;text-align:center;color:#7890ad;font-weight:700;padding:24px;}
   .assignment-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-top:18px}
   .assignment-card{display:grid;gap:5px;text-align:left;padding:14px;border:3px solid #b96b26;border-radius:15px;background:#fff3c9;color:#7e3b1e;cursor:pointer;box-shadow:0 4px 0 #7a451e}
