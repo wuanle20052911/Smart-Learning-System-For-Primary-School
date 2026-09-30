@@ -166,7 +166,18 @@ button, input, select { font: inherit; }
 .lesson-content { margin: 28px 0; padding: 22px; border-radius: 16px; background: #fff9ef; }
 .lesson-content h2 { margin-top: 0; color: #243d67; }
 .lesson-content-text { white-space: pre-wrap; line-height: 1.75; color: #3f4855; }
+.lesson-docx-content { white-space: normal; overflow-wrap: anywhere; }
+.lesson-docx-content h1, .lesson-docx-content h2, .lesson-docx-content h3, .lesson-docx-content h4, .lesson-docx-content h5, .lesson-docx-content h6 { margin: 1em 0 .5em; color: #243d67; line-height: 1.35; }
+.lesson-docx-content p { margin: .65em 0; }
+.lesson-docx-content ul, .lesson-docx-content ol { padding-left: 1.6em; }
+.lesson-docx-content table { width: 100%; border-collapse: collapse; margin: 1em 0; }
+.lesson-docx-content td, .lesson-docx-content th { border: 1px solid #d8cbb7; padding: 7px 9px; vertical-align: top; }
+.lesson-docx-content th { background: #fff0d2; }
+.lesson-docx-content img { display: block; max-width: 100%; height: auto; margin: 12px auto; }
+.lesson-material-status { color: #6b6259; font-size: 13px; }
 .lesson-material { margin: 0 0 14px; padding: 10px 12px; border-radius: 10px; background: #fff0d2; color: #8b5d1d; }
+.storage-document-content { margin-top: 18px; padding: 22px; border-radius: 16px; background: #fff9ef; white-space: pre-wrap; line-height: 1.75; color: #3f4855; overflow-wrap: anywhere; }
+.storage-document-content.lesson-docx-content { white-space: normal; }
 .teacher-lesson-editor { max-width: 760px; margin: 0 auto 20px; }
 .teacher-lesson-editor h2 { margin-top: 0; color: #1b447b; }
 .teacher-lesson-editor label { display: block; margin: 12px 0; color: #536d8e; font-size: 13px; font-weight: 700; }

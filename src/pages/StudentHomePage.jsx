@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { extractLearningText } from '../services/learningMaterials.js';
+import { extractLearningText, renderDocxHtml } from '../services/learningMaterials.js';
 
 function formatFileSize(bytes) {
   if (!bytes) return 'Tài liệu';
@@ -66,10 +66,17 @@ export default function StudentHomePage({ api, readSession, Header, Brand, Assig
       const result = await api(`/api/lessons/storage-chapters/${encodeURIComponent(selectedChapter)}/file-url?path=${encodeURIComponent(file.path)}`);
       const response = await fetch(result.url);
       if (!response.ok) throw new Error('Không tải được nội dung từ Supabase Storage.');
-      const documentFile = new File([await response.blob()], file.name);
-      const text = await extractLearningText(documentFile);
+      const documentBlob = await response.blob();
+      const documentFile = new File([documentBlob], file.name);
+      const isDocx = /\.docx$/i.test(file.name);
+      const [text, html] = isDocx
+        ? await Promise.all([
+          extractLearningText(documentFile),
+          renderDocxHtml(await documentBlob.arrayBuffer())
+        ])
+        : [await extractLearningText(documentFile), ''];
       const fileIndex = chapterFiles.findIndex((item) => item.path === file.path);
-      setSelectedFile({ ...file, code: getLessonCode(selectedChapter, fileIndex), text });
+      setSelectedFile({ ...file, code: getLessonCode(selectedChapter, fileIndex), text, html });
       setError('');
     } catch (openError) {
       setError(openError.message || 'Không thể đọc nội dung tài liệu Supabase.');
@@ -102,7 +109,7 @@ export default function StudentHomePage({ api, readSession, Header, Brand, Assig
           {selectedAssignment ? <AssignedWorkView assignment={selectedAssignment} onBack={() => setSelectedAssignment(null)} api={api} /> : <>
             {selectedFile ? <>
               <div className="panel-heading"><div><h2>{selectedFile.code}</h2><p>Chương {selectedChapter.replace(/^Chapter/i, '')} · {getFileType(selectedFile.name)} · {formatFileSize(selectedFile.size)}</p></div><button className="chapter-back" type="button" onClick={() => setSelectedFile(null)}>← Danh sách bài</button></div>
-              <article className="storage-document-content">{selectedFile.text ? selectedFile.text : 'Tài liệu này chưa có nội dung văn bản để hiển thị.'}</article>
+              <article className={`storage-document-content${selectedFile.html ? ' lesson-docx-content' : ''}`}>{selectedFile.html ? <div dangerouslySetInnerHTML={{ __html: selectedFile.html }} /> : selectedFile.text ? selectedFile.text : 'Tài liệu này chưa có nội dung văn bản để hiển thị.'}</article>
             </> : <>
               <div className="panel-heading"><div><h2>{selectedChapter ? `Chương ${selectedChapter.replace(/^Chapter/i, '')}` : 'Chọn chương học'}</h2><p>{selectedChapter ? `${chapterFiles.length} bài học trong chương` : 'Chọn một chương để xem các bài học'}</p></div>{selectedChapter && <button className="chapter-back" type="button" onClick={() => { setSelectedChapter(''); setChapterFiles([]); }}>← Tất cả chương</button>}</div>
               {error && <p className="message error">{error}</p>}
