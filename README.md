@@ -76,6 +76,7 @@ Dự án web tạo bộ câu hỏi ôn tập cho học sinh tiểu học bằng 
   - Chạy `supabase/019_backfill_lesson_source_filenames.sql` để điền `source_filename` còn thiếu từ `source_path` cho bài học thuộc `Chapter1`–`Chapter3`.
   - Chạy `supabase/018_create_question_bank.sql` để tạo bảng `questions`, nơi giáo viên lưu và tái sử dụng câu hỏi trong ngân hàng câu hỏi.
   - Chạy `supabase/020_link_questions_to_lessons.sql` để lưu liên kết lesson trên bài tập, từng câu hỏi trong bài tập và câu hỏi ngân hàng; migration cũng gắn lesson cho các câu hỏi thuộc bài tập đã có.
+  - Chạy `supabase/021_student_practice_question_access.sql` để cho phép học sinh đọc câu hỏi ngân hàng thuộc bài học đã xuất bản và dùng nút **Luyện tập ngay** trong bài học.
   - Tài khoản đăng ký với vai trò **Giáo viên** có thể mở `http://localhost:3000/teacher` để thêm, sửa, xoá và xuất bản bài học.
   - Trong **Bài tập**, giáo viên chọn một bài học (kể cả bản nháp) làm nguồn, tạo câu hỏi bằng AI local, kiểm tra/chỉnh sửa rồi xuất bản cho lớp. Học sinh chỉ làm các bài tập giáo viên đã giao; API tạo câu hỏi AI chỉ cho phép giáo viên/quản trị viên.
   - Trong mục **Bài tập**, nút **Nạp toàn bộ file mẫu từ Supabase Storage** đọc các file PDF, DOCX, TXT, Markdown, CSV và JSON từ cả hai bucket `Math4` và `Chapter1`; nội dung đã trích xuất được dùng trực tiếp làm nguồn cho AI tạo câu hỏi.

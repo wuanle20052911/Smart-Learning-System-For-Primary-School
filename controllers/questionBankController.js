@@ -10,6 +10,13 @@ function teacherOnly(req, res, next) {
   return next();
 }
 
+function studentOnly(req, res, next) {
+  if (req.profile?.role !== 'student') {
+    return res.status(403).json({ error: 'Chỉ học sinh mới có thể luyện tập câu hỏi.' });
+  }
+  return next();
+}
+
 function normalize(body = {}) {
   if (!types.has(body.type) || typeof body.question !== 'string' || !body.question.trim()) {
     throw new Error('Câu hỏi không hợp lệ.');
@@ -46,6 +53,26 @@ async function list(req, res) {
   }
 }
 
+async function listForLesson(req, res) {
+  try {
+    const { data: lesson, error } = await getSupabaseClient(req.accessToken)
+      .from('lessons')
+      .select('id')
+      .eq('id', req.params.lessonId)
+      .eq('published', true)
+      .maybeSingle();
+    if (error) throw error;
+    if (!lesson) return res.status(404).json({ error: 'Không tìm thấy bài học đã xuất bản.' });
+
+    return res.json({
+      questions: await questionBankModel.listForLesson(req.accessToken, lesson.id)
+    });
+  } catch (error) {
+    console.error('Could not list practice questions for lesson:', error);
+    return res.status(500).json({ error: 'Không thể tải câu hỏi luyện tập của bài học.' });
+  }
+}
+
 async function create(req, res) {
   try {
     const question = normalize(req.body);
@@ -76,4 +103,4 @@ async function remove(req, res) {
   }
 }
 
-module.exports = { teacherOnly, list, create, remove };
+module.exports = { teacherOnly, studentOnly, list, listForLesson, create, remove };

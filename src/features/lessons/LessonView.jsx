@@ -13,6 +13,9 @@ function getLessonMaterialEndpoint(lesson) {
 export default function LessonView({ lesson, onBack, onComplete, AssignedWorkView, api }) {
   if (lesson.isAssignment) return <AssignedWorkView assignment={lesson} onBack={onBack} api={api} />;
   const content = lesson.content?.trim();
+  const [practiceQuestions, setPracticeQuestions] = useState(null);
+  const [practiceLoading, setPracticeLoading] = useState(false);
+  const [practiceError, setPracticeError] = useState('');
   const [materialError, setMaterialError] = useState('');
   const [docxHtml, setDocxHtml] = useState('');
   const [docxLoading, setDocxLoading] = useState(false);
@@ -57,6 +60,29 @@ export default function LessonView({ lesson, onBack, onComplete, AssignedWorkVie
       setMaterialError(error.message || 'Không thể mở tài liệu.');
     }
   };
+  const startPractice = async () => {
+    setPracticeLoading(true);
+    setPracticeError('');
+    try {
+      const data = await api(`/api/questions/lesson/${encodeURIComponent(lesson.id)}`);
+      if (!data.questions?.length) {
+        setPracticeError('Bài học này chưa có câu hỏi trong ngân hàng. Hãy nhờ giáo viên lưu câu hỏi cho bài học trước nhé.');
+        return;
+      }
+      setPracticeQuestions(data.questions);
+    } catch (error) {
+      setPracticeError(error.message || 'Không thể tải câu hỏi luyện tập.');
+    } finally {
+      setPracticeLoading(false);
+    }
+  };
+  if (practiceQuestions) {
+    return <AssignedWorkView
+      assignment={{ title: lesson.title, lessonTitle: lesson.title, questions: practiceQuestions, isPractice: true }}
+      onBack={() => setPracticeQuestions(null)}
+      api={api}
+    />;
+  }
   return <section className={`home-panel lesson-inline ${lesson.color || 'blue'}`}>
     <div className="panel-heading">
       <div><h2>{lesson.title}</h2><p>{lesson.subject || 'Toán'} · {lesson.grade || 'Tiểu học'}</p></div>
@@ -67,7 +93,9 @@ export default function LessonView({ lesson, onBack, onComplete, AssignedWorkVie
       <div className="lesson-content"><h2>Nội dung bài học</h2>{lesson.source_filename && <p className="lesson-material">📎 Tài liệu: <b>{lesson.source_filename}</b>{materialEndpoint && <button className="lesson-material-open" type="button" onClick={openMaterial}>Mở tài liệu</button>}</p>}{docxLoading && <p className="lesson-material-status">Đang tải nội dung Word...</p>}{materialError && <p className="ai-error">{materialError}</p>}{docxHtml ? <div className="lesson-content-text lesson-docx-content" dangerouslySetInnerHTML={{ __html: docxHtml }} /> : content ? <div className="lesson-content-text">{content}</div> : <p>{docxLoading ? 'Đang đọc tài liệu bài học...' : 'Bài học này chưa có tài liệu chi tiết. Hãy xem hướng dẫn của giáo viên để bắt đầu nhé.'}</p>}</div>
       <div className="lesson-actions">
         <button className="lesson-action-button lesson-start" type="button" onClick={onComplete}><img src="/public/img/medal.png" alt="" />ĐÃ HỌC XONG BÀI NÀY ✓</button>
+        <button className="lesson-action-button lesson-ai" type="button" onClick={startPractice} disabled={practiceLoading}><img src="/public/img/star.png" alt="" />{practiceLoading ? 'ĐANG TẢI CÂU HỎI...' : 'LUYỆN TẬP NGAY'}</button>
       </div>
+      {practiceError && <p className="ai-error" role="alert">{practiceError}</p>}
     </article>
   </section>;
 }

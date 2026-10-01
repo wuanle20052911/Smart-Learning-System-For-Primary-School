@@ -16,6 +16,16 @@ async function list(accessToken, teacherId) {
   return data.map(toQuestion);
 }
 
+async function listForLesson(accessToken, lessonId) {
+  const { data, error } = await getSupabaseClient(accessToken)
+    .from('questions')
+    .select('id,type,content,options,answer,explanation,points')
+    .eq('lesson_id', lessonId)
+    .order('created_at', { ascending: true });
+  if (error) throw error;
+  return data.map(toQuestion);
+}
+
 async function create(accessToken, teacherId, question) {
   const { data, error } = await getSupabaseClient(accessToken)
     .from('questions')
@@ -35,4 +45,4 @@ async function remove(accessToken, teacherId, id) {
   if (error) throw error;
 }
 
-module.exports = { list, create, remove };
+module.exports = { list, listForLesson, create, remove };
