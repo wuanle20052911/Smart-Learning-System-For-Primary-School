@@ -1,5 +1,68 @@
 import React, { useEffect, useState } from 'react';
-import { extractLearningText } from '../../services/learningMaterials.js';
+import { extractLearningText, getLessonDisplayTitle, getLessonSourceCode } from '../../services/learningMaterials.js';
+
+const readableFileTypes = {
+  pdf: 'application/pdf',
+  docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  txt: 'text/plain',
+  md: 'text/markdown'
+};
+const questionTypes = [
+  ['multiple-choice', 'Trắc nghiệm'],
+  ['true-false', 'Đúng / Sai'],
+  ['fill-blank', 'Điền chỗ trống'],
+  ['short-answer', 'Trả lời ngắn'],
+  ['matching', 'Nối cặp']
+];
+
+async function getLessonMaterialUrl(lesson, api) {
+  if (lesson.source_path) {
+    const material = await api(`/api/lessons/${lesson.id}/material`);
+    return {
+      url: material.url,
+      filename: lesson.source_filename || lesson.source_path.split('/').pop() || ''
+    };
+  }
+
+  const filename = lesson.source_filename?.trim();
+  if (!filename) throw new Error('Bài học chưa lưu đường dẫn hoặc tên file Storage.');
+
+  let buckets = lesson.source_bucket ? [lesson.source_bucket] : [];
+  if (!buckets.length) {
+    const sourceCode = getLessonSourceCode(lesson);
+    const { chapters } = await api('/api/lessons/storage-chapters');
+    buckets = [
+      ...(sourceCode ? [`Chapter${sourceCode.chapterNumber}`] : []),
+      ...(chapters || []),
+      'Math4'
+    ].filter((bucket, index, all) => all.indexOf(bucket) === index);
+  }
+
+  const basename = filename.split(/[\\/]/).pop();
+  const errors = [];
+  for (const bucket of buckets) {
+    try {
+      if (!['Math4', 'Chapter1', 'Chapter2', 'Chapter3'].includes(bucket)) continue;
+      const filesEndpoint = bucket === 'Math4'
+        ? `/api/lessons/storage-files?bucket=${encodeURIComponent(bucket)}`
+        : `/api/lessons/storage-chapters/${encodeURIComponent(bucket)}/files`;
+      const { files } = await api(filesEndpoint);
+      const file = (files || []).find((item) => item.path === filename
+        || item.path.split(/[\\/]/).pop() === basename);
+      if (!file) continue;
+      const urlEndpoint = bucket === 'Math4'
+        ? `/api/lessons/storage-file-url?bucket=${encodeURIComponent(bucket)}&path=${encodeURIComponent(file.path)}`
+        : `/api/lessons/storage-chapters/${encodeURIComponent(bucket)}/file-url?path=${encodeURIComponent(file.path)}`;
+      const signed = await api(urlEndpoint);
+      return { url: signed.url, filename: file.path.split(/[\\/]/).pop() || basename };
+    } catch (error) {
+      errors.push(`${bucket}: ${error.message}`);
+    }
+  }
+
+  const detail = errors.length ? ` ${errors.join('; ')}` : '';
+  throw new Error(`Không tìm thấy file “${filename}” trong Storage.${detail}`);
+}
 
 export function AssignmentStudio({ onMessage, api }) {
   const sampleQuestions = [
@@ -14,25 +77,117 @@ export function AssignmentStudio({ onMessage, api }) {
   const [title, setTitle] = useState('Ôn tập Phân số - Phiếu 1');
   const [questions, setQuestions] = useState([]);
   const [classes, setClasses] = useState([]);
+  const [lessons, setLessons] = useState([]);
+  const [selectedLessonId, setSelectedLessonId] = useState('');
+  const [questionType, setQuestionType] = useState('multiple-choice');
   const [classId, setClassId] = useState('');
   const [busy, setBusy] = useState(false);
   const [published, setPublished] = useState(false);
   const [savedQuestionIndexes, setSavedQuestionIndexes] = useState([]);
-  useEffect(() => { api('/api/catalog/classes').then((data) => setClasses(data.classes || [])).catch((error) => onMessage(`Không thể tải danh sách lớp: ${error.message}`)); }, []);
+  useEffect(() => {
+    Promise.all([api('/api/catalog/classes'), api('/api/lessons/mine')])
+      .then(([classData, lessonData]) => {
+        setClasses(classData.classes || []);
+        setLessons(lessonData.lessons || []);
+      })
+      .catch((error) => onMessage(`Không thể tải lớp hoặc bài học: ${error.message}`));
+  }, []);
   const updateQuestion = (index, key, value) => setQuestions((items) => items.map((item, itemIndex) => itemIndex === index ? { ...item, [key]: value } : item));
   const updateOption = (qIndex, optionIndex, value) => setQuestions((items) => items.map((item, index) => index === qIndex ? { ...item, options: item.options.map((option, current) => current === optionIndex ? value : option) } : item));
+  const updateMatchingPair = (questionIndex, pairIndex, key, value) => setQuestions((items) => items.map((item, index) => index === questionIndex
+    ? { ...item, options: item.options.map((pair, current) => current === pairIndex ? { ...pair, [key]: value } : pair) }
+    : item));
+  const updateMatchingAnswer = (questionIndex, pairIndex, value) => setQuestions((items) => items.map((item, index) => index === questionIndex
+    ? { ...item, answer: item.answer.map((answer, current) => current === pairIndex ? Number(value) : answer) }
+    : item));
+  const addQuestion = () => {
+    const newQuestion = questionType === 'matching'
+      ? { type: questionType, question: 'Nối các cặp phù hợp', options: [{ left: 'Vế trái 1', right: 'Vế phải 1' }, { left: 'Vế trái 2', right: 'Vế phải 2' }], answer: [0, 1], explanation: '' }
+      : questionType === 'fill-blank' || questionType === 'short-answer'
+        ? { type: questionType, question: 'Nhập câu hỏi mới', options: [], answer: '', explanation: '' }
+        : { ...sampleQuestions[0], type: questionType, options: questionType === 'true-false' ? ['Đúng', 'Sai'] : [...sampleQuestions[0].options], answer: 0, question: 'Nhập câu hỏi mới' };
+    setQuestions((items) => [...items, newQuestion]);
+    setPublished(false);
+  };
+  const selectLesson = async (lessonId) => {
+    setSelectedLessonId(lessonId);
+    if (!lessonId) return;
+    const lesson = lessons.find((item) => item.id === lessonId);
+    if (!lesson) return;
+    setMaterial('');
+    setMaterialName('');
+    setQuestions([]);
+    setPublished(false);
+    setSavedQuestionIndexes([]);
+    setBusy(true);
+    try {
+      let lessonContent = lesson.content?.trim() || '';
+      if (!lessonContent && (lesson.source_path || lesson.source_filename)) {
+        const material = await getLessonMaterialUrl(lesson, api);
+        const response = await fetch(material.url);
+        if (!response.ok) throw new Error('Không tải được tài liệu của bài học.');
+        const extension = material.filename.split('.').pop()?.toLowerCase();
+        const contentType = readableFileTypes[extension];
+        if (!contentType) throw new Error('Định dạng tài liệu của bài học chưa được hỗ trợ để tạo câu hỏi.');
+        lessonContent = (await extractLearningText(new File([await response.blob()], material.filename, { type: contentType }))).trim();
+        if (!lessonContent) throw new Error(`File “${material.filename}” trong Storage không có nội dung văn bản để AI đọc.`);
+      }
+      if (!lessonContent) throw new Error('Bài học này chưa có nội dung văn bản để AI tạo câu hỏi.');
+      setMaterial(lessonContent.slice(0, 18000));
+      setMaterialName(`Bài học: ${getLessonDisplayTitle(lesson)}`);
+      setTitle(`Bài tập - ${getLessonDisplayTitle(lesson)}`);
+      onMessage(`Đã lấy nội dung bài “${getLessonDisplayTitle(lesson)}”. Tạo câu hỏi rồi kiểm tra trước khi giao cho lớp.`);
+    } catch (error) {
+      setSelectedLessonId('');
+      onMessage(`Không thể lấy nội dung bài học: ${error.message}`);
+    } finally {
+      setBusy(false);
+    }
+  };
   const generate = async () => {
     if (!material.trim()) { onMessage('Hãy nhập nội dung hoặc đưa tài liệu trước khi tạo câu hỏi.'); return; }
     setBusy(true);
+    setQuestions([]);
+    setPublished(false);
+    setSavedQuestionIndexes([]);
     try {
-      const systemPrompt = 'Bạn là giáo viên tiểu học. Chỉ trả về JSON array. Mỗi câu gồm type, question, options, correctIndex là số nguyên chỉ đáp án đúng bắt đầu từ 0, explanation. Dùng type multiple-choice hoặc true-false.';
-      const payload = await api('/api/generate-quiz', { method: 'POST', body: JSON.stringify({ systemPrompt, userPrompt: `Tài liệu từ các nguồn đã chọn:\n${material}\nChỉ tạo câu hỏi dựa trên tài liệu trên. Tạo 5 câu hỏi trắc nghiệm tiếng Việt, chính xác, phù hợp học sinh tiểu học.` }) });
+      const typeSchemas = {
+        'multiple-choice': 'Mỗi câu dạng {"type":"multiple-choice","question":"...","options":["...","...","...","..."],"correctIndex":0,"explanation":"..."}; correctIndex là chỉ số đáp án đúng bắt đầu từ 0.',
+        'true-false': 'Mỗi câu dạng {"type":"true-false","question":"...","options":["Đúng","Sai"],"correctIndex":0,"explanation":"..."}; correctIndex là 0 hoặc 1.',
+        'fill-blank': 'Mỗi câu dạng {"type":"fill-blank","question":"...","answer":"đáp án ngắn","explanation":"..."}',
+        'short-answer': 'Mỗi câu dạng {"type":"short-answer","question":"...","answer":"đáp án ngắn","explanation":"..."}',
+        matching: 'Mỗi câu dạng {"type":"matching","question":"...","pairs":[{"left":"...","right":"..."},{"left":"...","right":"..."}],"correctMatches":[1,0],"explanation":"..."}; correctMatches ánh xạ từng vế trái sang chỉ số vế phải.'
+      };
+      const systemPrompt = `Bạn là giáo viên tiểu học. Chỉ trả về JSON array hợp lệ, không markdown. ${typeSchemas[questionType]} Chỉ dùng thông tin trong tài liệu, đảm bảo đáp án chính xác và phù hợp học sinh tiểu học.`;
+      const userPrompt = `Tài liệu từ lesson đã chọn:\n${material}\nTạo đúng 5 câu hỏi tiếng Việt thuộc dạng "${questionTypes.find(([value]) => value === questionType)?.[1]}". ${typeSchemas[questionType]}`;
+      const payload = await api('/api/generate-quiz', { method: 'POST', body: JSON.stringify({ systemPrompt, userPrompt, questionType }) });
       const text = (payload.content || []).filter((item) => item.type === 'text').map((item) => item.text).join('').trim();
-      const parsed = JSON.parse(text.replace(/^```json\s*/i, '').replace(/```\s*$/, '').trim());
-      const generated = (Array.isArray(parsed) ? parsed : parsed.questions || []).map((item) => ({ ...item, answer: Number.isInteger(item.answer) ? item.answer : Number(item.correctIndex) || 0 })).filter((item) => item.question && Array.isArray(item.options));
+      let parsed = JSON.parse(text.replace(/^```json\s*/i, '').replace(/```\s*$/, '').trim());
+      if (!Array.isArray(parsed)) parsed = parsed.questions || [parsed];
+      const generated = parsed.map((item) => {
+        if (!item || typeof item.question !== 'string' || !item.question.trim()) return null;
+        if (questionType === 'multiple-choice' || questionType === 'true-false') {
+          const answer = Number.isInteger(item.correctIndex) ? item.correctIndex : Number(item.answer);
+          if (!Array.isArray(item.options) || item.options.length < 2 || !Number.isInteger(answer) || answer < 0 || answer >= item.options.length) return null;
+          if (questionType === 'true-false' && item.options.length !== 2) return null;
+          return { ...item, type: questionType, answer };
+        }
+        if (questionType === 'matching') {
+          if (!Array.isArray(item.pairs) || item.pairs.length < 2 || !Array.isArray(item.correctMatches)
+            || item.correctMatches.length !== item.pairs.length
+            || !item.pairs.every((pair) => typeof pair.left === 'string' && pair.left.trim() && typeof pair.right === 'string' && pair.right.trim())
+            || !item.correctMatches.every((answer) => Number.isInteger(answer) && answer >= 0 && answer < item.pairs.length)) return null;
+          return { ...item, type: questionType, options: item.pairs, answer: item.correctMatches };
+        }
+        const answer = typeof item.answer === 'string' || typeof item.answer === 'number' ? String(item.answer).trim() : '';
+        if (!answer) return null;
+        return { ...item, type: questionType, options: [], answer };
+      }).filter(Boolean);
       if (!generated.length) throw new Error('AI không trả về câu hỏi hợp lệ.');
       setQuestions(generated);
-      onMessage('AI đã tạo câu hỏi. Hãy kiểm tra và chỉnh sửa trước khi xuất bản.');
+      setPublished(false);
+      setSavedQuestionIndexes([]);
+      onMessage(`AI đã tạo ${generated.length}/5 câu ${questionTypes.find(([value]) => value === questionType)?.[1].toLowerCase()}. Hãy kiểm tra và chỉnh sửa trước khi xuất bản.`);
     } catch (error) {
       onMessage(`AI local chưa tạo được câu hỏi: ${error.message || 'Lỗi không xác định.'} Bạn có thể dùng nút "Dùng dữ liệu mẫu" để thử giao diện.`);
     } finally { setBusy(false); }
@@ -43,7 +198,11 @@ export function AssignmentStudio({ onMessage, api }) {
     if (!classId) { onMessage('Hãy chọn lớp được giao bài tập trước khi xuất bản.'); return; }
     setBusy(true);
     try {
-      await api('/api/assignments', { method: 'POST', body: JSON.stringify({ title, description: 'Bài tập được giáo viên kiểm tra từ tài liệu.', difficulty: 'medium', published: true, class_id: classId || null, questions: questions.map((item) => ({ type: item.type || 'multiple-choice', question: item.question, options: item.options || [], answer: item.answer, explanation: item.explanation || '', points: 1 })) }) });
+      const lesson = lessons.find((item) => item.id === selectedLessonId);
+      const sourceDescription = lesson
+        ? `Bài tập từ bài học “${getLessonDisplayTitle(lesson)}”, đã được giáo viên kiểm tra.`
+        : 'Bài tập được giáo viên kiểm tra từ tài liệu.';
+      await api('/api/assignments', { method: 'POST', body: JSON.stringify({ title, description: sourceDescription, lesson_id: selectedLessonId || null, difficulty: 'medium', published: true, class_id: classId || null, questions: questions.map((item) => ({ type: item.type || 'multiple-choice', question: item.question, options: item.options || [], answer: item.answer, explanation: item.explanation || '', points: 1 })) }) });
       setPublished(true); onMessage('Đã xuất bản bài tập cho cả lớp.');
     } catch (error) { onMessage(`Không thể xuất bản bài tập: ${error.message}`); }
     finally { setBusy(false); }
@@ -54,6 +213,7 @@ export function AssignmentStudio({ onMessage, api }) {
         method: 'POST',
         body: JSON.stringify({
           type: question.type || 'multiple-choice',
+          lesson_id: selectedLessonId || null,
           question: question.question,
           options: question.options || [],
           answer: question.answer,
@@ -72,6 +232,9 @@ export function AssignmentStudio({ onMessage, api }) {
     try {
       const text = await extractLearningText(file);
       if (!text.trim()) throw new Error('File không có nội dung văn bản để AI đọc.');
+      setQuestions([]);
+      setPublished(false);
+      setSavedQuestionIndexes([]);
       setMaterial(text.trim());
       setMaterialName(file.name);
       onMessage(`Đã đọc tài liệu ${file.name}.`);
@@ -128,16 +291,82 @@ export function AssignmentStudio({ onMessage, api }) {
       setStorageLoading(false);
     }
   };
-  return <section className="assignment-studio"><div className="studio-intro"><div><span className="panel-kicker">TẠO BÀI TẬP CÙNG AI LOCAL</span><h2>Từ tài liệu đến bài tập cho cả lớp</h2><p>Đang sử dụng Ollama trên máy local, không gửi tài liệu ra dịch vụ bên ngoài.</p></div><span className="studio-steps">1 Tài liệu　→　2 AI local　→　3 Kiểm tra　→　4 Xuất bản</span></div><div className="studio-grid"><section className="teacher-card studio-source"><h3>1. Thêm tài liệu</h3><label className="material-upload"><span>📄</span><b>{materialName || 'Chọn tài liệu PDF hoặc Word'}</b><small>Hỗ trợ .pdf, .docx, .txt, .md</small><input type="file" accept=".pdf,.docx,.txt,.md,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain,text/markdown" onChange={readFile} /></label><textarea value={material} onChange={(event) => setMaterial(event.target.value)} rows="9" placeholder="Hoặc dán nội dung bài học tại đây..." /><button className="teacher-create" onClick={generate} disabled={busy}>{busy ? 'AI local đang tạo...' : '✦ Tạo câu hỏi bằng AI local'}</button><button className="secondary-studio sample-button" type="button" onClick={() => { setQuestions(sampleQuestions); onMessage('Đã nạp dữ liệu mẫu.'); }}>Dùng dữ liệu mẫu</button></section><section className="teacher-card studio-review"><div className="studio-review-head"><div><h3>2. Kiểm tra và chỉnh sửa</h3><small>{questions.length ? `${questions.length} câu hỏi đã tạo` : 'Chưa có câu hỏi'}</small></div><input value={title} onChange={(event) => setTitle(event.target.value)} placeholder="Tên bài tập" /><select value={classId} onChange={(event) => setClassId(event.target.value)}><option value="">Chọn lớp được giao</option>{classes.map((item) => <option value={item.id} key={item.id}>{item.name} · {item.grade}</option>)}</select></div>{questions.length ? questions.map((item, index) => <article className="editable-question" key={index}><div className="editable-question-head"><b>Câu {index + 1}</b><button type="button" onClick={() => setQuestions((items) => items.filter((_, current) => current !== index))}>Xóa</button></div><textarea value={item.question} onChange={(event) => updateQuestion(index, 'question', event.target.value)} rows="2" />{(item.options || []).map((option, optionIndex) => <label key={optionIndex}><span>{String.fromCharCode(65 + optionIndex)}</span><input value={option} onChange={(event) => updateOption(index, optionIndex, event.target.value)} /><input className="answer-radio" type="radio" checked={item.answer === optionIndex} onChange={() => updateQuestion(index, 'answer', optionIndex)} /></label>)}<input value={item.explanation || ''} onChange={(event) => updateQuestion(index, 'explanation', event.target.value)} placeholder="Giải thích đáp án (không bắt buộc)" /><button className="secondary-studio" type="button" onClick={() => saveToQuestionBank(item, index)} disabled={savedQuestionIndexes.includes(index)}>{savedQuestionIndexes.includes(index) ? '✓ Đã lưu ngân hàng' : '＋ Lưu vào ngân hàng câu hỏi'}</button></article>) : <div className="studio-empty">Câu hỏi AI tạo ra sẽ xuất hiện ở đây để giáo viên kiểm tra.</div>}<div className="studio-actions"><button className="secondary-studio" type="button" onClick={() => setQuestions((items) => [...items, { ...sampleQuestions[0], question: 'Câu hỏi mới của giáo viên?' }])}>+ Thêm câu hỏi</button><button className="teacher-create" type="button" onClick={publish} disabled={busy || published}>{published ? '✓ Đã xuất bản' : 'Xuất bản cho cả lớp'}</button></div></section></div></section>;
+  return <section className="assignment-studio">
+    <div className="studio-intro">
+      <div>
+        <span className="panel-kicker">TẠO BÀI TẬP CÙNG AI LOCAL</span>
+        <h2>Từ bài học đến bộ câu hỏi cho lớp</h2>
+        <p>Chọn lesson, chọn dạng câu hỏi, để AI tạo rồi kiểm tra trước khi giao cho học sinh.</p>
+      </div>
+      <span className="studio-steps">1 Chọn bài học　→　2 Chọn dạng　→　3 Kiểm tra　→　4 Xuất bản</span>
+    </div>
+    <div className="studio-grid">
+      <section className="teacher-card studio-source">
+        <h3>1. Chọn bài học làm nguồn</h3>
+        <label className="lesson-question-source">Bài học
+          <select value={selectedLessonId} onChange={(event) => selectLesson(event.target.value)} disabled={busy}>
+            <option value="">Chọn bài học</option>
+            {lessons.map((lesson) => <option value={lesson.id} key={lesson.id}>{lesson.subject} · {lesson.grade} · {getLessonDisplayTitle(lesson)}</option>)}
+          </select>
+        </label>
+        <label className="lesson-question-source">Dạng câu hỏi
+          <select value={questionType} onChange={(event) => { setQuestionType(event.target.value); setQuestions([]); setPublished(false); setSavedQuestionIndexes([]); }}>
+            {questionTypes.map(([value, label]) => <option value={value} key={value}>{label}</option>)}
+          </select>
+        </label>
+        <label className="material-upload">
+          <span>📄</span>
+          <b>{materialName || 'Hoặc chọn tài liệu PDF hoặc Word'}</b>
+          <small>Hỗ trợ .pdf, .docx, .txt, .md</small>
+          <input type="file" accept=".pdf,.docx,.txt,.md,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain,text/markdown" onChange={(event) => { setSelectedLessonId(''); setQuestions([]); setPublished(false); setSavedQuestionIndexes([]); readFile(event); }} />
+        </label>
+        <textarea value={material} onChange={(event) => { setSelectedLessonId(''); setMaterialName(''); setQuestions([]); setPublished(false); setSavedQuestionIndexes([]); setMaterial(event.target.value); }} rows="9" placeholder="Nội dung lesson sẽ được nạp tại đây. Cũng có thể dán nội dung bài học." />
+        <button className="teacher-create" type="button" onClick={generate} disabled={busy}>{busy ? 'AI local đang tạo...' : '✦ Tạo câu hỏi bằng AI local'}</button>
+        <section className="studio-source-note">Giáo viên xem lại nội dung, sửa câu hỏi/đáp án rồi mới xuất bản cho lớp.</section>
+      </section>
+      <section className="teacher-card studio-review">
+        <div className="studio-review-head">
+          <div><h3>2. Kiểm tra và chỉnh sửa</h3><small>{questions.length ? `${questions.length} câu hỏi đã tạo` : 'Chưa có câu hỏi'}</small></div>
+          <input value={title} onChange={(event) => setTitle(event.target.value)} placeholder="Tên bài tập" />
+          <select value={classId} onChange={(event) => setClassId(event.target.value)}><option value="">Chọn lớp được giao</option>{classes.map((item) => <option value={item.id} key={item.id}>{item.name} · {item.grade}</option>)}</select>
+        </div>
+        {questions.length ? questions.map((item, index) => <article className="editable-question" key={index}>
+          <div className="editable-question-head"><b>Câu {index + 1} · {questionTypes.find(([value]) => value === item.type)?.[1]}</b><button type="button" onClick={() => setQuestions((items) => items.filter((_, current) => current !== index))}>Xóa</button></div>
+          <textarea value={item.question} onChange={(event) => updateQuestion(index, 'question', event.target.value)} rows="2" />
+          {item.type === 'matching' ? item.options.map((pair, pairIndex) => <div className="editable-matching-pair" key={pairIndex}>
+            <input aria-label={`Vế trái ${pairIndex + 1}`} value={pair.left} onChange={(event) => updateMatchingPair(index, pairIndex, 'left', event.target.value)} />
+            <input aria-label={`Vế phải ${pairIndex + 1}`} value={pair.right} onChange={(event) => updateMatchingPair(index, pairIndex, 'right', event.target.value)} />
+            <select aria-label={`Đáp án cho vế trái ${pairIndex + 1}`} value={item.answer[pairIndex]} onChange={(event) => updateMatchingAnswer(index, pairIndex, event.target.value)}>
+              {item.options.map((choice, choiceIndex) => <option value={choiceIndex} key={choiceIndex}>{choice.right}</option>)}
+            </select>
+          </div>) : item.type === 'fill-blank' || item.type === 'short-answer' ? <label className="editable-answer-label">Đáp án<input value={item.answer} onChange={(event) => updateQuestion(index, 'answer', event.target.value)} /></label> : item.options.map((option, optionIndex) => <label key={optionIndex}>
+            <span>{String.fromCharCode(65 + optionIndex)}</span>
+            <input value={option} onChange={(event) => updateOption(index, optionIndex, event.target.value)} />
+            <input className="answer-radio" type="radio" checked={item.answer === optionIndex} onChange={() => updateQuestion(index, 'answer', optionIndex)} />
+          </label>)}
+          <input value={item.explanation || ''} onChange={(event) => updateQuestion(index, 'explanation', event.target.value)} placeholder="Giải thích đáp án (không bắt buộc)" />
+          <button className="secondary-studio" type="button" onClick={() => saveToQuestionBank(item, index)} disabled={savedQuestionIndexes.includes(index)}>{savedQuestionIndexes.includes(index) ? '✓ Đã lưu ngân hàng' : '＋ Lưu vào ngân hàng câu hỏi'}</button>
+        </article>) : <div className="studio-empty">Câu hỏi AI tạo ra sẽ xuất hiện ở đây để giáo viên kiểm tra.</div>}
+        <div className="studio-actions">
+          <button className="secondary-studio" type="button" onClick={addQuestion}>+ Thêm câu hỏi</button>
+          <button className="teacher-create" type="button" onClick={publish} disabled={busy || published}>{published ? '✓ Đã xuất bản' : 'Xuất bản cho cả lớp'}</button>
+        </div>
+      </section>
+    </div>
+  </section>;
 }
 
 export function TeacherQuestionBank({ api, onMessage }) {
    const [questions, setQuestions] = useState([]);
+   const [lessons, setLessons] = useState([]);
    const [busy, setBusy] = useState(true);
    const load = () => {
      setBusy(true);
-     api('/api/questions')
-       .then((data) => setQuestions(data.questions || []))
+     Promise.all([api('/api/questions'), api('/api/lessons/mine')])
+       .then(([questionData, lessonData]) => {
+         setQuestions(questionData.questions || []);
+         setLessons(lessonData.lessons || []);
+       })
        .catch((error) => onMessage(`Không thể tải ngân hàng câu hỏi: ${error.message}`))
        .finally(() => setBusy(false));
    };
@@ -151,7 +380,7 @@ export function TeacherQuestionBank({ api, onMessage }) {
        onMessage(`Không thể xóa câu hỏi: ${error.message}`);
      }
    };
-   return <section className="teacher-card student-list-panel"><div className="student-list-head"><div><span className="panel-kicker">TÁI SỬ DỤNG CÂU HỎI</span><h2>Ngân hàng câu hỏi</h2><p>Các câu hỏi giáo viên đã lưu để dùng lại cho nhiều bài tập.</p></div><button className="secondary-studio" type="button" onClick={load}>↻ Làm mới</button></div>{busy ? <p className="student-list-empty">Đang tải...</p> : questions.length ? <div className="submission-list">{questions.map((item) => <article className="submission-row" key={item.id}><span><strong>{item.question}</strong><small>{item.type} · Lưu ngày {new Date(item.created_at).toLocaleDateString('vi-VN')}</small></span><button className="secondary-studio" type="button" onClick={() => remove(item.id)}>Xóa</button></article>)}</div> : <p className="student-list-empty">Chưa có câu hỏi. Hãy lưu câu hỏi sau khi AI tạo và chỉnh sửa.</p>}</section>;
+   return <section className="teacher-card student-list-panel"><div className="student-list-head"><div><span className="panel-kicker">TÁI SỬ DỤNG CÂU HỎI</span><h2>Ngân hàng câu hỏi</h2><p>Các câu hỏi giáo viên đã lưu để dùng lại cho nhiều bài tập.</p></div><button className="secondary-studio" type="button" onClick={load}>↻ Làm mới</button></div>{busy ? <p className="student-list-empty">Đang tải...</p> : questions.length ? <div className="submission-list">{questions.map((item) => { const lesson = lessons.find((entry) => entry.id === item.lesson_id); return <article className="submission-row" key={item.id}><span><strong>{item.question}</strong><small>{item.type}{lesson ? ` · ${getLessonDisplayTitle(lesson)}` : item.lesson_id ? ` · Lesson ID: ${item.lesson_id}` : ''} · Lưu ngày {new Date(item.created_at).toLocaleDateString('vi-VN')}</small></span><button className="secondary-studio" type="button" onClick={() => remove(item.id)}>Xóa</button></article>; })}</div> : <p className="student-list-empty">Chưa có câu hỏi. Hãy lưu câu hỏi sau khi AI tạo và chỉnh sửa.</p>}</section>;
 }
 
 export function TeacherClassManagement({ classes, onMessage, onRefresh }) {

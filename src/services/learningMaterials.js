@@ -7,7 +7,7 @@ GlobalWorkerOptions.workerSrc = pdfWorker;
 export function getLessonSourceCode(lesson) {
   for (const sourceName of [lesson.source_filename, lesson.source_path]) {
     const filename = typeof sourceName === 'string' ? sourceName.split(/[\\/]/).pop() : '';
-    const match = filename.match(/^C(\d+)B(\d+)(?:\.[^.]+)?$/i);
+    const match = filename.match(/^C(\d+)B(\d+)(?=$|[ _.-])/i);
     if (match) return { chapterNumber: Number(match[1]), lessonNumber: Number(match[2]) };
   }
   return null;

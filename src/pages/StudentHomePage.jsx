@@ -24,7 +24,7 @@ function groupLessonsByChapter(lessons) {
     .sort((left, right) => left.name.localeCompare(right.name, undefined, { numeric: true, sensitivity: 'base' }));
 }
 
-export default function StudentHomePage({ api, readSession, Header, Brand, LessonView: LessonViewComponent = LessonView, AIQuizGenerator, AssignedWorkView, go, logout }) {
+export default function StudentHomePage({ api, readSession, Header, Brand, LessonView: LessonViewComponent = LessonView, AssignedWorkView, go, logout }) {
   const [lessons, setLessons] = useState([]);
   const [assignments, setAssignments] = useState([]);
   const [selectedChapterId, setSelectedChapterId] = useState('');
@@ -90,7 +90,7 @@ export default function StudentHomePage({ api, readSession, Header, Brand, Lesso
       </section>
       <div className="home-grid">
         <section className="home-panel">
-          {selectedAssignment ? <AssignedWorkView assignment={selectedAssignment} onBack={() => setSelectedAssignment(null)} api={api} /> : selectedLesson ? <LessonViewComponent api={api} AssignedWorkView={AssignedWorkView} AIQuizGenerator={AIQuizGenerator} lesson={selectedLesson} onBack={() => setSelectedLesson(null)} onComplete={() => completeLesson(selectedLesson.id)} /> : <>
+          {selectedAssignment ? <AssignedWorkView assignment={selectedAssignment} onBack={() => setSelectedAssignment(null)} api={api} /> : selectedLesson ? <LessonViewComponent api={api} AssignedWorkView={AssignedWorkView} lesson={selectedLesson} onBack={() => setSelectedLesson(null)} onComplete={() => completeLesson(selectedLesson.id)} /> : <>
               <div className="panel-heading"><div><h2>{selectedChapter ? selectedChapter.name : 'Chọn chương học'}</h2><p>{selectedChapter ? `${selectedChapter.lessons.length} bài học trong chương` : 'Chọn một chương để xem các bài học đã xuất bản'}</p></div>{selectedChapter && <button className="chapter-back" type="button" onClick={() => setSelectedChapterId('')}>← Tất cả chương</button>}</div>
               {error && <p className="message error">{error}</p>}
                 {loadingChapters ? <p className="lesson-empty">Đang tải chương và bài học...</p> : selectedChapter ? selectedChapter.lessons.length ? <div className="lesson-grid">{selectedChapter.lessons.map((lesson, index) => <button className={`lesson ${lesson.color || ['blue', 'yellow', 'green', 'pink'][index % 4]}`} type="button" key={lesson.id} onClick={() => setSelectedLesson({ ...lesson, title: getLessonDisplayTitle(lesson) })}><small>{lesson.subject} · {lesson.grade}</small><h3>{getLessonDisplayTitle(lesson)}</h3><p>{lesson.description || 'Mở nội dung bài học'}</p><span className="lesson-art">{lesson.icon || '📚'}</span>{completedLessons.includes(lesson.id) && <span className="lesson-completed" aria-label="Đã học xong">✓</span>}</button>)}</div> : <p className="lesson-empty">Chương này chưa có bài học được xuất bản.</p> : chapters.length ? <div className="chapter-grid">{chapters.map((chapter, index) => <button className="chapter-card" type="button" key={chapter.id} onClick={() => setSelectedChapterId(chapter.id)}><span className="chapter-card-icon">{['📘', '🧮', '✏️', '📐'][index % 4]}</span><span className="chapter-card-copy"><small>{chapter.subject || 'Môn học'}</small><strong>{chapter.name}</strong><span>{chapter.lessons.length} bài học</span></span><span className="chapter-card-arrow" aria-hidden="true">›</span></button>)}</div> : <p className="lesson-empty">Chưa có bài học nào được xuất bản.</p>}

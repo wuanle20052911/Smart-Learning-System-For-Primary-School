@@ -59,6 +59,14 @@ async function resolveModelName() {
   return OLLAMA_MODEL;
 }
 
+async function resolveQuizModelName() {
+  const installedModels = await getInstalledModels();
+  const preferredModels = [OLLAMA_CHAT_MODEL, 'llama3.2:3b', 'qwen2.5:3b', 'qwen2.5:7b', OLLAMA_MODEL, DEFAULT_MODEL];
+  const preferredModel = preferredModels.find((model) => installedModels.includes(model));
+  if (preferredModel) return preferredModel;
+  return installedModels[0] || OLLAMA_MODEL;
+}
+
 function isValidQuestion(q) {
   if (!q || typeof q.question !== 'string' || !q.question.trim()) return false;
   const type = q.type || 'multiple-choice';
@@ -88,10 +96,22 @@ function isValidQuestion(q) {
   return false;
 }
 
-function normalizeGeneratedQuestion(question) {
+function normalizeGeneratedQuestion(question, expectedType) {
   if (!question || typeof question !== 'object') return null;
   const normalized = { ...question };
-  const type = normalized.type || 'multiple-choice';
+  const typeAliases = {
+    'multiple choice': 'multiple-choice',
+    'true false': 'true-false',
+    'fill in the blank': 'fill-blank',
+    'fill-in-the-blank': 'fill-blank',
+    'short answer': 'short-answer',
+    'matching pairs': 'matching'
+  };
+  const reportedType = typeof normalized.type === 'string'
+    ? normalized.type.trim().toLowerCase().replace(/_/g, '-')
+    : '';
+  normalized.type = expectedType || typeAliases[reportedType] || reportedType || 'multiple-choice';
+  const type = normalized.type;
   if (type === 'multiple-choice' || type === 'true-false') {
     const candidate = Number.isInteger(normalized.correctIndex)
       ? normalized.correctIndex
@@ -102,8 +122,55 @@ function normalizeGeneratedQuestion(question) {
       normalized.correctIndex = candidate;
       normalized.answer = candidate;
     }
+  } else if (type === 'fill-blank' || type === 'short-answer') {
+    const answer = normalized.answer ?? normalized.correctAnswer;
+    if (typeof answer === 'string' || typeof answer === 'number') normalized.answer = String(answer);
+  } else if (type === 'matching') {
+    normalized.pairs = normalized.pairs || normalized.options;
+    const matches = normalized.correctMatches || normalized.answer;
+    if (Array.isArray(matches)) {
+      normalized.correctMatches = matches.map((match, index) => {
+        if (Number.isInteger(match) || (typeof match === 'string' && /^\d+$/.test(match))) return Number(match);
+        if (typeof match === 'string' && Array.isArray(normalized.pairs)) {
+          return normalized.pairs.findIndex((pair) => typeof pair?.right === 'string'
+            && pair.right.trim().toLocaleLowerCase() === match.trim().toLocaleLowerCase());
+        }
+        return null;
+      });
+    }
   }
   return isValidQuestion(normalized) ? normalized : null;
+}
+
+async function readOllamaStream(response) {
+  if (!response.body) throw new Error('Ollama không trả về luồng nội dung.');
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+  let generatedText = '';
+
+  const readLine = (line) => {
+    if (!line.trim()) return;
+    const item = JSON.parse(line);
+    if (item.error) throw new Error(item.error);
+    if (typeof item.response === 'string') generatedText += item.response;
+  };
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      buffer += decoder.decode(value || new Uint8Array(), { stream: !done });
+      const lines = buffer.split('\n');
+      buffer = lines.pop() || '';
+      lines.forEach(readLine);
+      if (done) break;
+    }
+    readLine(buffer);
+  } finally {
+    reader.releaseLock();
+  }
+
+  return generatedText;
 }
 
 app.use(express.json({ limit: '10mb' }));
@@ -134,7 +201,15 @@ app.get('/health', (req, res) => {
 });
 
 app.post('/api/generate-quiz', requireAuth, async (req, res) => {
+  if (!['teacher', 'admin'].includes(req.profile?.role)) {
+    return res.status(403).json({ error: 'Chỉ giáo viên mới có quyền tạo câu hỏi bằng AI.' });
+  }
   const { systemPrompt, userPrompt } = req.body || {};
+  const questionTypes = new Set(['multiple-choice', 'true-false', 'fill-blank', 'matching', 'short-answer']);
+  const expectedType = typeof req.body?.questionType === 'string' ? req.body.questionType : '';
+  if (expectedType && !questionTypes.has(expectedType)) {
+    return res.status(400).json({ error: 'Dạng câu hỏi không được hỗ trợ.' });
+  }
 
   if (!systemPrompt || !userPrompt) {
     return res.status(400).json({
@@ -143,9 +218,9 @@ app.post('/api/generate-quiz', requireAuth, async (req, res) => {
   }
 
   try {
-    const activeModel = await resolveModelName();
-    const qCountMatch = userPrompt.match(/Tạo (\d+) câu hỏi/);
-    const requestedCount = qCountMatch ? parseInt(qCountMatch[1]) : 5;
+    const activeModel = expectedType ? await resolveQuizModelName() : await resolveModelName();
+    const qCountMatch = userPrompt.match(/Tạo\s+(?:đúng\s+)?(\d+)\s+câu hỏi/i);
+    const requestedCount = Math.min(qCountMatch ? parseInt(qCountMatch[1]) : 5, 10);
 
     if (!activeModel || activeModel === OLLAMA_MODEL) {
       const installedModels = await getInstalledModels();
@@ -159,10 +234,14 @@ app.post('/api/generate-quiz', requireAuth, async (req, res) => {
 
     let allQuestions = [];
     let attempts = 0;
-    const maxAttempts = Math.ceil(requestedCount / 2);
+    const maxAttempts = 3;
 
     while (allQuestions.length < requestedCount && attempts < maxAttempts) {
       attempts++;
+      const remainingCount = requestedCount - allQuestions.length;
+      const attemptPrompt = attempts === 1
+        ? userPrompt
+        : `${userPrompt.replace(/Tạo\s+(?:đúng\s+)?\d+\s+câu hỏi/i, `Tạo đúng ${remainingCount} câu hỏi`)}\n\nĐây là lượt bổ sung: chỉ tạo thêm ${remainingCount} câu hỏi mới, không lặp lại các câu sau:\n${JSON.stringify(allQuestions.map((question) => question.question))}`;
 
       const response = await fetch(`${OLLAMA_BASE_URL}/api/generate`, {
         method: 'POST',
@@ -171,12 +250,15 @@ app.post('/api/generate-quiz', requireAuth, async (req, res) => {
         },
         body: JSON.stringify({
           model: activeModel,
-          prompt: `${systemPrompt}\n\n${userPrompt}`,
+          prompt: `${systemPrompt}\n\n${attemptPrompt}`,
           format: 'json',
-          stream: false,
+          stream: true,
+          keep_alive: '10m',
           options: {
             temperature: 0.2 + (attempts * 0.1),
-            top_p: 0.9
+            top_p: 0.9,
+            num_ctx: 4096,
+            num_predict: 2048
           }
         })
       });
@@ -189,8 +271,13 @@ app.post('/api/generate-quiz', requireAuth, async (req, res) => {
         });
       }
 
-      const data = await response.json();
-      let text = data?.response || '';
+      let text;
+      try {
+        text = await readOllamaStream(response);
+      } catch (error) {
+        console.error(`Could not read Ollama quiz stream (attempt ${attempts}):`, error);
+        continue;
+      }
       
       // Try to parse the response to ensure it's valid JSON
       let parsedJSON;
@@ -210,9 +297,14 @@ app.post('/api/generate-quiz', requireAuth, async (req, res) => {
         }
         
         if (Array.isArray(parsedJSON)) {
-          const validQuestions = parsedJSON.map(normalizeGeneratedQuestion).filter(Boolean);
-          
-          allQuestions.push(...validQuestions);
+          const validQuestions = parsedJSON.map((question) => normalizeGeneratedQuestion(question, expectedType)).filter(Boolean);
+          const seenQuestions = new Set(allQuestions.map((question) => question.question.trim().toLocaleLowerCase()));
+          allQuestions.push(...validQuestions.filter((question) => {
+            const key = question.question.trim().toLocaleLowerCase();
+            if (seenQuestions.has(key)) return false;
+            seenQuestions.add(key);
+            return true;
+          }));
         }
       } catch (parseErr) {
         // If JSON parsing fails, try to extract JSON from text
@@ -225,8 +317,14 @@ app.post('/api/generate-quiz', requireAuth, async (req, res) => {
             }
             
             if (Array.isArray(parsedJSON)) {
-              const validQuestions = parsedJSON.map(normalizeGeneratedQuestion).filter(Boolean);
-              allQuestions.push(...validQuestions);
+              const validQuestions = parsedJSON.map((question) => normalizeGeneratedQuestion(question, expectedType)).filter(Boolean);
+              const seenQuestions = new Set(allQuestions.map((question) => question.question.trim().toLocaleLowerCase()));
+              allQuestions.push(...validQuestions.filter((question) => {
+                const key = question.question.trim().toLocaleLowerCase();
+                if (seenQuestions.has(key)) return false;
+                seenQuestions.add(key);
+                return true;
+              }));
             }
           } catch (innerErr) {
             console.error('Failed to parse retry JSON:', innerErr);
@@ -240,18 +338,26 @@ app.post('/api/generate-quiz', requireAuth, async (req, res) => {
     
     if (finalQuestions.length === 0) {
       return res.status(500).json({
-        error: 'Failed to generate valid questions from Ollama.'
+        error: expectedType
+          ? `AI chưa tạo được câu hỏi hợp lệ ở dạng "${expectedType}". Thử tạo lại hoặc chọn dạng khác.`
+          : 'AI chưa tạo được câu hỏi hợp lệ. Thử tạo lại.'
       });
     }
 
     return res.json({
       content: [{ type: 'text', text: JSON.stringify(finalQuestions) }],
-      raw: { questionsGenerated: finalQuestions.length, requestedCount }
+      raw: { questionsGenerated: finalQuestions.length, requestedCount, model: activeModel }
     });
   } catch (error) {
     console.error('Ollama call failed:', error);
+    if (error.cause?.code === 'UND_ERR_HEADERS_TIMEOUT' || error.code === 'UND_ERR_HEADERS_TIMEOUT') {
+      return res.status(504).json({
+        error: 'Ollama đang mất quá nhiều thời gian để bắt đầu trả lời. Kiểm tra Ollama, đợi model tải xong rồi thử lại.',
+        details: error.cause?.code || error.code
+      });
+    }
     return res.status(500).json({
-      error: 'Không thể kết nối tới Ollama. Hãy chạy `ollama serve` và `ollama pull ' + OLLAMA_MODEL + '` trước khi dùng.',
+      error: 'Không thể kết nối tới Ollama. Hãy kiểm tra Ollama đang chạy và model đã được tải.',
       details: error.message
     });
   }

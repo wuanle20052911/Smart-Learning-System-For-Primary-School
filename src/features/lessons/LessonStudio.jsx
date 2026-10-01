@@ -44,6 +44,7 @@ export default function LessonStudio({ api, onMessage, onRefresh }) {
   const [subjects, setSubjects] = useState([]);
   const [chapters, setChapters] = useState([]);
   const [lessons, setLessons] = useState([]);
+  const [sampleBuckets, setSampleBuckets] = useState(['Math4']);
   const [subjectId, setSubjectId] = useState('');
   const [chapterId, setChapterId] = useState('');
   const [subjectName, setSubjectName] = useState('');
@@ -62,6 +63,7 @@ export default function LessonStudio({ api, onMessage, onRefresh }) {
   const [published, setPublished] = useState(false);
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [editingLesson, setEditingLesson] = useState(null);
   const lessonGroups = groupLessonsByChapter(lessons);
   const lessonChapterOptions = groupLessonsByChapter(lessons.filter((lesson) => {
     const lessonSubject = lesson.subject?.trim().toLocaleLowerCase();
@@ -80,12 +82,14 @@ export default function LessonStudio({ api, onMessage, onRefresh }) {
   const selectedChapter = chapterOptions.find((chapter) => chapter.id === chapterId);
 
   const refresh = async () => {
-    const [subjectData, lessonData] = await Promise.all([
+    const [subjectData, lessonData, storageChapterData] = await Promise.all([
       api('/api/catalog/subjects'),
-      api('/api/lessons/mine')
+      api('/api/lessons/mine'),
+      api('/api/lessons/storage-chapters')
     ]);
     setSubjects(subjectData.subjects || []);
     setLessons(lessonData.lessons || []);
+    setSampleBuckets(['Math4', ...(storageChapterData.chapters || [])]);
     setSubjectId((current) => current || subjectData.subjects?.[0]?.id || '');
   };
 
@@ -105,7 +109,10 @@ export default function LessonStudio({ api, onMessage, onRefresh }) {
       .then((data) => {
         const nextChapters = data.topics || [];
         setChapters(nextChapters);
-        setChapterId((current) => nextChapters.some((item) => item.id === current) ? current : '');
+        setChapterId((current) => nextChapters.some((item) => item.id === current)
+          || lessonChapterOptions.some((item) => item.id === current)
+          ? current
+          : '');
       })
       .catch((error) => onMessage(`Không thể tải chương: ${error.message}`));
   }, [subjectId]);
@@ -204,6 +211,53 @@ export default function LessonStudio({ api, onMessage, onRefresh }) {
     }
   };
 
+  const clearLessonForm = (formElement) => {
+    setEditingLesson(null);
+    setTitle('');
+    setDescription('');
+    setContent('');
+    setFile(null);
+    setSampleFilePath('');
+    setSampleSource(null);
+    setPublished(false);
+    formElement?.reset();
+  };
+
+  const editLesson = (lesson) => {
+    const subject = subjects.find((item) => item.name.trim().toLocaleLowerCase() === lesson.subject?.trim().toLocaleLowerCase());
+    const chapter = chapterOptions.find((item) => item.topicId === lesson.topic_id)
+      || chapterOptions.find((item) => item.name.toLocaleLowerCase() === getLessonChapterName(lesson).toLocaleLowerCase());
+    setEditingLesson(lesson);
+    setSubjectId(subject?.id || '');
+    setChapterId(lesson.topic_id || chapter?.id || groupLessonsByChapter([lesson])[0]?.id || '');
+    setTitle(lesson.title || '');
+    setGrade(lesson.grade || 'Lớp 1');
+    setDescription(lesson.description || '');
+    setContent(lesson.content || '');
+    setFile(null);
+    setSampleFilePath('');
+    setSampleSource(null);
+    setPublished(lesson.published === true);
+    setSourceMode('local');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const deleteLesson = async (lesson) => {
+    if (!window.confirm(`Bạn có chắc muốn xóa bài học “${getLessonDisplayTitle(lesson)}” không?`)) return;
+    setBusy(true);
+    try {
+      await api(`/api/lessons/${lesson.id}`, { method: 'DELETE' });
+      if (editingLesson?.id === lesson.id) clearLessonForm();
+      await refresh();
+      onRefresh?.();
+      onMessage(`Đã xóa bài học “${getLessonDisplayTitle(lesson)}”.`);
+    } catch (error) {
+      onMessage(`Không thể xóa bài học: ${error.message}`);
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const saveLesson = async (event) => {
     event.preventDefault();
     const formElement = event.currentTarget;
@@ -213,7 +267,7 @@ export default function LessonStudio({ api, onMessage, onRefresh }) {
       onMessage('Hãy chọn môn học và tạo/chọn chương trước.');
       return;
     }
-    if (!title.trim() || (!content.trim() && !file && !sampleSource)) {
+    if (!title.trim() || (!content.trim() && !file && !sampleSource && !editingLesson?.source_path)) {
       onMessage('Nhập tên bài học và nội dung hoặc chọn tài liệu.');
       return;
     }
@@ -223,6 +277,10 @@ export default function LessonStudio({ api, onMessage, onRefresh }) {
         source_bucket: sampleSource.bucket,
         source_path: sampleSource.path,
         source_filename: sampleSource.fileName
+      } : editingLesson ? {
+        source_bucket: editingLesson.source_bucket,
+        source_path: editingLesson.source_path,
+        source_filename: editingLesson.source_filename
       } : {};
       if (file) {
         const extension = file.name.split('.').pop()?.toLowerCase();
@@ -235,8 +293,8 @@ export default function LessonStudio({ api, onMessage, onRefresh }) {
           })
         });
       }
-      await api('/api/lessons', {
-        method: 'POST',
+      await api(editingLesson ? `/api/lessons/${editingLesson.id}` : '/api/lessons', {
+        method: editingLesson ? 'PATCH' : 'POST',
         body: JSON.stringify({
           title: title.trim(),
           description: description.trim(),
@@ -251,17 +309,11 @@ export default function LessonStudio({ api, onMessage, onRefresh }) {
           published
         })
       });
-      setTitle('');
-      setDescription('');
-      setContent('');
-      setFile(null);
-      setSampleFilePath('');
-      setSampleSource(null);
-      setPublished(false);
-      formElement.reset();
+      const wasEditing = Boolean(editingLesson);
+      clearLessonForm(formElement);
       await refresh();
       onRefresh?.();
-      onMessage(`Đã lưu bài học trong chương “${chapter.name}”${material.source_path ? `; nguồn file: ${material.source_bucket}/${material.source_path}` : ''}.`);
+      onMessage(`${wasEditing ? 'Đã cập nhật' : 'Đã lưu'} bài học trong chương “${chapter.name}”${material.source_path ? `; nguồn file: ${material.source_bucket}/${material.source_path}` : ''}.`);
     } catch (error) {
       onMessage(`Không thể lưu bài học: ${error.message}`);
     } finally {
@@ -281,17 +333,18 @@ export default function LessonStudio({ api, onMessage, onRefresh }) {
         <form className="lesson-inline-create" onSubmit={createChapter}><input value={chapterName} onChange={(event) => setChapterName(event.target.value)} placeholder="Tên chương mới" aria-label="Tên chương mới" disabled={!subjectId} /><button type="submit" disabled={busy || !subjectId || !chapterName.trim()}>＋</button></form>
       </section>
       <form className="teacher-card lesson-studio-form" onSubmit={saveLesson}>
-        <div className="lesson-studio-step"><span>3</span><div><h3>Bài học</h3><small>{chapterId ? `Thêm vào chương ${selectedChapter?.name || ''}` : 'Chọn chương trước khi tạo bài'}</small></div></div>
+        <div className="lesson-studio-step"><span>3</span><div><h3>{editingLesson ? 'Chỉnh sửa bài học' : 'Bài học'}</h3><small>{chapterId ? `${editingLesson ? 'Chuyển hoặc giữ trong chương' : 'Thêm vào chương'} ${selectedChapter?.name || ''}` : 'Chọn chương trước khi tạo bài'}</small></div></div>
         <label>Tên bài học<input value={title} onChange={(event) => setTitle(event.target.value)} required maxLength="120" placeholder="Ví dụ: Phép cộng trong phạm vi 100" /></label>
         <div className="lesson-form-row"><label>Khối lớp<select value={grade} onChange={(event) => setGrade(event.target.value)}>{[1, 2, 3, 4, 5].map((level) => <option value={`Lớp ${level}`} key={level}>Lớp {level}</option>)}</select></label><label className="lesson-publish-toggle"><input type="checkbox" checked={published} onChange={(event) => setPublished(event.target.checked)} /> Xuất bản</label></div>
         <label>Mô tả<textarea rows="2" value={description} onChange={(event) => setDescription(event.target.value)} placeholder="Mục tiêu của bài học" /></label>
         <div className="lesson-source-picker"><div className="lesson-source-tabs" role="tablist" aria-label="Nguồn tài liệu"><button type="button" role="tab" aria-selected={sourceMode === 'local'} className={sourceMode === 'local' ? 'active' : ''} onClick={() => { setSourceMode('local'); setSampleSource(null); setSampleFilePath(''); }}>File từ máy</button><button type="button" role="tab" aria-selected={sourceMode === 'sample'} className={sourceMode === 'sample' ? 'active' : ''} onClick={() => { setSourceMode('sample'); setFile(null); }}>File mẫu Supabase</button></div>
-          {sourceMode === 'local' ? <label className="lesson-file-picker"><span>📄</span><b>{file?.name || 'Chọn tài liệu từ máy'}</b><small>PDF, DOCX, TXT, Markdown · tối đa 6 MB</small><input type="file" accept=".pdf,.docx,.txt,.md,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain,text/markdown" onChange={selectFile} /></label> : <div className="lesson-sample-picker"><label>Bucket<select value={sampleBucket} onChange={(event) => { setSampleBucket(event.target.value); setSampleFilePath(''); setSampleSource(null); }}><option value="Math4">Math4</option><option value="Chapter1">Chapter1</option></select></label><label>File mẫu<select value={sampleFilePath} onChange={(event) => selectSampleFile(event.target.value)} disabled={sampleLoading || busy}><option value="">{sampleLoading ? 'Đang tải danh sách file...' : 'Chọn file trong Storage'}</option>{sampleFiles.map((item) => <option value={item.path} key={item.path}>{item.name}{item.size ? ` · ${(item.size / 1024 / 1024).toFixed(1)} MB` : ''}</option>)}</select></label><small>{sampleSource ? `Đang dùng ${sampleSource.bucket}/${sampleSource.path}` : 'Danh sách được lấy trực tiếp từ bucket Supabase Storage.'}</small></div>}
+          {sourceMode === 'local' ? <label className="lesson-file-picker"><span>📄</span><b>{file?.name || (editingLesson?.source_filename ? `Giữ tài liệu hiện tại: ${editingLesson.source_filename}` : 'Chọn tài liệu từ máy')}</b><small>PDF, DOCX, TXT, Markdown · tối đa 6 MB</small><input type="file" accept=".pdf,.docx,.txt,.md,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain,text/markdown" onChange={selectFile} /></label> : <div className="lesson-sample-picker"><label>Bucket<select value={sampleBucket} onChange={(event) => { setSampleBucket(event.target.value); setSampleFilePath(''); setSampleSource(null); }}><option value="">Chọn chương / bucket</option>{sampleBuckets.map((bucket) => <option value={bucket} key={bucket}>{bucket}</option>)}</select></label><label>File mẫu<select value={sampleFilePath} onChange={(event) => selectSampleFile(event.target.value)} disabled={!sampleBucket || sampleLoading || busy}><option value="">{sampleLoading ? 'Đang tải danh sách file...' : 'Chọn file trong Storage'}</option>{sampleFiles.map((item) => <option value={item.path} key={item.path}>{item.name}{item.size ? ` · ${(item.size / 1024 / 1024).toFixed(1)} MB` : ''}</option>)}</select></label><small>{sampleSource ? `Đang dùng ${sampleSource.bucket}/${sampleSource.path}` : editingLesson?.source_filename ? `Để giữ tài liệu hiện tại, không cần chọn file mới (${editingLesson.source_filename}).` : 'Danh sách chương và file được lấy từ Supabase Storage.'}</small></div>}
         </div>
         <label>Nội dung cho học sinh<textarea rows="6" value={content} onChange={(event) => setContent(event.target.value)} placeholder="Nội dung được trích từ tài liệu hoặc nhập trực tiếp. Nội dung này giúp AI tạo bài tập." /></label>
-        <button className="teacher-create lesson-save" type="submit" disabled={busy || !chapterId}>{busy ? 'Đang lưu lên Supabase...' : 'Lưu bài học vào chương'}</button>
+        <button className="teacher-create lesson-save" type="submit" disabled={busy || !chapterId}>{busy ? 'Đang lưu lên Supabase...' : editingLesson ? 'Cập nhật bài học' : 'Lưu bài học vào chương'}</button>
+        {editingLesson && <button className="lesson-cancel-edit" type="button" disabled={busy} onClick={() => clearLessonForm()}>Hủy chỉnh sửa</button>}
       </form>
-      <section className="teacher-card lesson-studio-list"><div className="card-heading"><div><h3>Bài học đã tạo</h3><small>Dữ liệu lấy từ bảng lessons trên Supabase</small></div></div>{lessonGroups.length ? lessonGroups.map((group) => <section className="lesson-storage-chapter" key={group.id}><div className="lesson-storage-chapter-heading"><strong>{group.name}</strong><small>{group.subject || 'Môn học'} · {group.lessons.length} bài</small></div>{group.lessons.map((lesson) => <article className="lesson-storage-row" key={lesson.id}><div><strong>{getLessonDisplayTitle(lesson)}</strong><small>{lesson.subject} · {lesson.grade}</small>{lesson.source_path && <small className="lesson-storage-path">Tài liệu: {lesson.source_filename || `${lesson.source_bucket}/${lesson.source_path}`}</small>}</div><span className={lesson.published ? 'published' : ''}>{lesson.published ? 'Đã xuất bản' : 'Bản nháp'}</span></article>)}</section>) : <p className="lesson-studio-empty">Chưa có bài học. Tạo chương rồi thêm bài đầu tiên nhé.</p>}</section>
+      <section className="teacher-card lesson-studio-list"><div className="card-heading"><div><h3>Bài học đã tạo</h3><small>Dữ liệu lấy từ bảng lessons trên Supabase</small></div></div>{lessonGroups.length ? lessonGroups.map((group) => <section className="lesson-storage-chapter" key={group.id}><div className="lesson-storage-chapter-heading"><strong>{group.name}</strong><small>{group.subject || 'Môn học'} · {group.lessons.length} bài</small></div>{group.lessons.map((lesson) => <article className="lesson-storage-row" key={lesson.id}><div><strong>{getLessonDisplayTitle(lesson)}</strong><small>{lesson.subject} · {lesson.grade}</small>{lesson.source_path && <small className="lesson-storage-path">Tài liệu: {lesson.source_filename || `${lesson.source_bucket}/${lesson.source_path}`}</small>}</div><div className="lesson-storage-actions"><span className={lesson.published ? 'published' : ''}>{lesson.published ? 'Đã xuất bản' : 'Bản nháp'}</span><button type="button" disabled={busy} onClick={() => editLesson(lesson)}>Sửa</button><button className="lesson-delete" type="button" disabled={busy} onClick={() => deleteLesson(lesson)}>Xóa</button></div></article>)}</section>) : <p className="lesson-studio-empty">Chưa có bài học. Tạo chương rồi thêm bài đầu tiên nhé.</p>}</section>
     </div>}
   </section>;
 }

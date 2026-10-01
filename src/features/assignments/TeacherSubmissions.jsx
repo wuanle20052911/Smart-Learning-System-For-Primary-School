@@ -2,7 +2,16 @@ import React, { useEffect, useState } from 'react';
 
 function answerLabel(question, answer) {
   if (answer === undefined || answer === null || answer === '') return 'Chưa trả lời';
+  if (question.type === 'matching' && Array.isArray(answer)) {
+    return question.options.map((pair, index) => `${pair.left} → ${question.options[answer[index]]?.right || 'Chưa chọn'}`).join('; ');
+  }
   return Array.isArray(question.options) ? question.options[answer] || String(answer) : String(answer);
+}
+
+function isCorrect(question, answer) {
+  if (question.type === 'matching') return JSON.stringify(answer) === JSON.stringify(question.answer);
+  if (question.type === 'multiple-choice' || question.type === 'true-false') return Number(answer) === Number(question.answer);
+  return String(answer ?? '').trim().toLocaleLowerCase('vi-VN') === String(question.answer ?? '').trim().toLocaleLowerCase('vi-VN');
 }
 
 export default function TeacherSubmissions({ api, onMessage }) {
@@ -61,9 +70,7 @@ export default function TeacherSubmissions({ api, onMessage }) {
     <div className="submission-questions">
       {selected.questions.map((question, index) => {
         const answer = selected.answers?.[index];
-        const correct = question.type === 'multiple-choice' || question.type === 'true-false'
-          ? Number(answer) === Number(question.answer)
-          : String(answer ?? '').trim().toLocaleLowerCase('vi-VN') === String(question.answer ?? '').trim().toLocaleLowerCase('vi-VN');
+        const correct = isCorrect(question, answer);
         return <article className={`submission-question ${correct ? 'correct' : 'wrong'}`} key={question.id}>
           <span>Câu {index + 1} · {correct ? 'Đúng' : 'Chưa đúng'}</span>
           <h3>{question.question}</h3>

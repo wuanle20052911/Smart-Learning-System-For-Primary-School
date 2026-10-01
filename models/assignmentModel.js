@@ -1,7 +1,7 @@
 const { getSupabaseClient } = require('./supabaseClient');
 
-const assignmentFields = 'id,title,description,subject_id,topic_id,skill_id,class_id,created_by,difficulty,question_count,due_at,published,created_at,updated_at';
-const questionFields = 'id,assignment_id,skill_id,position,type,question,options,answer,explanation,points';
+const assignmentFields = 'id,title,description,lesson_id,subject_id,topic_id,skill_id,class_id,created_by,difficulty,question_count,due_at,published,created_at,updated_at';
+const questionFields = 'id,assignment_id,lesson_id,skill_id,position,type,question,options,answer,explanation,points';
 
 async function listForTeacher(accessToken, teacherId) {
   const { data, error } = await getSupabaseClient(accessToken)
@@ -33,7 +33,12 @@ async function create(accessToken, teacherId, assignment, questions) {
     .select(assignmentFields).single();
   if (error) throw error;
   const { error: questionError } = await client.from('assignment_questions')
-    .insert(questions.map((question, index) => ({ ...question, assignment_id: data.id, position: index + 1 })));
+    .insert(questions.map((question, index) => ({
+      ...question,
+      assignment_id: data.id,
+      lesson_id: assignment.lesson_id || null,
+      position: index + 1
+    })));
   if (questionError) throw questionError;
   return getWithQuestions(accessToken, data.id);
 }

@@ -48,6 +48,8 @@ Dự án web tạo bộ câu hỏi ôn tập cho học sinh tiểu học bằng 
    SUPABASE_ANON_KEY=your-anon-key
    ```
 
+   Ollama tạo câu hỏi theo luồng để tránh timeout khi model cần thời gian khởi động hoặc sinh nội dung dài. Nếu vẫn gặp timeout, kiểm tra Ollama tại `http://localhost:11434` và đảm bảo model trong `OLLAMA_MODEL` đã được tải.
+
 6. Tạo bảng profile người dùng trong Supabase:
 
    - Mở **SQL Editor** trong Supabase.
@@ -69,9 +71,12 @@ Dự án web tạo bộ câu hỏi ôn tập cho học sinh tiểu học bằng 
    - Chạy `supabase/016_create_feedback.sql` để giáo viên xem bài nộp chi tiết và lưu nhận xét cho học sinh.
 
   - Chạy `supabase/017_lesson_chapters_storage.sql` để liên kết bài học với chương, tạo bucket riêng tư `lesson-materials` và policy đọc các bucket mẫu `Math4`/`Chapter1`.
-  - Tài khoản **Giáo viên** mở `http://localhost:3000/teacher` → **Bài học** để chọn môn, tạo chương, thêm bài học và chọn nguồn file từ máy hoặc bucket mẫu `Math4`/`Chapter1`. Nội dung bài được lưu trong `public.lessons`; `source_bucket` và `source_path` giữ địa chỉ file để backend mở lại bằng signed URL.
+  - Tài khoản **Giáo viên** mở `http://localhost:3000/teacher` → **Bài học** để chọn môn, tạo chương, thêm, sửa hoặc xóa bài học và chọn nguồn file từ máy hoặc các bucket chương hiện có (`Math4`, `Chapter1`–`Chapter3`). Nội dung bài được lưu trong `public.lessons`; `source_bucket` và `source_path` giữ địa chỉ file để backend mở lại bằng signed URL.
+  - Nếu danh sách môn/chương thiếu dữ liệu từ các bài học đã có, chạy `supabase/019_sync_catalog_from_lessons.sql` trong Supabase SQL Editor để đồng bộ `subjects`, `topics` và `lessons.topic_id` từ `lessons.subject`/`lessons.topic`. Có thể chạy lại an toàn sau khi thêm bài học; tải lại trang **Bài học** sau khi chạy.
   - Chạy `supabase/018_create_question_bank.sql` để tạo bảng `questions`, nơi giáo viên lưu và tái sử dụng câu hỏi trong ngân hàng câu hỏi.
+  - Chạy `supabase/020_link_questions_to_lessons.sql` để lưu liên kết lesson trên bài tập, từng câu hỏi trong bài tập và câu hỏi ngân hàng; migration cũng gắn lesson cho các câu hỏi thuộc bài tập đã có.
   - Tài khoản đăng ký với vai trò **Giáo viên** có thể mở `http://localhost:3000/teacher` để thêm, sửa, xoá và xuất bản bài học.
+  - Trong **Bài tập**, giáo viên chọn một bài học (kể cả bản nháp) làm nguồn, tạo câu hỏi bằng AI local, kiểm tra/chỉnh sửa rồi xuất bản cho lớp. Học sinh chỉ làm các bài tập giáo viên đã giao; API tạo câu hỏi AI chỉ cho phép giáo viên/quản trị viên.
   - Trong mục **Bài tập**, nút **Nạp toàn bộ file mẫu từ Supabase Storage** đọc các file PDF, DOCX, TXT, Markdown, CSV và JSON từ cả hai bucket `Math4` và `Chapter1`; nội dung đã trích xuất được dùng trực tiếp làm nguồn cho AI tạo câu hỏi.
 
    - Trang học sinh chỉ hiển thị các bài học đã được giáo viên xuất bản.

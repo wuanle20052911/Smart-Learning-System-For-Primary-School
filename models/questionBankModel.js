@@ -1,6 +1,6 @@
 const { getSupabaseClient } = require('./supabaseClient');
 
-const fields = 'id,question_id,question_key,created_by,skill_id,type,content,options,answer,explanation,points,created_at,updated_at';
+const fields = 'id,question_id,question_key,created_by,lesson_id,skill_id,type,content,options,answer,explanation,points,created_at,updated_at';
 
 function toQuestion(item) {
   return item ? { ...item, question: item.content } : item;

@@ -1,4 +1,5 @@
 const questionBankModel = require('../models/questionBankModel');
+const { getSupabaseClient } = require('../models/supabaseClient');
 
 const types = new Set(['multiple-choice', 'true-false', 'fill-blank', 'matching', 'short-answer']);
 
@@ -25,6 +26,7 @@ function normalize(body = {}) {
     question_key: typeof body.question_key === 'string' && body.question_key.trim()
       ? body.question_key.trim().slice(0, 80)
       : undefined,
+    lesson_id: typeof body.lesson_id === 'string' && body.lesson_id ? body.lesson_id : null,
     skill_id: body.skill_id || null,
     type: body.type,
     content: body.question.trim().slice(0, 2000),
@@ -46,9 +48,18 @@ async function list(req, res) {
 
 async function create(req, res) {
   try {
-    return res.status(201).json({
-      question: await questionBankModel.create(req.accessToken, req.user.id, normalize(req.body))
-    });
+    const question = normalize(req.body);
+    if (question.lesson_id) {
+      const { data: lesson, error } = await getSupabaseClient(req.accessToken)
+        .from('lessons')
+        .select('id')
+        .eq('id', question.lesson_id)
+        .eq('created_by', req.user.id)
+        .maybeSingle();
+      if (error) throw error;
+      if (!lesson) throw new Error('Chỉ được liên kết câu hỏi với bài học của giáo viên hiện tại.');
+    }
+    return res.status(201).json({ question: await questionBankModel.create(req.accessToken, req.user.id, question) });
   } catch (error) {
     console.error('Could not create question bank item:', error);
     return res.status(400).json({ error: error.message || 'Không thể lưu câu hỏi.' });

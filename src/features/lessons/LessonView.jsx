@@ -10,10 +10,9 @@ function getLessonMaterialEndpoint(lesson) {
   return '';
 }
 
-export default function LessonView({ lesson, onBack, onComplete, AssignedWorkView, AIQuizGenerator, api }) {
+export default function LessonView({ lesson, onBack, onComplete, AssignedWorkView, api }) {
   if (lesson.isAssignment) return <AssignedWorkView assignment={lesson} onBack={onBack} api={api} />;
   const content = lesson.content?.trim();
-  const [showGenerator, setShowGenerator] = useState(false);
   const [materialError, setMaterialError] = useState('');
   const [docxHtml, setDocxHtml] = useState('');
   const [docxLoading, setDocxLoading] = useState(false);
@@ -58,7 +57,6 @@ export default function LessonView({ lesson, onBack, onComplete, AssignedWorkVie
       setMaterialError(error.message || 'Không thể mở tài liệu.');
     }
   };
-  if (showGenerator) return <AIQuizGenerator lesson={lesson} onBack={() => setShowGenerator(false)} api={api} />;
   return <section className={`home-panel lesson-inline ${lesson.color || 'blue'}`}>
     <div className="panel-heading">
       <div><h2>{lesson.title}</h2><p>{lesson.subject || 'Toán'} · {lesson.grade || 'Tiểu học'}</p></div>
@@ -68,7 +66,6 @@ export default function LessonView({ lesson, onBack, onComplete, AssignedWorkVie
       <div className="lesson-detail-heading"><span className="lesson-detail-icon">{lesson.icon || '📚'}</span><div><small>{lesson.subject || 'Toán'} · {lesson.grade || 'Tiểu học'}</small><h1>{lesson.title}</h1><p>{lesson.description || 'Cùng khám phá bài học này nhé!'}</p></div></div>
       <div className="lesson-content"><h2>Nội dung bài học</h2>{lesson.source_filename && <p className="lesson-material">📎 Tài liệu: <b>{lesson.source_filename}</b>{materialEndpoint && <button className="lesson-material-open" type="button" onClick={openMaterial}>Mở tài liệu</button>}</p>}{docxLoading && <p className="lesson-material-status">Đang tải nội dung Word...</p>}{materialError && <p className="ai-error">{materialError}</p>}{docxHtml ? <div className="lesson-content-text lesson-docx-content" dangerouslySetInnerHTML={{ __html: docxHtml }} /> : content ? <div className="lesson-content-text">{content}</div> : <p>{docxLoading ? 'Đang đọc tài liệu bài học...' : 'Bài học này chưa có tài liệu chi tiết. Hãy xem hướng dẫn của giáo viên để bắt đầu nhé.'}</p>}</div>
       <div className="lesson-actions">
-        <button className="lesson-action-button lesson-ai" type="button" onClick={() => setShowGenerator(true)}><img src="/public/img/star.png" alt="" />TẠO BÀI TẬP TỪ AI</button>
         <button className="lesson-action-button lesson-start" type="button" onClick={onComplete}><img src="/public/img/medal.png" alt="" />ĐÃ HỌC XONG BÀI NÀY ✓</button>
       </div>
     </article>
