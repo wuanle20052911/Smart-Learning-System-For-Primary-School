@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { extractLearningText, getLessonChapterName, getLessonDisplayTitle, getLessonSourceCode } from '../../services/learningMaterials.js';
+import { deduplicateLessonsBySourceNumber, extractLearningText, getLessonChapterName, getLessonDisplayTitle, getLessonSourceCode } from '../../services/learningMaterials.js';
 
 const MAX_FILE_BYTES = 6 * 1024 * 1024;
 const fileTypes = {
@@ -21,7 +21,7 @@ function groupLessonsByChapter(lessons) {
   return Array.from(groups.values())
     .map((group) => ({
       ...group,
-      lessons: group.lessons.sort((left, right) => {
+      lessons: deduplicateLessonsBySourceNumber(group.lessons).sort((left, right) => {
         const leftCode = getLessonSourceCode(left)?.lessonNumber;
         const rightCode = getLessonSourceCode(right)?.lessonNumber;
         if (leftCode !== undefined && rightCode !== undefined && leftCode !== rightCode) return leftCode - rightCode;

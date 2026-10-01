@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import LessonView from '../features/lessons/LessonView.jsx';
-import { getLessonChapterName, getLessonDisplayTitle, getLessonSourceCode } from '../services/learningMaterials.js';
+import { deduplicateLessonsBySourceNumber, getLessonChapterName, getLessonDisplayTitle, getLessonSourceCode } from '../services/learningMaterials.js';
 
 function groupLessonsByChapter(lessons) {
   const chapters = new Map();
@@ -14,7 +14,7 @@ function groupLessonsByChapter(lessons) {
   return Array.from(chapters.values())
     .map((chapter) => ({
       ...chapter,
-      lessons: chapter.lessons.sort((left, right) => {
+      lessons: deduplicateLessonsBySourceNumber(chapter.lessons).sort((left, right) => {
         const leftCode = getLessonSourceCode(left)?.lessonNumber;
         const rightCode = getLessonSourceCode(right)?.lessonNumber;
         if (leftCode !== undefined && rightCode !== undefined && leftCode !== rightCode) return leftCode - rightCode;

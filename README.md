@@ -74,6 +74,7 @@ Dự án web tạo bộ câu hỏi ôn tập cho học sinh tiểu học bằng 
   - Tài khoản **Giáo viên** mở `http://localhost:3000/teacher` → **Bài học** để chọn môn, tạo chương, thêm, sửa hoặc xóa bài học và chọn nguồn file từ máy hoặc các bucket chương hiện có (`Math4`, `Chapter1`–`Chapter3`). Nội dung bài được lưu trong `public.lessons`; `source_bucket` và `source_path` giữ địa chỉ file để backend mở lại bằng signed URL.
   - Nếu danh sách môn/chương thiếu dữ liệu từ các bài học đã có, chạy `supabase/019_sync_catalog_from_lessons.sql` trong Supabase SQL Editor để đồng bộ `subjects`, `topics` và `lessons.topic_id` từ `lessons.subject`/`lessons.topic`. Có thể chạy lại an toàn sau khi thêm bài học; tải lại trang **Bài học** sau khi chạy.
   - Chạy `supabase/019_backfill_lesson_source_filenames.sql` để điền `source_filename` còn thiếu từ `source_path` cho bài học thuộc `Chapter1`–`Chapter3`.
+  - Chạy `supabase/022_fix_chapter_lesson_material_paths.sql` để sửa liên kết `C2B4.docx`–`C2B6.docx` sang các file thực có `Chapter1/C1B4.docx`–`C1B6.docx`.
   - Chạy `supabase/018_create_question_bank.sql` để tạo bảng `questions`, nơi giáo viên lưu và tái sử dụng câu hỏi trong ngân hàng câu hỏi.
   - Chạy `supabase/020_link_questions_to_lessons.sql` để lưu liên kết lesson trên bài tập, từng câu hỏi trong bài tập và câu hỏi ngân hàng; migration cũng gắn lesson cho các câu hỏi thuộc bài tập đã có.
   - Chạy `supabase/021_student_practice_question_access.sql` để cho phép học sinh đọc câu hỏi ngân hàng thuộc bài học đã xuất bản và dùng nút **Luyện tập ngay** trong bài học.

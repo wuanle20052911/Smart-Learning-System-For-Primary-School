@@ -8,9 +8,33 @@ export function getLessonSourceCode(lesson) {
   for (const sourceName of [lesson.source_filename, lesson.source_path]) {
     const filename = typeof sourceName === 'string' ? sourceName.split(/[\\/]/).pop() : '';
     const match = filename.match(/^C(\d+)B(\d+)(?=$|[ _.-])/i);
-    if (match) return { chapterNumber: Number(match[1]), lessonNumber: Number(match[2]) };
+    if (match) {
+      const codedChapterNumber = Number(match[1]);
+      const lessonNumber = Number(match[2]);
+      const chapterNumber = lessonNumber >= 1 && lessonNumber <= 6
+        ? 1
+        : lessonNumber >= 7 && lessonNumber <= 9
+          ? 2
+          : lessonNumber >= 10 && lessonNumber <= 16
+            ? 3
+            : codedChapterNumber;
+      return { chapterNumber, codedChapterNumber, lessonNumber };
+    }
   }
   return null;
+}
+
+export function deduplicateLessonsBySourceNumber(lessons) {
+  const uniqueLessons = new Map();
+  lessons.forEach((lesson, index) => {
+    const sourceCode = getLessonSourceCode(lesson);
+    const key = sourceCode ? `lesson-${sourceCode.lessonNumber}` : `lesson-${lesson.id || index}`;
+    const existing = uniqueLessons.get(key);
+    if (!existing || sourceCode?.codedChapterNumber === sourceCode?.chapterNumber) {
+      uniqueLessons.set(key, lesson);
+    }
+  });
+  return Array.from(uniqueLessons.values());
 }
 
 export function getLessonDisplayTitle(lesson) {
