@@ -4,6 +4,25 @@ import pdfWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 
 GlobalWorkerOptions.workerSrc = pdfWorker;
 
+export function getLessonSourceCode(lesson) {
+  for (const sourceName of [lesson.source_filename, lesson.source_path]) {
+    const filename = typeof sourceName === 'string' ? sourceName.split(/[\\/]/).pop() : '';
+    const match = filename.match(/^C(\d+)B(\d+)(?:\.[^.]+)?$/i);
+    if (match) return { chapterNumber: Number(match[1]), lessonNumber: Number(match[2]) };
+  }
+  return null;
+}
+
+export function getLessonDisplayTitle(lesson) {
+  const sourceCode = getLessonSourceCode(lesson);
+  return sourceCode ? `Bài ${sourceCode.lessonNumber}` : lesson.title;
+}
+
+export function getLessonChapterName(lesson) {
+  const sourceCode = getLessonSourceCode(lesson);
+  return sourceCode ? `Chương ${sourceCode.chapterNumber}` : lesson.topic?.trim() || 'Chưa phân chương';
+}
+
 const docxTags = new Set([
   'a', 'b', 'blockquote', 'br', 'code', 'del', 'div', 'em', 'h1', 'h2', 'h3',
   'h4', 'h5', 'h6', 'hr', 'i', 'img', 'li', 'ol', 'p', 'pre', 's', 'span',

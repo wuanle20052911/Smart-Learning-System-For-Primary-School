@@ -1,87 +1,54 @@
 import React, { useEffect, useState } from 'react';
-import { extractLearningText, renderDocxHtml } from '../services/learningMaterials.js';
+import LessonView from '../features/lessons/LessonView.jsx';
+import { getLessonChapterName, getLessonDisplayTitle, getLessonSourceCode } from '../services/learningMaterials.js';
 
-function formatFileSize(bytes) {
-  if (!bytes) return 'Tài liệu';
-  return bytes < 1024 * 1024
-    ? `${Math.max(1, Math.round(bytes / 1024))} KB`
-    : `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+function groupLessonsByChapter(lessons) {
+  const chapters = new Map();
+  lessons.forEach((lesson) => {
+    const sourceCode = getLessonSourceCode(lesson);
+    const name = getLessonChapterName(lesson);
+    const id = sourceCode ? `source-chapter-${lesson.subject || ''}-${sourceCode.chapterNumber}` : lesson.topic_id || `${lesson.subject || ''}:${lesson.grade || ''}:${name}`;
+    if (!chapters.has(id)) chapters.set(id, { id, name, subject: lesson.subject, lessons: [] });
+    chapters.get(id).lessons.push(lesson);
+  });
+  return Array.from(chapters.values())
+    .map((chapter) => ({
+      ...chapter,
+      lessons: chapter.lessons.sort((left, right) => {
+        const leftCode = getLessonSourceCode(left)?.lessonNumber;
+        const rightCode = getLessonSourceCode(right)?.lessonNumber;
+        if (leftCode !== undefined && rightCode !== undefined && leftCode !== rightCode) return leftCode - rightCode;
+        return getLessonDisplayTitle(left).localeCompare(getLessonDisplayTitle(right), undefined, { numeric: true, sensitivity: 'base' });
+      })
+    }))
+    .sort((left, right) => left.name.localeCompare(right.name, undefined, { numeric: true, sensitivity: 'base' }));
 }
 
-function getFileType(fileName) {
-  return fileName.split('.').pop()?.toUpperCase() || 'FILE';
-}
-
-function getLessonCode(chapter, index) {
-  return `Bài ${index + 1}`;
-}
-
-export default function StudentHomePage({ api, readSession, Header, Brand, AssignedWorkView, go, logout }) {
-  const [chapters, setChapters] = useState([]);
-  const [chapterFiles, setChapterFiles] = useState([]);
+export default function StudentHomePage({ api, readSession, Header, Brand, LessonView: LessonViewComponent = LessonView, AIQuizGenerator, AssignedWorkView, go, logout }) {
+  const [lessons, setLessons] = useState([]);
   const [assignments, setAssignments] = useState([]);
-  const [selectedChapter, setSelectedChapter] = useState('');
-  const [selectedFile, setSelectedFile] = useState(null);
+  const [selectedChapterId, setSelectedChapterId] = useState('');
+  const [selectedLesson, setSelectedLesson] = useState(null);
   const [selectedAssignment, setSelectedAssignment] = useState(null);
   const [loadingChapters, setLoadingChapters] = useState(true);
-  const [loadingFiles, setLoadingFiles] = useState(false);
   const [error, setError] = useState('');
   const session = readSession();
-  const [progress] = useState(() => JSON.parse(localStorage.getItem('mathjoy-progress') || '{"xp":0,"lessons":0,"answered":0}'));
+  const [progress, setProgress] = useState(() => JSON.parse(localStorage.getItem('mathjoy-progress') || '{"xp":0,"lessons":0,"answered":0}'));
+  const [completedLessons, setCompletedLessons] = useState(() => JSON.parse(localStorage.getItem('mathjoy-completed-lessons') || '[]'));
 
   useEffect(() => {
-    api('/api/lessons/storage-chapters')
-      .then((data) => setChapters(data.chapters || []))
-      .catch((loadError) => setError(loadError.message))
-      .finally(() => setLoadingChapters(false));
-
-    Promise.all([api('/api/assignments/published'), api('/api/submissions/mine')])
-      .then(([assignmentData, submissionData]) => {
+    Promise.all([api('/api/lessons/published'), api('/api/assignments/published'), api('/api/submissions/mine')])
+      .then(([lessonData, assignmentData, submissionData]) => {
         const submissions = submissionData.submissions || [];
+        setLessons(lessonData.lessons || []);
         setAssignments((assignmentData.assignments || []).map((item) => ({
           ...item,
           submission: submissions.find((submission) => submission.assignment_id === item.id) || null
         })));
       })
-      .catch((loadError) => setError(loadError.message));
+      .catch((loadError) => setError(loadError.message))
+      .finally(() => setLoadingChapters(false));
   }, []);
-
-  const chooseChapter = async (chapter) => {
-    setSelectedChapter(chapter);
-    setChapterFiles([]);
-    setError('');
-    setLoadingFiles(true);
-    try {
-      const data = await api(`/api/lessons/storage-chapters/${encodeURIComponent(chapter)}/files`);
-      setChapterFiles(data.files || []);
-    } catch (loadError) {
-      setError(loadError.message);
-    } finally {
-      setLoadingFiles(false);
-    }
-  };
-
-  const openStorageFile = async (file) => {
-    try {
-      const result = await api(`/api/lessons/storage-chapters/${encodeURIComponent(selectedChapter)}/file-url?path=${encodeURIComponent(file.path)}`);
-      const response = await fetch(result.url);
-      if (!response.ok) throw new Error('Không tải được nội dung từ Supabase Storage.');
-      const documentBlob = await response.blob();
-      const documentFile = new File([documentBlob], file.name);
-      const isDocx = /\.docx$/i.test(file.name);
-      const [text, html] = isDocx
-        ? await Promise.all([
-          extractLearningText(documentFile),
-          renderDocxHtml(await documentBlob.arrayBuffer())
-        ])
-        : [await extractLearningText(documentFile), ''];
-      const fileIndex = chapterFiles.findIndex((item) => item.path === file.path);
-      setSelectedFile({ ...file, code: getLessonCode(selectedChapter, fileIndex), text, html });
-      setError('');
-    } catch (openError) {
-      setError(openError.message || 'Không thể đọc nội dung tài liệu Supabase.');
-    }
-  };
 
   const openAssignment = async (item) => {
     try {
@@ -90,6 +57,23 @@ export default function StudentHomePage({ api, readSession, Header, Brand, Assig
     } catch (openError) {
       setError(openError.message);
     }
+  };
+
+  const chapters = groupLessonsByChapter(lessons);
+  const selectedChapter = chapters.find((chapter) => chapter.id === selectedChapterId);
+
+  const completeLesson = (lessonId) => {
+    if (!completedLessons.includes(lessonId)) {
+      const nextCompleted = [...completedLessons, lessonId];
+      setCompletedLessons(nextCompleted);
+      localStorage.setItem('mathjoy-completed-lessons', JSON.stringify(nextCompleted));
+      setProgress((current) => {
+        const updatedProgress = { ...current, lessons: current.lessons + 1, xp: current.xp + 10 };
+        localStorage.setItem('mathjoy-progress', JSON.stringify(updatedProgress));
+        return updatedProgress;
+      });
+    }
+    setSelectedLesson(null);
   };
 
   return <>
@@ -106,16 +90,11 @@ export default function StudentHomePage({ api, readSession, Header, Brand, Assig
       </section>
       <div className="home-grid">
         <section className="home-panel">
-          {selectedAssignment ? <AssignedWorkView assignment={selectedAssignment} onBack={() => setSelectedAssignment(null)} api={api} /> : <>
-            {selectedFile ? <>
-              <div className="panel-heading"><div><h2>{selectedFile.code}</h2><p>Chương {selectedChapter.replace(/^Chapter/i, '')} · {getFileType(selectedFile.name)} · {formatFileSize(selectedFile.size)}</p></div><button className="chapter-back" type="button" onClick={() => setSelectedFile(null)}>← Danh sách bài</button></div>
-              <article className={`storage-document-content${selectedFile.html ? ' lesson-docx-content' : ''}`}>{selectedFile.html ? <div dangerouslySetInnerHTML={{ __html: selectedFile.html }} /> : selectedFile.text ? selectedFile.text : 'Tài liệu này chưa có nội dung văn bản để hiển thị.'}</article>
-            </> : <>
-              <div className="panel-heading"><div><h2>{selectedChapter ? `Chương ${selectedChapter.replace(/^Chapter/i, '')}` : 'Chọn chương học'}</h2><p>{selectedChapter ? `${chapterFiles.length} bài học trong chương` : 'Chọn một chương để xem các bài học'}</p></div>{selectedChapter && <button className="chapter-back" type="button" onClick={() => { setSelectedChapter(''); setChapterFiles([]); }}>← Tất cả chương</button>}</div>
+          {selectedAssignment ? <AssignedWorkView assignment={selectedAssignment} onBack={() => setSelectedAssignment(null)} api={api} /> : selectedLesson ? <LessonViewComponent api={api} AssignedWorkView={AssignedWorkView} AIQuizGenerator={AIQuizGenerator} lesson={selectedLesson} onBack={() => setSelectedLesson(null)} onComplete={() => completeLesson(selectedLesson.id)} /> : <>
+              <div className="panel-heading"><div><h2>{selectedChapter ? selectedChapter.name : 'Chọn chương học'}</h2><p>{selectedChapter ? `${selectedChapter.lessons.length} bài học trong chương` : 'Chọn một chương để xem các bài học đã xuất bản'}</p></div>{selectedChapter && <button className="chapter-back" type="button" onClick={() => setSelectedChapterId('')}>← Tất cả chương</button>}</div>
               {error && <p className="message error">{error}</p>}
-              {loadingChapters ? <p className="lesson-empty">Đang tải chương từ Supabase Storage...</p> : selectedChapter ? loadingFiles ? <p className="lesson-empty">Đang tải file bài học...</p> : chapterFiles.length ? <div className="lesson-grid">{chapterFiles.map((file, index) => <button className={`lesson ${['blue', 'yellow', 'green', 'pink'][index % 4]}`} type="button" key={file.path} onClick={() => openStorageFile(file)}><small>{getFileType(file.name)} · {formatFileSize(file.size)}</small><h3>{getLessonCode(selectedChapter, index)}</h3><p className="storage-original-name">Bài học trong chương</p><span className="lesson-art">📄</span><span className="storage-open-cue" aria-hidden="true">Mở bài</span></button>)}</div> : <p className="lesson-empty">Chương này chưa có file bài học.</p> : chapters.length ? <div className="chapter-grid">{chapters.map((chapter, index) => <button className="chapter-card" type="button" key={chapter} onClick={() => chooseChapter(chapter)}><span className="chapter-card-icon">{['📘', '🧮', '✏️', '📐'][index % 4]}</span><span className="chapter-card-copy"><small>Supabase Storage</small><strong>Chương {chapter.replace(/^Chapter/i, '')}</strong><span>Mở danh sách bài học</span></span><span className="chapter-card-arrow" aria-hidden="true">›</span></button>)}</div> : <p className="lesson-empty">Chưa tìm thấy chương trong Supabase Storage.</p>}
-            </>}
-          </>}
+                {loadingChapters ? <p className="lesson-empty">Đang tải chương và bài học...</p> : selectedChapter ? selectedChapter.lessons.length ? <div className="lesson-grid">{selectedChapter.lessons.map((lesson, index) => <button className={`lesson ${lesson.color || ['blue', 'yellow', 'green', 'pink'][index % 4]}`} type="button" key={lesson.id} onClick={() => setSelectedLesson({ ...lesson, title: getLessonDisplayTitle(lesson) })}><small>{lesson.subject} · {lesson.grade}</small><h3>{getLessonDisplayTitle(lesson)}</h3><p>{lesson.description || 'Mở nội dung bài học'}</p><span className="lesson-art">{lesson.icon || '📚'}</span>{completedLessons.includes(lesson.id) && <span className="lesson-completed" aria-label="Đã học xong">✓</span>}</button>)}</div> : <p className="lesson-empty">Chương này chưa có bài học được xuất bản.</p> : chapters.length ? <div className="chapter-grid">{chapters.map((chapter, index) => <button className="chapter-card" type="button" key={chapter.id} onClick={() => setSelectedChapterId(chapter.id)}><span className="chapter-card-icon">{['📘', '🧮', '✏️', '📐'][index % 4]}</span><span className="chapter-card-copy"><small>{chapter.subject || 'Môn học'}</small><strong>{chapter.name}</strong><span>{chapter.lessons.length} bài học</span></span><span className="chapter-card-arrow" aria-hidden="true">›</span></button>)}</div> : <p className="lesson-empty">Chưa có bài học nào được xuất bản.</p>}
+              </>}
         </section>
         <aside>
           <section className="daily-card"><h2>Mục tiêu hôm nay</h2><p>Hoàn thành 5 câu hỏi để nhận thêm sao và giữ chuỗi học tập!</p><div className="daily-progress"><span style={{ width: `${Math.min(100, (progress.answered / 5) * 100)}%` }} /></div><small>{Math.min(5, progress.answered)}/5 câu hỏi</small></section>

@@ -1,5 +1,14 @@
 import React, { useEffect, useState } from 'react';
-import { renderDocxHtml } from '../../services/learningMaterials.js';
+import { getLessonSourceCode, renderDocxHtml } from '../../services/learningMaterials.js';
+
+function getLessonMaterialEndpoint(lesson) {
+  if (lesson.source_path) return `/api/lessons/${lesson.id}/material`;
+  const sourceCode = getLessonSourceCode(lesson);
+  if (lesson.source_filename && sourceCode) {
+    return `/api/lessons/storage-chapters/Chapter${sourceCode.chapterNumber}/file-url?path=${encodeURIComponent(lesson.source_filename)}`;
+  }
+  return '';
+}
 
 export default function LessonView({ lesson, onBack, onComplete, AssignedWorkView, AIQuizGenerator, api }) {
   if (lesson.isAssignment) return <AssignedWorkView assignment={lesson} onBack={onBack} api={api} />;
@@ -9,8 +18,9 @@ export default function LessonView({ lesson, onBack, onComplete, AssignedWorkVie
   const [docxHtml, setDocxHtml] = useState('');
   const [docxLoading, setDocxLoading] = useState(false);
   const isDocx = /\.docx$/i.test(lesson.source_filename || lesson.source_path || '');
+  const materialEndpoint = getLessonMaterialEndpoint(lesson);
   useEffect(() => {
-    if (!isDocx || !lesson.source_path) {
+    if (!isDocx || !materialEndpoint) {
       setDocxHtml('');
       setDocxLoading(false);
       return undefined;
@@ -21,7 +31,7 @@ export default function LessonView({ lesson, onBack, onComplete, AssignedWorkVie
     setMaterialError('');
     (async () => {
       try {
-        const result = await api(`/api/lessons/${lesson.id}/material`);
+        const result = await api(materialEndpoint);
         const response = await fetch(result.url);
         if (!response.ok) throw new Error('Không tải được tài liệu Word.');
         const html = await renderDocxHtml(await response.arrayBuffer());
@@ -33,11 +43,12 @@ export default function LessonView({ lesson, onBack, onComplete, AssignedWorkVie
       }
     })();
     return () => { active = false; };
-  }, [api, isDocx, lesson.id, lesson.source_path]);
+  }, [api, isDocx, lesson.id, lesson.source_filename, lesson.source_path, materialEndpoint]);
   const openMaterial = async () => {
     const materialWindow = window.open('about:blank', '_blank');
     try {
-      const result = await api(`/api/lessons/${lesson.id}/material`);
+      if (!materialEndpoint) throw new Error('Bài học chưa được liên kết với file trong Supabase Storage.');
+      const result = await api(materialEndpoint);
       if (!materialWindow) throw new Error('Trình duyệt đang chặn cửa sổ mở tài liệu.');
       materialWindow.opener = null;
       materialWindow.location.href = result.url;
@@ -55,7 +66,7 @@ export default function LessonView({ lesson, onBack, onComplete, AssignedWorkVie
     </div>
     <article className="lesson-detail">
       <div className="lesson-detail-heading"><span className="lesson-detail-icon">{lesson.icon || '📚'}</span><div><small>{lesson.subject || 'Toán'} · {lesson.grade || 'Tiểu học'}</small><h1>{lesson.title}</h1><p>{lesson.description || 'Cùng khám phá bài học này nhé!'}</p></div></div>
-      <div className="lesson-content"><h2>Nội dung bài học</h2>{lesson.source_filename && <p className="lesson-material">📎 Tài liệu: <b>{lesson.source_filename}</b>{lesson.source_path && <button className="lesson-material-open" type="button" onClick={openMaterial}>Mở tài liệu</button>}</p>}{docxLoading && <p className="lesson-material-status">Đang tải nội dung Word...</p>}{materialError && <p className="ai-error">{materialError}</p>}{docxHtml ? <div className="lesson-content-text lesson-docx-content" dangerouslySetInnerHTML={{ __html: docxHtml }} /> : content ? <div className="lesson-content-text">{content}</div> : <p>Bài học này chưa có tài liệu chi tiết. Hãy xem hướng dẫn của giáo viên để bắt đầu nhé.</p>}</div>
+      <div className="lesson-content"><h2>Nội dung bài học</h2>{lesson.source_filename && <p className="lesson-material">📎 Tài liệu: <b>{lesson.source_filename}</b>{materialEndpoint && <button className="lesson-material-open" type="button" onClick={openMaterial}>Mở tài liệu</button>}</p>}{docxLoading && <p className="lesson-material-status">Đang tải nội dung Word...</p>}{materialError && <p className="ai-error">{materialError}</p>}{docxHtml ? <div className="lesson-content-text lesson-docx-content" dangerouslySetInnerHTML={{ __html: docxHtml }} /> : content ? <div className="lesson-content-text">{content}</div> : <p>{docxLoading ? 'Đang đọc tài liệu bài học...' : 'Bài học này chưa có tài liệu chi tiết. Hãy xem hướng dẫn của giáo viên để bắt đầu nhé.'}</p>}</div>
       <div className="lesson-actions">
         <button className="lesson-action-button lesson-ai" type="button" onClick={() => setShowGenerator(true)}><img src="/public/img/star.png" alt="" />TẠO BÀI TẬP TỪ AI</button>
         <button className="lesson-action-button lesson-start" type="button" onClick={onComplete}><img src="/public/img/medal.png" alt="" />ĐÃ HỌC XONG BÀI NÀY ✓</button>

@@ -1,0 +1,4 @@
+-- Update note: no database migration is required for this application update.
+-- Lesson chapters and titles are derived from existing public.lessons fields,
+-- including source_filename, topic, topic_id, source_bucket, and source_path.
+-- No schema, row data, or Storage policy changes are included in this update.

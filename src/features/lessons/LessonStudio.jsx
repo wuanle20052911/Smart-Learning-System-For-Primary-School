@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { extractLearningText } from '../../services/learningMaterials.js';
+import { extractLearningText, getLessonChapterName, getLessonDisplayTitle, getLessonSourceCode } from '../../services/learningMaterials.js';
 
 const MAX_FILE_BYTES = 6 * 1024 * 1024;
 const fileTypes = {
@@ -8,6 +8,28 @@ const fileTypes = {
   txt: 'text/plain',
   md: 'text/markdown'
 };
+
+function groupLessonsByChapter(lessons) {
+  const groups = new Map();
+  lessons.forEach((lesson) => {
+    const sourceCode = getLessonSourceCode(lesson);
+    const name = getLessonChapterName(lesson);
+    const groupKey = sourceCode ? `source-chapter-${lesson.subject || ''}-${sourceCode.chapterNumber}` : lesson.topic_id || `${lesson.subject || ''}:${lesson.grade || ''}:${name}`;
+    if (!groups.has(groupKey)) groups.set(groupKey, { id: lesson.topic_id || `lesson:${groupKey}`, topicId: lesson.topic_id || null, name, subject: lesson.subject, lessons: [] });
+    groups.get(groupKey).lessons.push(lesson);
+  });
+  return Array.from(groups.values())
+    .map((group) => ({
+      ...group,
+      lessons: group.lessons.sort((left, right) => {
+        const leftCode = getLessonSourceCode(left)?.lessonNumber;
+        const rightCode = getLessonSourceCode(right)?.lessonNumber;
+        if (leftCode !== undefined && rightCode !== undefined && leftCode !== rightCode) return leftCode - rightCode;
+        return getLessonDisplayTitle(left).localeCompare(getLessonDisplayTitle(right), undefined, { numeric: true, sensitivity: 'base' });
+      })
+    }))
+    .sort((left, right) => left.name.localeCompare(right.name, undefined, { numeric: true, sensitivity: 'base' }));
+}
 
 async function toBase64(file) {
   const bytes = new Uint8Array(await file.arrayBuffer());
@@ -40,6 +62,22 @@ export default function LessonStudio({ api, onMessage, onRefresh }) {
   const [published, setPublished] = useState(false);
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(true);
+  const lessonGroups = groupLessonsByChapter(lessons);
+  const lessonChapterOptions = groupLessonsByChapter(lessons.filter((lesson) => {
+    const lessonSubject = lesson.subject?.trim().toLocaleLowerCase();
+    const selectedSubject = subjects.find((item) => item.id === subjectId)?.name?.trim().toLocaleLowerCase();
+    return !selectedSubject || !lessonSubject || lessonSubject === selectedSubject;
+  }));
+  const chapterOptions = chapters.map((chapter) => ({ id: chapter.id, topicId: chapter.id, name: chapter.name }));
+  lessonChapterOptions.forEach((group) => {
+    const existingOption = chapterOptions.find((option) => option.topicId === group.topicId || option.name.toLocaleLowerCase() === group.name.toLocaleLowerCase());
+    if (existingOption) {
+      if (getLessonSourceCode(group.lessons[0])) existingOption.name = group.name;
+      return;
+    }
+    chapterOptions.push({ id: group.id, topicId: group.topicId, name: group.name });
+  });
+  const selectedChapter = chapterOptions.find((chapter) => chapter.id === chapterId);
 
   const refresh = async () => {
     const [subjectData, lessonData] = await Promise.all([
@@ -170,7 +208,7 @@ export default function LessonStudio({ api, onMessage, onRefresh }) {
     event.preventDefault();
     const formElement = event.currentTarget;
     const subject = subjects.find((item) => item.id === subjectId);
-    const chapter = chapters.find((item) => item.id === chapterId);
+    const chapter = chapterOptions.find((item) => item.id === chapterId);
     if (!subject || !chapter) {
       onMessage('Hãy chọn môn học và tạo/chọn chương trước.');
       return;
@@ -205,7 +243,7 @@ export default function LessonStudio({ api, onMessage, onRefresh }) {
           subject: subject.name,
           grade,
           topic: chapter.name,
-          topic_id: chapter.id,
+          topic_id: chapter.topicId,
           content: content.trim(),
           source_filename: material.source_filename || null,
           source_bucket: material.source_bucket || null,
@@ -239,11 +277,11 @@ export default function LessonStudio({ api, onMessage, onRefresh }) {
         <label>Môn học<select value={subjectId} onChange={(event) => setSubjectId(event.target.value)}><option value="">Chọn môn học</option>{subjects.map((item) => <option value={item.id} key={item.id}>{item.name}</option>)}</select></label>
         <form className="lesson-inline-create" onSubmit={createSubject}><input value={subjectName} onChange={(event) => setSubjectName(event.target.value)} placeholder="Tên môn học mới" aria-label="Tên môn học mới" /><button type="submit" disabled={busy || !subjectName.trim()}>＋</button></form>
         <div className="lesson-studio-step"><span>2</span><div><h3>Chương</h3><small>{subjectId ? 'Tạo hoặc chọn chương thuộc môn đã chọn' : 'Chọn môn học trước'}</small></div></div>
-        <label>Chương<select value={chapterId} onChange={(event) => setChapterId(event.target.value)} disabled={!subjectId}><option value="">Chọn chương</option>{chapters.map((item) => <option value={item.id} key={item.id}>{item.name}</option>)}</select></label>
+        <label>Chương<select value={chapterId} onChange={(event) => setChapterId(event.target.value)} disabled={!subjectId}><option value="">Chọn chương</option>{chapterOptions.map((item) => <option value={item.id} key={item.id}>{item.name}</option>)}</select></label>
         <form className="lesson-inline-create" onSubmit={createChapter}><input value={chapterName} onChange={(event) => setChapterName(event.target.value)} placeholder="Tên chương mới" aria-label="Tên chương mới" disabled={!subjectId} /><button type="submit" disabled={busy || !subjectId || !chapterName.trim()}>＋</button></form>
       </section>
       <form className="teacher-card lesson-studio-form" onSubmit={saveLesson}>
-        <div className="lesson-studio-step"><span>3</span><div><h3>Bài học</h3><small>{chapterId ? `Thêm vào chương ${chapters.find((item) => item.id === chapterId)?.name || ''}` : 'Chọn chương trước khi tạo bài'}</small></div></div>
+        <div className="lesson-studio-step"><span>3</span><div><h3>Bài học</h3><small>{chapterId ? `Thêm vào chương ${selectedChapter?.name || ''}` : 'Chọn chương trước khi tạo bài'}</small></div></div>
         <label>Tên bài học<input value={title} onChange={(event) => setTitle(event.target.value)} required maxLength="120" placeholder="Ví dụ: Phép cộng trong phạm vi 100" /></label>
         <div className="lesson-form-row"><label>Khối lớp<select value={grade} onChange={(event) => setGrade(event.target.value)}>{[1, 2, 3, 4, 5].map((level) => <option value={`Lớp ${level}`} key={level}>Lớp {level}</option>)}</select></label><label className="lesson-publish-toggle"><input type="checkbox" checked={published} onChange={(event) => setPublished(event.target.checked)} /> Xuất bản</label></div>
         <label>Mô tả<textarea rows="2" value={description} onChange={(event) => setDescription(event.target.value)} placeholder="Mục tiêu của bài học" /></label>
@@ -253,7 +291,7 @@ export default function LessonStudio({ api, onMessage, onRefresh }) {
         <label>Nội dung cho học sinh<textarea rows="6" value={content} onChange={(event) => setContent(event.target.value)} placeholder="Nội dung được trích từ tài liệu hoặc nhập trực tiếp. Nội dung này giúp AI tạo bài tập." /></label>
         <button className="teacher-create lesson-save" type="submit" disabled={busy || !chapterId}>{busy ? 'Đang lưu lên Supabase...' : 'Lưu bài học vào chương'}</button>
       </form>
-      <section className="teacher-card lesson-studio-list"><div className="card-heading"><div><h3>Bài học đã tạo</h3><small>Dữ liệu lấy từ bảng lessons trên Supabase</small></div></div>{lessons.length ? lessons.map((lesson) => <article className="lesson-storage-row" key={lesson.id}><div><strong>{lesson.title}</strong><small>{lesson.subject} · {lesson.topic || 'Chưa phân chương'} · {lesson.grade}</small>{lesson.source_path && <small className="lesson-storage-path">Storage: {lesson.source_bucket}/{lesson.source_path}</small>}</div><span className={lesson.published ? 'published' : ''}>{lesson.published ? 'Đã xuất bản' : 'Bản nháp'}</span></article>) : <p className="lesson-studio-empty">Chưa có bài học. Tạo chương rồi thêm bài đầu tiên nhé.</p>}</section>
+      <section className="teacher-card lesson-studio-list"><div className="card-heading"><div><h3>Bài học đã tạo</h3><small>Dữ liệu lấy từ bảng lessons trên Supabase</small></div></div>{lessonGroups.length ? lessonGroups.map((group) => <section className="lesson-storage-chapter" key={group.id}><div className="lesson-storage-chapter-heading"><strong>{group.name}</strong><small>{group.subject || 'Môn học'} · {group.lessons.length} bài</small></div>{group.lessons.map((lesson) => <article className="lesson-storage-row" key={lesson.id}><div><strong>{getLessonDisplayTitle(lesson)}</strong><small>{lesson.subject} · {lesson.grade}</small>{lesson.source_path && <small className="lesson-storage-path">Tài liệu: {lesson.source_filename || `${lesson.source_bucket}/${lesson.source_path}`}</small>}</div><span className={lesson.published ? 'published' : ''}>{lesson.published ? 'Đã xuất bản' : 'Bản nháp'}</span></article>)}</section>) : <p className="lesson-studio-empty">Chưa có bài học. Tạo chương rồi thêm bài đầu tiên nhé.</p>}</section>
     </div>}
   </section>;
 }
