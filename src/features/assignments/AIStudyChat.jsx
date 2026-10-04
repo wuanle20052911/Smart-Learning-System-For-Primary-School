@@ -55,6 +55,14 @@ export default function AIStudyChat({ api, lessons, assignments, progress, onSta
       <div className="study-chat-starters">{starterPrompts.map((prompt) => <button type="button" key={prompt} onClick={() => ask(prompt)}>{prompt}</button>)}</div>
       <form onSubmit={(event) => { event.preventDefault(); ask(input); }}><input value={input} onChange={(event) => setInput(event.target.value)} placeholder="Hỏi trợ lý học tập..." aria-label="Tin nhắn" /><button type="submit" disabled={busy || !input.trim()} aria-label="Gửi tin nhắn">→</button></form>
     </section>}
-    <button className="study-chat-launcher" type="button" onClick={() => setOpen((value) => !value)} aria-expanded={open}><span>✨</span><b>{open ? 'Đóng trợ lý' : 'Hỏi AI học gì?'}</b></button>
+    <button className="study-chat-launcher" type="button" onClick={() => setOpen((value) => !value)} aria-expanded={open}>
+      <span className="study-chat-launcher-icon" aria-hidden="true">{open ? '×' : '🤖'}</span>
+      <span className="study-chat-launcher-copy"><b>{open ? 'Đóng trợ lý' : 'Hỏi AI học gì?'}</b><small>{open ? 'Hẹn gặp con nhé!' : 'Gia sư AI luôn sẵn sàng'}</small></span>
+      {!open && <svg className="study-chat-santa-hat" viewBox="0 0 72 62" aria-hidden="true">
+        <path className="study-chat-santa-hat-cap" d="M12 40C16 22 30 8 47 9c13 1 18 13 16 31-13-8-26-7-38 3L12 40Z" />
+        <path className="study-chat-santa-hat-brim" d="M8 39c15-7 37-5 53 2 6 3 6 10 0 12-16-8-36-8-52-1-7 1-8-9-1-13Z" />
+        <circle className="study-chat-santa-hat-pom" cx="62" cy="44" r="7" />
+      </svg>}
+    </button>
   </div>;
 }

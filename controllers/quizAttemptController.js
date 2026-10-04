@@ -1,4 +1,9 @@
 const quizAttemptModel = require('../models/quizAttemptModel');
+const assignmentModel = require('../models/assignmentModel');
+const submissionModel = require('../models/submissionModel');
+const catalogModel = require('../models/catalogModel');
+const riskAlertModel = require('../models/riskAlertModel');
+const { assessStudentRisk } = require('../services/riskAssessment');
 
 function normalizeAttempt(body = {}) {
   const score = Number(body.score);
@@ -66,33 +71,100 @@ async function listForTeacher(req, res) {
 
 async function analyticsForTeacher(req, res) {
   try {
-    const attempts = await quizAttemptModel.listForTeacher(req.accessToken, req.user.id);
+    const now = Date.now();
+    const [attempts, assignments, submissions, classes] = await Promise.all([
+      quizAttemptModel.listForTeacher(req.accessToken, req.user.id),
+      assignmentModel.listForTeacher(req.accessToken, req.user.id),
+      submissionModel.listForTeacher(req.accessToken, req.user.id),
+      req.profile.role === 'admin'
+        ? catalogModel.listManagedClasses(catalogModel.getSupabaseClient(req.accessToken))
+        : catalogModel.listClasses(catalogModel.getSupabaseClient(req.accessToken), req.user.id)
+    ]);
+    const overdueAssignments = assignments.filter((assignment) => (
+      assignment.published
+      && assignment.class_id
+      && assignment.due_at
+      && new Date(assignment.due_at).getTime() < now
+    ));
+    const relevantClassIds = new Set(overdueAssignments.map((assignment) => assignment.class_id));
+    const classRosters = await Promise.all(
+      classes.filter((classItem) => relevantClassIds.has(classItem.id))
+        .map(async (classItem) => [classItem.id, await catalogModel.listClassStudents(catalogModel.getSupabaseClient(req.accessToken), classItem.id)])
+    );
+    const rosterByClass = new Map(classRosters);
     const byStudent = new Map();
     attempts.forEach((attempt) => {
       const current = byStudent.get(attempt.student_id) || {
         student_id: attempt.student_id,
         student_name: attempt.student_name || 'Học sinh chưa cập nhật',
         student_email: attempt.student_email,
-        attempts: 0,
-        scoreSum: 0,
-        answered: 0,
-        total: 0,
+        attempts: [],
         lastAttemptAt: attempt.created_at
       };
-      current.attempts += 1;
-      current.scoreSum += attempt.total ? (attempt.score / attempt.total) * 100 : 0;
-      current.answered += attempt.score;
-      current.total += attempt.total;
+      current.attempts.push(attempt);
       if (new Date(attempt.created_at) > new Date(current.lastAttemptAt)) current.lastAttemptAt = attempt.created_at;
       byStudent.set(attempt.student_id, current);
     });
 
+    classRosters.forEach(([classId, students]) => {
+      students.forEach((student) => {
+        const studentId = student.id || student.student_id;
+        if (!studentId) return;
+        const current = byStudent.get(studentId) || {
+          student_id: studentId,
+          student_name: student.full_name || 'Học sinh chưa cập nhật',
+          student_email: student.email || '',
+          attempts: [],
+          lastAttemptAt: null
+        };
+        if (!current.classIds) current.classIds = new Set();
+        current.classIds.add(classId);
+        byStudent.set(studentId, current);
+      });
+    });
+
+    const submissionsByStudent = new Map();
+    submissions.forEach((submission) => {
+      if (!submissionsByStudent.has(submission.student_id)) submissionsByStudent.set(submission.student_id, new Set());
+      submissionsByStudent.get(submission.student_id).add(submission.assignment_id);
+    });
+
     const students = [...byStudent.values()].map((student) => {
-      const averageScore = student.attempts ? Math.round((student.scoreSum / student.attempts) * 10) / 10 : 0;
-      const completionRate = student.total ? Math.round((student.answered / student.total) * 100) : 0;
-      const risk = averageScore < 50 || completionRate < 60 ? 'Cao' : averageScore < 65 || completionRate < 80 ? 'Theo dõi' : 'Ổn định';
-      return { ...student, averageScore, completionRate, risk };
-    }).sort((a, b) => a.averageScore - b.averageScore);
+      const classIds = student.classIds || new Set();
+      const studentSubmissions = submissionsByStudent.get(student.student_id) || new Set();
+      const studentOverdue = overdueAssignments.filter((assignment) => classIds.has(assignment.class_id));
+      const completedOverdue = studentOverdue.filter((assignment) => studentSubmissions.has(assignment.id));
+      const assessment = assessStudentRisk({
+        attempts: student.attempts,
+        overdueAssignments: studentOverdue,
+        submittedOverdueAssignments: completedOverdue
+      });
+      const correctAnswers = student.attempts.reduce((sum, attempt) => sum + Number(attempt.score || 0), 0);
+      const totalQuestions = student.attempts.reduce((sum, attempt) => sum + Number(attempt.total || 0), 0);
+      return {
+        student_id: student.student_id,
+        student_name: student.student_name,
+        student_email: student.student_email,
+        attempts: assessment.attempts,
+        averageScore: assessment.averageScore,
+        accuracyRate: totalQuestions ? Math.round(correctAnswers / totalQuestions * 1000) / 10 : null,
+        completionRate: assessment.completionRate,
+        overdueAssignments: assessment.overdueAssignments,
+        missedOverdueAssignments: assessment.missedOverdueAssignments,
+        enoughData: assessment.enoughData,
+        risk: assessment.risk,
+        reasons: assessment.reasons,
+        lastAttemptAt: student.lastAttemptAt
+      };
+    }).sort((a, b) => {
+      const rank = { Cao: 0, 'Theo dõi': 1, 'Chưa đủ dữ liệu': 2, 'Ổn định': 3 };
+      return rank[a.risk] - rank[b.risk] || (a.averageScore ?? Infinity) - (b.averageScore ?? Infinity);
+    });
+    const { activeAlerts, recentResolvedAlerts } = await riskAlertModel.syncTeacherRiskAlerts(
+      catalogModel.getSupabaseClient(req.accessToken),
+      req.user.id,
+      students
+    );
 
     const totalAttempts = attempts.length;
     const averageScore = totalAttempts
@@ -106,8 +178,11 @@ async function analyticsForTeacher(req, res) {
         attemptCount: totalAttempts,
         averageScore,
         accuracyRate: totalQuestions ? Math.round(correctAnswers / totalQuestions * 1000) / 10 : 0,
-        supportCount: students.filter((student) => student.risk === 'Cao').length
+        supportCount: students.filter((student) => student.risk === 'Cao').length,
+        insufficientDataCount: students.filter((student) => !student.enoughData).length
       },
+      riskAlerts: activeAlerts,
+      recentResolvedAlerts,
       students,
       recentAttempts: attempts.slice(0, 20)
     });

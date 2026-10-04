@@ -1,5 +1,6 @@
 const assignmentModel = require('../models/assignmentModel');
 const submissionModel = require('../models/submissionModel');
+const { isAssignmentClosed } = require('../services/assignmentDeadline');
 
 function normalizeAnswer(value) {
   return String(value ?? '').trim().toLocaleLowerCase('vi-VN').replace(/\s+/g, ' ');
@@ -15,6 +16,11 @@ function isCorrect(question, answer) {
 async function create(req, res) {
   try {
     const assignment = await assignmentModel.getWithQuestions(req.accessToken, req.body?.assignment_id);
+    if (isAssignmentClosed(assignment)) {
+      const error = new Error('Bài tập đã hết hạn và không nhận bài nộp nữa.');
+      error.code = 'ASSIGNMENT_CLOSED';
+      throw error;
+    }
     const answers = Array.isArray(req.body?.answers) ? req.body.answers : [];
     const correctCount = assignment.questions.reduce((count, question, index) => count + (isCorrect(question, answers[index]) ? 1 : 0), 0);
     const totalQuestions = assignment.questions.length;
@@ -25,7 +31,8 @@ async function create(req, res) {
     return res.status(201).json({ submission, score, correctCount, totalQuestions });
   } catch (error) {
     console.error('Could not submit assignment:', error);
-    return res.status(error.code === 'ALREADY_SUBMITTED' ? 409 : 400).json({ error: error.message || 'Không thể nộp bài tập.' });
+    const status = ['ALREADY_SUBMITTED', 'ASSIGNMENT_CLOSED'].includes(error.code) ? 409 : 400;
+    return res.status(status).json({ error: error.message || 'Không thể nộp bài tập.' });
   }
 }
 
