@@ -159,8 +159,8 @@ export function AssignmentStudio({ onMessage, api }) {
         'short-answer': 'Mỗi câu dạng {"type":"short-answer","question":"...","answer":"đáp án ngắn","explanation":"..."}',
         matching: 'Mỗi câu dạng {"type":"matching","question":"...","pairs":[{"left":"...","right":"..."},{"left":"...","right":"..."}],"correctMatches":[1,0],"explanation":"..."}; correctMatches ánh xạ từng vế trái sang chỉ số vế phải.'
       };
-      const systemPrompt = `Bạn là giáo viên tiểu học. Chỉ trả về JSON array hợp lệ, không markdown. ${typeSchemas[questionType]} Chỉ dùng thông tin trong tài liệu, đảm bảo đáp án chính xác và phù hợp học sinh tiểu học.`;
-      const userPrompt = `Tài liệu từ lesson đã chọn:\n${material}\nTạo đúng 5 câu hỏi tiếng Việt thuộc dạng "${questionTypes.find(([value]) => value === questionType)?.[1]}". ${typeSchemas[questionType]}`;
+      const systemPrompt = `Bạn là giáo viên tiểu học chuyên soạn câu hỏi luyện tập mới dựa trên kiến thức trong tài liệu. Chỉ trả về JSON array hợp lệ, không markdown. ${typeSchemas[questionType]} Đảm bảo đáp án chính xác và phù hợp học sinh tiểu học.`;
+      const userPrompt = `Dùng tài liệu sau làm nguồn kiến thức, không dùng nó như danh sách câu hỏi để chép lại:\n"""${material}"""\nTạo đúng 5 câu hỏi tiếng Việt thuộc dạng "${questionTypes.find(([value]) => value === questionType)?.[1]}". ${typeSchemas[questionType]}\nYêu cầu quan trọng:\n- Tạo câu hỏi mới để kiểm tra cùng khái niệm/kỹ năng; tuyệt đối không chép nguyên câu hỏi, ví dụ, tình huống hoặc đáp án mẫu trong tài liệu.\n- Với bài toán có số liệu, thay bằng số liệu mới và tự tính/kiểm tra lại đáp án; giữ mức độ và dạng phép tính tương đương.\n- Với câu hỏi gắn tình huống, đổi nhân vật/đồ vật/bối cảnh nhưng vẫn kiểm tra cùng kiến thức.\n- Có thể đổi cách diễn đạt; không hỏi lại nguyên văn định nghĩa hay ví dụ. Không thêm kiến thức ngoài tài liệu và chương trình tiểu học.\n- Các câu trong cùng một bộ cũng cần đa dạng, không lặp lại cùng một tình huống hoặc mẫu số liệu.`;
       const payload = await api('/api/generate-quiz', { method: 'POST', body: JSON.stringify({ systemPrompt, userPrompt, questionType }) });
       const text = (payload.content || []).filter((item) => item.type === 'text').map((item) => item.text).join('').trim();
       let parsed = JSON.parse(text.replace(/^```json\s*/i, '').replace(/```\s*$/, '').trim());
@@ -331,10 +331,12 @@ export function AssignmentStudio({ onMessage, api }) {
       </section>
       <section className="teacher-card studio-review">
         <div className="studio-review-head">
-          <div><h3>2. Kiểm tra và chỉnh sửa</h3><small>{questions.length ? `${questions.length} câu hỏi đã tạo` : 'Chưa có câu hỏi'}</small></div>
-          <input value={title} onChange={(event) => setTitle(event.target.value)} placeholder="Tên bài tập" />
-          <select value={classId} onChange={(event) => setClassId(event.target.value)}><option value="">Chọn lớp được giao</option>{classes.map((item) => <option value={item.id} key={item.id}>{item.name} · {item.grade}</option>)}</select>
-          <label className="assignment-deadline">Hạn nộp<input type="datetime-local" value={dueAt} onChange={(event) => setDueAt(event.target.value)} /><small>Đến thời điểm này, học sinh sẽ không thể nộp bài. Để trống nếu không đặt hạn.</small></label>
+          <div className="studio-review-title"><h3>2. Kiểm tra và chỉnh sửa</h3><small>{questions.length ? `${questions.length} câu hỏi đã tạo` : 'Chưa có câu hỏi'}</small></div>
+          <div className="studio-assignment-fields">
+            <label>Tên bài tập<input value={title} onChange={(event) => setTitle(event.target.value)} placeholder="Nhập tên bài tập" /></label>
+            <label>Lớp được giao<select value={classId} onChange={(event) => setClassId(event.target.value)}><option value="">Chọn lớp</option>{classes.map((item) => <option value={item.id} key={item.id}>{item.name} · {item.grade}</option>)}</select></label>
+            <label className="assignment-deadline">Hạn nộp<input type="datetime-local" value={dueAt} onChange={(event) => setDueAt(event.target.value)} /><small>Để trống nếu không đặt hạn.</small></label>
+          </div>
         </div>
         {questions.length ? questions.map((item, index) => <article className="editable-question" key={index}>
           <div className="editable-question-head"><b>Câu {index + 1} · {questionTypes.find(([value]) => value === item.type)?.[1]}</b><button type="button" onClick={() => setQuestions((items) => items.filter((_, current) => current !== index))}>Xóa</button></div>

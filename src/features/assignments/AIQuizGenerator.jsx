@@ -44,8 +44,8 @@ export default function AIQuizGenerator({ lesson, onBack, api }) {
       matching: '"type":"matching","pairs":[{"left":"vế trái","right":"vế phải"}],"correctMatches":[0]',
       'short-answer': '"type":"short-answer","answer":"ý trả lời đúng"'
     }[type];
-    const systemPrompt = `Bạn là AI tạo bài tập Toán tiếng Việt cho học sinh tiểu học. Chỉ trả về JSON hợp lệ là một mảng. Mỗi câu có "question", "explanation" và đúng dạng ${type}: {${schema}}. Chỉ dùng thông tin trong tài liệu, đáp án phải chính xác.`;
-    const userPrompt = `Tài liệu:\n"""${content.slice(0, 18000)}"""\nTạo ${count} câu hỏi. Độ khó: ${difficulty}. Dạng: ${type}. Chỉ trả về mảng JSON.`;
+    const systemPrompt = `Bạn là AI tạo bài tập Toán tiếng Việt cho học sinh tiểu học. Chỉ trả về JSON hợp lệ là một mảng. Mỗi câu có "question", "explanation" và đúng dạng ${type}: {${schema}}. Tạo câu hỏi luyện tập mới dựa trên kiến thức trong tài liệu, không sao chép nguyên văn câu hỏi hay ví dụ; đáp án phải chính xác.`;
+    const userPrompt = `Dùng tài liệu sau làm nguồn kiến thức, không dùng nó như danh sách câu hỏi để chép lại:\n"""${content.slice(0, 18000)}"""\nTạo ${count} câu hỏi mới. Độ khó: ${difficulty}. Dạng: ${type}. Chỉ trả về mảng JSON.\nYêu cầu:\n- Kiểm tra cùng khái niệm/kỹ năng nhưng đặt câu hỏi và ví dụ khác tài liệu.\n- Với bài toán có số liệu, dùng số liệu mới, giữ dạng và độ khó tương đương, rồi tự kiểm tra phép tính và đáp án.\n- Với tình huống, đổi nhân vật/đồ vật/bối cảnh nhưng vẫn đánh giá đúng kiến thức đó.\n- Không hỏi lại nguyên văn định nghĩa/ví dụ, không thêm kiến thức ngoài tài liệu và chương trình tiểu học.\n- Các câu trong bộ phải đa dạng, không lặp tình huống hoặc mẫu số liệu.`;
     try {
       const payload = await api('/api/generate-quiz', { method: 'POST', body: JSON.stringify({ systemPrompt, userPrompt }) });
       const text = (payload.content || []).filter((item) => item.type === 'text').map((item) => item.text).join('').trim();

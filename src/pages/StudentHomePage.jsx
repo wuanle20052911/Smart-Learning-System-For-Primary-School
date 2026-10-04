@@ -123,8 +123,8 @@ export default function StudentHomePage({ api, readSession, Header, Brand, Lesso
   return <>
     <Header Brand={Brand} readSession={readSession} go={go} logout={logout}>
       <span className="nav-chip streak-chip" aria-label={`Chuỗi học liên tục: ${streak} ngày`}>
-        <img src={fireGif} alt="" />
-        {streak} ngày
+        <span className="streak-chip-bulb"><img src={fireGif} alt="" /></span>
+        <span className="streak-chip-value">{streak} ngày</span>
       </span>
       {session?.profile?.role === 'teacher' && <a className="nav-chip" href="/teacher" onClick={(event) => { event.preventDefault(); go('/teacher'); }}>Bảng giáo viên</a>}
     </Header>
