@@ -44,7 +44,12 @@ function groupLessonsByChapter(lessons) {
     .sort((left, right) => left.name.localeCompare(right.name, undefined, { numeric: true, sensitivity: 'base' }));
 }
 
-export default function StudentHomePage({ api, readSession, Header, Brand, LessonView: LessonViewComponent = LessonView, AssignedWorkView, go, logout }) {
+// Kẹo gậy có nơ ở góc khung (trang trí Giáng sinh)
+const Cane = ({ position }) => <span className={`christmas-candy-cane cane-${position}`} aria-hidden="true" />;
+// Tất treo ở góc khung
+const Stocking = ({ className = '' }) => <span className={`christmas-stocking ${className}`} aria-hidden="true" />;
+
+export default function StudentHomePage({ api, readSession, Header, Brand, LessonView: LessonViewComponent = LessonView, AssignedWorkView, go, logout, onAskAI }) {
   const session = readSession();
   const streakKey = `mathjoy-study-streak-${session?.profile?.id || session?.user?.id || session?.profile?.email || 'student'}`;
   const [lessons, setLessons] = useState([]);
@@ -124,14 +129,24 @@ export default function StudentHomePage({ api, readSession, Header, Brand, Lesso
       {session?.profile?.role === 'teacher' && <a className="nav-chip" href="/teacher" onClick={(event) => { event.preventDefault(); go('/teacher'); }}>Bảng giáo viên</a>}
     </Header>
     <main className="home">
-      <section className="welcome"><div><h1>Chào bạn nhỏ! 👋</h1><p>Cùng khám phá những điều thú vị trong thế giới Toán học nhé.</p></div><div className="mascot">🧮</div></section>
+      <section className="welcome">
+        <div className="welcome-box">
+          <h1>Chào bạn nhỏ! 👋</h1>
+          <p>Cùng khám phá những điều thú vị trong thế giới Toán học nhé.</p>
+          <Cane position="tl" />
+          <Cane position="tr" />
+          <Cane position="br" />
+        </div>
+      </section>
       <section className="stats">
-        <div className="stat"><span className="stat-icon">⭐</span><div><strong>{progress.xp}</strong><span>Điểm hôm nay</span></div></div>
-        <div className="stat"><span className="stat-icon">🏆</span><div><strong>{progress.lessons}</strong><span>Bài đã hoàn thành</span></div></div>
-        <div className="stat"><span className="stat-icon">🎯</span><div><strong>15 phút</strong><span>Mục tiêu mỗi ngày</span></div></div>
+        <div className="stat"><span className="stat-icon">⭐</span><div><strong>{progress.xp}</strong><span>Điểm hôm nay</span></div><Stocking /></div>
+        <div className="stat"><span className="stat-icon">🏆</span><div><strong>{progress.lessons}</strong><span>Bài đã hoàn thành</span></div><Stocking /></div>
+        <div className="stat"><span className="stat-icon">🎯</span><div><strong>15 phút</strong><span>Mục tiêu mỗi ngày</span></div><Stocking /></div>
       </section>
       <div className="home-grid">
-        <section className="home-panel">
+        <section className="home-panel christmas-frame">
+          <Cane position="tl" />
+          <Cane position="tr" />
           {selectedAssignment ? <AssignedWorkView assignment={selectedAssignment} onBack={() => setSelectedAssignment(null)} onStudyActivity={recordStudyActivity} api={api} /> : selectedLesson ? <LessonViewComponent api={api} AssignedWorkView={AssignedWorkView} lesson={selectedLesson} onBack={() => setSelectedLesson(null)} onComplete={() => completeLesson(selectedLesson.id)} onStudyActivity={recordStudyActivity} /> : <>
               <div className="panel-heading"><div><h2>{selectedChapter ? selectedChapter.name : 'Chọn chương học'}</h2><p>{selectedChapter ? `${selectedChapter.lessons.length} bài học trong chương` : 'Chọn một chương để xem các bài học đã xuất bản'}</p></div>{selectedChapter && <button className="chapter-back" type="button" onClick={() => setSelectedChapterId('')}>← Tất cả chương</button>}</div>
               {error && <p className="message error">{error}</p>}
@@ -139,10 +154,11 @@ export default function StudentHomePage({ api, readSession, Header, Brand, Lesso
               </>}
         </section>
         <aside>
-          <section className="daily-card"><h2>Mục tiêu hôm nay</h2><p>Hoàn thành 5 câu hỏi để nhận thêm sao và giữ chuỗi học tập!</p><div className="daily-progress"><span style={{ width: `${Math.min(100, (progress.answered / 5) * 100)}%` }} /></div><small>{Math.min(5, progress.answered)}/5 câu hỏi</small></section>
-          <section className="assigned-work-card"><div className="assigned-work-heading"><div><span>📚</span><h2>Bài tập cần làm</h2></div><b>{assignments.length}</b></div><p className="assigned-work-subtitle">Bài tập cô giao cho em</p>{assignments.length ? <div className="assigned-work-list">{assignments.map((item) => <button className={`assigned-work-item ${item.submission ? 'is-done' : ''}`} key={item.id} onClick={() => openAssignment(item)}><span className="assigned-work-icon">{item.submission ? '✅' : '📝'}</span><span className="assigned-work-content"><strong>{item.title}</strong><small>{item.submission ? `Đã làm · ${item.submission.score}/100 · Bấm để xem lại` : `${item.question_count || 0} câu · ${item.difficulty === 'hard' ? 'Khó' : item.difficulty === 'medium' ? 'Vừa' : 'Dễ'}`}</small></span><span className="assigned-work-arrow">›</span></button>)}</div> : <div className="assigned-work-empty">Hiện chưa có bài tập cô giao. 🎉</div>}</section>
+          <section className="daily-card christmas-frame"><h2>Mục tiêu hôm nay</h2><p>Hoàn thành 5 câu hỏi để nhận thêm sao và giữ chuỗi học tập!</p><div className="daily-progress"><span style={{ width: `${Math.min(100, (progress.answered / 5) * 100)}%` }} /></div><small>{Math.min(5, progress.answered)}/5 câu hỏi</small><Cane position="br" /></section>
+          <section className="assigned-work-card christmas-frame"><Cane position="tr" /><div className="assigned-work-heading"><div><span>📚</span><h2>Bài tập cần làm</h2></div><b>{assignments.length}</b></div><p className="assigned-work-subtitle">Bài tập cô giao cho em</p>{assignments.length ? <div className="assigned-work-list">{assignments.map((item) => <button className={`assigned-work-item ${item.submission ? 'is-done' : ''}`} key={item.id} onClick={() => openAssignment(item)}><span className="assigned-work-icon">{item.submission ? '✅' : '📝'}</span><span className="assigned-work-content"><strong>{item.title}</strong><small>{item.submission ? `Đã làm · ${item.submission.score}/100 · Bấm để xem lại` : `${item.question_count || 0} câu · ${item.difficulty === 'hard' ? 'Khó' : item.difficulty === 'medium' ? 'Vừa' : 'Dễ'}`}</small></span><span className="assigned-work-arrow">›</span></button>)}</div> : <div className="assigned-work-empty">Hiện chưa có bài tập cô giao. 🎉</div>}<Stocking className="stocking-bl" /></section>
         </aside>
       </div>
     </main>
+    {onAskAI && <button className="ai-fab" type="button" onClick={onAskAI}><span aria-hidden="true">✨</span> Hỏi AI học gì?</button>}
   </>;
 }
