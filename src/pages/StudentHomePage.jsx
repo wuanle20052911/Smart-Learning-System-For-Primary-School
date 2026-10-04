@@ -1,6 +1,26 @@
 import React, { useEffect, useState } from 'react';
 import LessonView from '../features/lessons/LessonView.jsx';
 import { deduplicateLessonsBySourceNumber, getLessonChapterName, getLessonDisplayTitle, getLessonSourceCode } from '../services/learningMaterials.js';
+import fireGif from '../../gif/Fire.gif';
+
+function getLocalDateKey(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function getStreakCount(streakKey) {
+  const savedStreak = JSON.parse(localStorage.getItem(streakKey) || 'null');
+  const count = Number(savedStreak?.count);
+  if (!Number.isInteger(count) || count < 1) return 0;
+
+  const today = new Date();
+  const yesterday = new Date(today);
+  yesterday.setDate(yesterday.getDate() - 1);
+  const lastStudyDate = savedStreak?.lastStudyDate;
+  return lastStudyDate === getLocalDateKey(today) || lastStudyDate === getLocalDateKey(yesterday) ? count : 0;
+}
 
 function groupLessonsByChapter(lessons) {
   const chapters = new Map();
@@ -25,6 +45,8 @@ function groupLessonsByChapter(lessons) {
 }
 
 export default function StudentHomePage({ api, readSession, Header, Brand, LessonView: LessonViewComponent = LessonView, AssignedWorkView, go, logout }) {
+  const session = readSession();
+  const streakKey = `mathjoy-study-streak-${session?.profile?.id || session?.user?.id || session?.profile?.email || 'student'}`;
   const [lessons, setLessons] = useState([]);
   const [assignments, setAssignments] = useState([]);
   const [selectedChapterId, setSelectedChapterId] = useState('');
@@ -32,7 +54,7 @@ export default function StudentHomePage({ api, readSession, Header, Brand, Lesso
   const [selectedAssignment, setSelectedAssignment] = useState(null);
   const [loadingChapters, setLoadingChapters] = useState(true);
   const [error, setError] = useState('');
-  const session = readSession();
+  const [streak, setStreak] = useState(() => getStreakCount(streakKey));
   const [progress, setProgress] = useState(() => JSON.parse(localStorage.getItem('mathjoy-progress') || '{"xp":0,"lessons":0,"answered":0}'));
   const [completedLessons, setCompletedLessons] = useState(() => JSON.parse(localStorage.getItem('mathjoy-completed-lessons') || '[]'));
 
@@ -62,7 +84,24 @@ export default function StudentHomePage({ api, readSession, Header, Brand, Lesso
   const chapters = groupLessonsByChapter(lessons);
   const selectedChapter = chapters.find((chapter) => chapter.id === selectedChapterId);
 
+  const recordStudyActivity = () => {
+    const today = new Date();
+    const todayKey = getLocalDateKey(today);
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    const savedStreak = JSON.parse(localStorage.getItem(streakKey) || 'null');
+    const previousCount = Number(savedStreak?.count);
+    const count = savedStreak?.lastStudyDate === todayKey
+      ? (Number.isInteger(previousCount) && previousCount > 0 ? previousCount : 1)
+      : savedStreak?.lastStudyDate === getLocalDateKey(yesterday) && Number.isInteger(previousCount) && previousCount > 0
+        ? previousCount + 1
+        : 1;
+    localStorage.setItem(streakKey, JSON.stringify({ count, lastStudyDate: todayKey }));
+    setStreak(count);
+  };
+
   const completeLesson = (lessonId) => {
+    recordStudyActivity();
     if (!completedLessons.includes(lessonId)) {
       const nextCompleted = [...completedLessons, lessonId];
       setCompletedLessons(nextCompleted);
@@ -78,7 +117,10 @@ export default function StudentHomePage({ api, readSession, Header, Brand, Lesso
 
   return <>
     <Header Brand={Brand} readSession={readSession} go={go} logout={logout}>
-      <button className="nav-chip">🔥 0 ngày</button>
+      <span className="nav-chip streak-chip" aria-label={`Chuỗi học liên tục: ${streak} ngày`}>
+        <img src={fireGif} alt="" />
+        {streak} ngày
+      </span>
       {session?.profile?.role === 'teacher' && <a className="nav-chip" href="/teacher" onClick={(event) => { event.preventDefault(); go('/teacher'); }}>Bảng giáo viên</a>}
     </Header>
     <main className="home">
@@ -90,7 +132,7 @@ export default function StudentHomePage({ api, readSession, Header, Brand, Lesso
       </section>
       <div className="home-grid">
         <section className="home-panel">
-          {selectedAssignment ? <AssignedWorkView assignment={selectedAssignment} onBack={() => setSelectedAssignment(null)} api={api} /> : selectedLesson ? <LessonViewComponent api={api} AssignedWorkView={AssignedWorkView} lesson={selectedLesson} onBack={() => setSelectedLesson(null)} onComplete={() => completeLesson(selectedLesson.id)} /> : <>
+          {selectedAssignment ? <AssignedWorkView assignment={selectedAssignment} onBack={() => setSelectedAssignment(null)} onStudyActivity={recordStudyActivity} api={api} /> : selectedLesson ? <LessonViewComponent api={api} AssignedWorkView={AssignedWorkView} lesson={selectedLesson} onBack={() => setSelectedLesson(null)} onComplete={() => completeLesson(selectedLesson.id)} onStudyActivity={recordStudyActivity} /> : <>
               <div className="panel-heading"><div><h2>{selectedChapter ? selectedChapter.name : 'Chọn chương học'}</h2><p>{selectedChapter ? `${selectedChapter.lessons.length} bài học trong chương` : 'Chọn một chương để xem các bài học đã xuất bản'}</p></div>{selectedChapter && <button className="chapter-back" type="button" onClick={() => setSelectedChapterId('')}>← Tất cả chương</button>}</div>
               {error && <p className="message error">{error}</p>}
                 {loadingChapters ? <p className="lesson-empty">Đang tải chương và bài học...</p> : selectedChapter ? selectedChapter.lessons.length ? <div className="lesson-grid">{selectedChapter.lessons.map((lesson, index) => <button className={`lesson ${lesson.color || ['blue', 'yellow', 'green', 'pink'][index % 4]}`} type="button" key={lesson.id} onClick={() => setSelectedLesson({ ...lesson, title: getLessonDisplayTitle(lesson) })}><small>{lesson.subject} · {lesson.grade}</small><h3>{getLessonDisplayTitle(lesson)}</h3><p>{lesson.description || 'Mở nội dung bài học'}</p><span className="lesson-art">{lesson.icon || '📚'}</span>{completedLessons.includes(lesson.id) && <span className="lesson-completed" aria-label="Đã học xong">✓</span>}</button>)}</div> : <p className="lesson-empty">Chương này chưa có bài học được xuất bản.</p> : chapters.length ? <div className="chapter-grid">{chapters.map((chapter, index) => <button className="chapter-card" type="button" key={chapter.id} onClick={() => setSelectedChapterId(chapter.id)}><span className="chapter-card-icon">{['📘', '🧮', '✏️', '📐'][index % 4]}</span><span className="chapter-card-copy"><small>{chapter.subject || 'Môn học'}</small><strong>{chapter.name}</strong><span>{chapter.lessons.length} bài học</span></span><span className="chapter-card-arrow" aria-hidden="true">›</span></button>)}</div> : <p className="lesson-empty">Chưa có bài học nào được xuất bản.</p>}

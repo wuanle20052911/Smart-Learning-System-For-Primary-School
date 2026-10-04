@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 
-export default function AssignedWorkView({ assignment, onBack, api }) {
+export default function AssignedWorkView({ assignment, onBack, onStudyActivity, api }) {
   const isPractice = assignment.isPractice === true;
   const [answers, setAnswers] = useState({});
   const [busy, setBusy] = useState(false);
@@ -36,6 +36,7 @@ export default function AssignedWorkView({ assignment, onBack, api }) {
         score: Math.round((correctCount / questions.length) * 100),
         answers: questions.map((_, index) => answers[index])
       });
+      onStudyActivity?.();
       return;
     }
     setBusy(true);
@@ -43,6 +44,7 @@ export default function AssignedWorkView({ assignment, onBack, api }) {
     try {
       const data = await api('/api/submissions', { method: 'POST', body: JSON.stringify({ assignment_id: assignment.id, answers: questions.map((_, index) => answers[index]) }) });
       setResult(data);
+      onStudyActivity?.();
     } catch (submitError) {
       setError(submitError.message || 'Không thể nộp bài tập.');
     } finally {

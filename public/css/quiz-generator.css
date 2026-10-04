@@ -288,6 +288,8 @@
   .brand-subtitle{font-size:11px;font-weight:700;opacity:.88;display:block;margin-top:-7px;}
   .top-actions{display:flex;align-items:center;gap:10px;}
   .nav-chip{display:flex;align-items:center;gap:6px;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.22);color:#fff;border-radius:999px;padding:8px 12px;font:800 14px 'Quicksand',sans-serif;cursor:pointer;text-decoration:none;}
+  .streak-chip{cursor:default;white-space:nowrap;}
+  .streak-chip img{width:25px;height:25px;object-fit:contain;}
   .avatar{width:38px;height:38px;padding:0;border-radius:50%;display:grid;place-items:center;background:transparent;border:3px solid #075694;color:#674b1b;font-size:21px;overflow:hidden;}
   .avatar img{width:100%;height:100%;object-fit:cover;border-radius:50%}
   .avatar-icon{width:18px;height:18px;display:block;position:relative}.avatar-icon:before{content:'';position:absolute;width:8px;height:8px;border-radius:50%;background:#674b1b;top:0;left:5px}.avatar-icon:after{content:'';position:absolute;width:16px;height:8px;border-radius:10px 10px 4px 4px;background:#674b1b;bottom:0;left:1px}
@@ -361,4 +363,3 @@
   .daily-card{background:linear-gradient(150deg,#ff743c,#ed432b);border:4px solid #a92d20;border-radius:20px;box-shadow:0 6px 0 #7f251c}.daily-card h2{font-size:25px;text-shadow:1px 2px #a72b1a}.daily-card p{color:#fff4c8}.daily-card .btn{background:#ffd13e;color:#9c351e;border:3px solid #b76a18;box-shadow:0 3px 0 #80430f}.home-panel .quick-item{background:#fff9e8;border:2px solid #e2aa45}.tool-strip .btn{background:#fff4c9;border:3px solid #b96b26;color:#a83e1d;box-shadow:0 3px 0 #7a451e}.tool-strip .btn.primary{background:#ff6537;color:#fff;border-color:#ad321d;box-shadow:0 3px 0 #7a2115}
   .section-label{color:#a83e1d;text-shadow:1px 1px #ffe9a8}.card{border-color:#b96b26;box-shadow:0 6px 0 #7a451e}.btn{border:3px solid #b5311e;box-shadow:0 4px 0 #7c2117}.footnote{color:#795a39}
   @media(max-width:760px){.home:before{left:-24px;font-size:74px}.home:after{right:-22px;font-size:78px}.welcome{min-height:110px}.welcome>div:first-child{padding:7px 14px}.welcome h1{font-size:26px}.mascot{font-size:56px;left:0}.brand{padding-left:12px;padding-right:12px}.brand-name{font-size:27px}.lesson h3{font-size:18px}.home-grid{grid-template-columns:1fr}}
-

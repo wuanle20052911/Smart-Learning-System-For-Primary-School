@@ -10,7 +10,7 @@ function getLessonMaterialEndpoint(lesson) {
   return '';
 }
 
-export default function LessonView({ lesson, onBack, onComplete, AssignedWorkView, api }) {
+export default function LessonView({ lesson, onBack, onComplete, onStudyActivity, AssignedWorkView, api }) {
   if (lesson.isAssignment) return <AssignedWorkView assignment={lesson} onBack={onBack} api={api} />;
   const content = lesson.content?.trim();
   const [practiceQuestions, setPracticeQuestions] = useState(null);
@@ -80,6 +80,7 @@ export default function LessonView({ lesson, onBack, onComplete, AssignedWorkVie
     return <AssignedWorkView
       assignment={{ title: lesson.title, lessonTitle: lesson.title, questions: practiceQuestions, isPractice: true }}
       onBack={() => setPracticeQuestions(null)}
+      onStudyActivity={onStudyActivity}
       api={api}
     />;
   }
