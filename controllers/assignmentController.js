@@ -1,5 +1,6 @@
 const assignmentModel = require('../models/assignmentModel');
 const { getSupabaseClient } = require('../models/supabaseClient');
+const { normalizeDueAt } = require('../services/assignmentDeadline');
 
 const types = new Set(['multiple-choice', 'true-false', 'fill-blank', 'matching', 'short-answer']);
 
@@ -21,7 +22,7 @@ function normalize(body = {}) {
       skill_id: body.skill_id || null,
       class_id: body.class_id || null,
       difficulty: ['easy', 'medium', 'hard'].includes(body.difficulty) ? body.difficulty : 'easy',
-      due_at: body.due_at || null,
+      due_at: normalizeDueAt(body.due_at, body.published === true),
       published: body.published === true
     },
     questions: questions.map((question, index) => {
