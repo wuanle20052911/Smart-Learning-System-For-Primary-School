@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { extractLearningText, getLessonDisplayTitle, getLessonSourceCode } from '../../services/learningMaterials.js';
+import { deduplicateLessonsBySourceNumber, extractLearningText, getLessonDisplayTitle, getLessonSourceCode } from '../../services/learningMaterials.js';
 
 const readableFileTypes = {
   pdf: 'application/pdf',
@@ -16,29 +16,41 @@ const questionTypes = [
 ];
 
 async function getLessonMaterialUrl(lesson, api) {
+  const sourceCode = getLessonSourceCode(lesson);
+  let sourcePathError = '';
   if (lesson.source_path) {
-    const material = await api(`/api/lessons/${lesson.id}/material`);
-    return {
-      url: material.url,
-      filename: lesson.source_filename || lesson.source_path.split('/').pop() || ''
-    };
+    try {
+      const material = await api(`/api/lessons/${lesson.id}/material`);
+      return {
+        url: material.url,
+        filename: lesson.source_filename || lesson.source_path.split('/').pop() || ''
+      };
+    } catch (error) {
+      sourcePathError = error.message;
+    }
   }
 
-  const filename = lesson.source_filename?.trim();
-  if (!filename) throw new Error('Bài học chưa lưu đường dẫn hoặc tên file Storage.');
-
-  let buckets = lesson.source_bucket ? [lesson.source_bucket] : [];
-  if (!buckets.length) {
-    const sourceCode = getLessonSourceCode(lesson);
-    const { chapters } = await api('/api/lessons/storage-chapters');
-    buckets = [
-      ...(sourceCode ? [`Chapter${sourceCode.chapterNumber}`] : []),
-      ...(chapters || []),
-      'Math4'
-    ].filter((bucket, index, all) => all.indexOf(bucket) === index);
-  }
+  const filename = lesson.source_filename?.trim() || lesson.source_path?.split(/[\\/]/).pop() || '';
+  if (!filename && !sourceCode) throw new Error('Bài học chưa lưu đường dẫn hoặc tên file Storage.');
 
   const basename = filename.split(/[\\/]/).pop();
+  const correctedFilename = sourceCode
+    ? basename
+      ? basename.replace(/^C\d+B\d+/i, `C${sourceCode.chapterNumber}B${sourceCode.lessonNumber}`)
+      : `C${sourceCode.chapterNumber}B${sourceCode.lessonNumber}.docx`
+    : '';
+  const { chapters = [] } = await api('/api/lessons/storage-chapters');
+  const preferredChapter = correctedFilename && correctedFilename !== basename && sourceCode
+    ? `Chapter${sourceCode.chapterNumber}`
+    : '';
+  const buckets = [
+    preferredChapter,
+    lesson.source_bucket,
+    ...(sourceCode ? [`Chapter${sourceCode.chapterNumber}`] : []),
+    ...chapters,
+    'Math4'
+  ].filter((bucket, index, all) => bucket && all.indexOf(bucket) === index);
+  const candidateNames = [basename, correctedFilename].filter((name, index, all) => name && all.indexOf(name) === index);
   const errors = [];
   for (const bucket of buckets) {
     try {
@@ -47,8 +59,8 @@ async function getLessonMaterialUrl(lesson, api) {
         ? `/api/lessons/storage-files?bucket=${encodeURIComponent(bucket)}`
         : `/api/lessons/storage-chapters/${encodeURIComponent(bucket)}/files`;
       const { files } = await api(filesEndpoint);
-      const file = (files || []).find((item) => item.path === filename
-        || item.path.split(/[\\/]/).pop() === basename);
+      const file = (files || []).find((item) => candidateNames.includes(item.path)
+        || candidateNames.includes(item.path.split(/[\\/]/).pop()));
       if (!file) continue;
       const urlEndpoint = bucket === 'Math4'
         ? `/api/lessons/storage-file-url?bucket=${encodeURIComponent(bucket)}&path=${encodeURIComponent(file.path)}`
@@ -61,7 +73,22 @@ async function getLessonMaterialUrl(lesson, api) {
   }
 
   const detail = errors.length ? ` ${errors.join('; ')}` : '';
-  throw new Error(`Không tìm thấy file “${filename}” trong Storage.${detail}`);
+  throw new Error(`Không tìm thấy file “${filename || correctedFilename}” trong Storage.${sourcePathError ? ` Đường dẫn đã lưu: ${sourcePathError}.` : ''}${detail}`);
+}
+
+async function getLessonText(lesson, api) {
+  let content = lesson.content?.trim() || '';
+  if (!content && (lesson.source_path || lesson.source_filename || getLessonSourceCode(lesson))) {
+    const material = await getLessonMaterialUrl(lesson, api);
+    const response = await fetch(material.url);
+    if (!response.ok) throw new Error(`Không tải được tài liệu “${material.filename}”.`);
+    const extension = material.filename.split('.').pop()?.toLowerCase();
+    const contentType = readableFileTypes[extension];
+    if (!contentType) throw new Error(`Định dạng tài liệu “${material.filename}” chưa được hỗ trợ.`);
+    content = (await extractLearningText(new File([await response.blob()], material.filename, { type: contentType }))).trim();
+  }
+  if (!content) throw new Error('Bài học chưa có nội dung văn bản để tạo câu hỏi.');
+  return content.slice(0, 18000);
 }
 
 export function AssignmentStudio({ onMessage, api }) {
@@ -84,6 +111,7 @@ export function AssignmentStudio({ onMessage, api }) {
   const [busy, setBusy] = useState(false);
   const [published, setPublished] = useState(false);
   const [savedQuestionIndexes, setSavedQuestionIndexes] = useState([]);
+  const [chapterBatch, setChapterBatch] = useState(null);
   useEffect(() => {
     Promise.all([api('/api/catalog/classes'), api('/api/lessons/mine')])
       .then(([classData, lessonData]) => {
@@ -121,19 +149,8 @@ export function AssignmentStudio({ onMessage, api }) {
     setSavedQuestionIndexes([]);
     setBusy(true);
     try {
-      let lessonContent = lesson.content?.trim() || '';
-      if (!lessonContent && (lesson.source_path || lesson.source_filename)) {
-        const material = await getLessonMaterialUrl(lesson, api);
-        const response = await fetch(material.url);
-        if (!response.ok) throw new Error('Không tải được tài liệu của bài học.');
-        const extension = material.filename.split('.').pop()?.toLowerCase();
-        const contentType = readableFileTypes[extension];
-        if (!contentType) throw new Error('Định dạng tài liệu của bài học chưa được hỗ trợ để tạo câu hỏi.');
-        lessonContent = (await extractLearningText(new File([await response.blob()], material.filename, { type: contentType }))).trim();
-        if (!lessonContent) throw new Error(`File “${material.filename}” trong Storage không có nội dung văn bản để AI đọc.`);
-      }
-      if (!lessonContent) throw new Error('Bài học này chưa có nội dung văn bản để AI tạo câu hỏi.');
-      setMaterial(lessonContent.slice(0, 18000));
+      const lessonContent = await getLessonText(lesson, api);
+      setMaterial(lessonContent);
       setMaterialName(`Bài học: ${getLessonDisplayTitle(lesson)}`);
       setTitle(`Bài tập - ${getLessonDisplayTitle(lesson)}`);
       onMessage(`Đã lấy nội dung bài “${getLessonDisplayTitle(lesson)}”. Tạo câu hỏi rồi kiểm tra trước khi giao cho lớp.`);
@@ -191,6 +208,128 @@ export function AssignmentStudio({ onMessage, api }) {
     } catch (error) {
       onMessage(`AI local chưa tạo được câu hỏi: ${error.message || 'Lỗi không xác định.'} Bạn có thể dùng nút "Dùng dữ liệu mẫu" để thử giao diện.`);
     } finally { setBusy(false); }
+  };
+  const createChapterOnePractice = async () => {
+    const lessonsByCourse = new Map();
+    lessons.forEach((lesson) => {
+      const sourceCode = getLessonSourceCode(lesson);
+      if (sourceCode?.chapterNumber !== 1 || sourceCode.lessonNumber < 1 || sourceCode.lessonNumber > 6) return;
+      const courseKey = `${lesson.subject || ''}|${lesson.grade || ''}`;
+      if (!lessonsByCourse.has(courseKey)) lessonsByCourse.set(courseKey, []);
+      lessonsByCourse.get(courseKey).push(lesson);
+    });
+
+    const completeCourses = Array.from(lessonsByCourse.values())
+      .map((courseLessons) => deduplicateLessonsBySourceNumber(courseLessons))
+      .filter((courseLessons) => courseLessons.length === 6);
+    if (completeCourses.length !== 1) {
+      onMessage(completeCourses.length
+        ? 'Tìm thấy nhiều bộ Chương 1 đủ 6 bài. Hãy lọc/chọn đúng môn và khối trước khi tạo.'
+        : 'Không tìm thấy một bộ Chương 1 đủ 6 bài trong danh sách bài học của giáo viên.');
+      return;
+    }
+
+    setBusy(true);
+    setChapterBatch({ current: 0, total: 6, results: [] });
+    const results = [];
+    try {
+      const { questions: bankQuestions = [] } = await api('/api/questions');
+      const courseLessons = completeCourses[0].sort((left, right) =>
+        getLessonSourceCode(left).lessonNumber - getLessonSourceCode(right).lessonNumber
+      );
+
+      for (let index = 0; index < courseLessons.length; index += 1) {
+        const lesson = courseLessons[index];
+        const lessonNumber = getLessonSourceCode(lesson).lessonNumber;
+        const existingCount = bankQuestions.filter((question) => question.lesson_id === lesson.id).length;
+        const missingCount = Math.max(0, 10 - existingCount);
+        setChapterBatch({ current: index + 1, total: 6, lesson: getLessonDisplayTitle(lesson), results: [...results] });
+
+        if (!missingCount) {
+          results.push(`${getLessonDisplayTitle(lesson)}: đã có ${existingCount} câu, không thêm`);
+          setChapterBatch({ current: index + 1, total: 6, lesson: getLessonDisplayTitle(lesson), results: [...results] });
+          continue;
+        }
+
+        let savedCount = 0;
+        try {
+          const content = await getLessonText(lesson, api);
+          const typeSchema = 'Mỗi câu dạng {"type":"multiple-choice","question":"...","options":["...","...","...","..."],"correctIndex":0,"explanation":"..."}; correctIndex là chỉ số đáp án đúng bắt đầu từ 0.';
+          const knownQuestions = bankQuestions
+            .filter((question) => question.lesson_id === lesson.id)
+            .map((question) => question.question?.trim().toLocaleLowerCase())
+            .filter(Boolean);
+          let consecutiveEmptyBatches = 0;
+
+          while (savedCount < missingCount && consecutiveEmptyBatches < 3) {
+            const batchSize = Math.min(2, missingCount - savedCount);
+            const payload = await api('/api/generate-quiz', {
+              method: 'POST',
+              body: JSON.stringify({
+                questionType: 'multiple-choice',
+                systemPrompt: `Bạn là giáo viên Toán lớp 4. Chỉ trả về JSON array hợp lệ, không markdown. ${typeSchema} Chỉ dùng thông tin trong tài liệu, không tự thêm kiến thức ngoài bài. Đáp án phải chính xác, câu hỏi rõ ràng và phù hợp học sinh tiểu học.`,
+                userPrompt: `Tài liệu bài ${lessonNumber} Chương 1:\n${content}\nTạo đúng ${batchSize} câu hỏi trắc nghiệm tiếng Việt, mỗi câu có 4 lựa chọn, giải thích ngắn. Không lặp lại những câu này: ${JSON.stringify(knownQuestions.slice(-20))}. ${typeSchema}`
+              })
+            });
+            const text = (payload.content || []).filter((item) => item.type === 'text').map((item) => item.text).join('').trim();
+            let parsed = JSON.parse(text.replace(/^```json\s*/i, '').replace(/```\s*$/, '').trim());
+            if (!Array.isArray(parsed)) parsed = parsed.questions || [parsed];
+            const generated = parsed.filter((item) => item
+              && typeof item.question === 'string'
+              && item.question.trim()
+              && Array.isArray(item.options)
+              && item.options.length === 4
+              && item.options.every((option) => typeof option === 'string' && option.trim())
+              && Number.isInteger(item.correctIndex)
+              && item.correctIndex >= 0
+              && item.correctIndex < item.options.length)
+              .filter((item) => !knownQuestions.includes(item.question.trim().toLocaleLowerCase()))
+              .slice(0, batchSize);
+
+            if (!generated.length) {
+              consecutiveEmptyBatches += 1;
+              continue;
+            }
+            consecutiveEmptyBatches = 0;
+
+            for (const question of generated) {
+              await api('/api/questions', {
+                method: 'POST',
+                body: JSON.stringify({
+                  type: 'multiple-choice',
+                  lesson_id: lesson.id,
+                  question: question.question,
+                  options: question.options,
+                  answer: question.correctIndex,
+                  explanation: question.explanation || '',
+                  points: 1
+                })
+              });
+              knownQuestions.push(question.question.trim().toLocaleLowerCase());
+              bankQuestions.push({ lesson_id: lesson.id, question: question.question });
+              savedCount += 1;
+            }
+            results.push(`${getLessonDisplayTitle(lesson)}: đã lưu ${existingCount + savedCount}/10 câu`);
+            setChapterBatch({ current: index + 1, total: 6, lesson: getLessonDisplayTitle(lesson), results: [...results] });
+          }
+          if (savedCount < missingCount) {
+            throw new Error(`đã lưu ${existingCount + savedCount}/10 câu; AI không tạo thêm câu hợp lệ sau ${consecutiveEmptyBatches} lần`);
+          }
+        } catch (error) {
+          results.push(`${getLessonDisplayTitle(lesson)}: ${savedCount ? `đã lưu ${existingCount + savedCount}/10 câu; ` : ''}lỗi - ${error.message}`);
+        }
+        setChapterBatch({ current: index + 1, total: 6, lesson: getLessonDisplayTitle(lesson), results: [...results] });
+      }
+
+      const failures = results.filter((result) => result.includes(': lỗi -'));
+      onMessage(failures.length
+        ? `Đã xử lý Chương 1; ${failures.length} bài chưa hoàn tất. ${failures.join(' | ')}`
+        : `Đã hoàn tất Chương 1. ${results.join(' | ')}`);
+    } catch (error) {
+      onMessage(`Không thể tạo câu hỏi Chương 1: ${error.message}`);
+    } finally {
+      setBusy(false);
+    }
   };
   const publish = async () => {
     if (!questions.length) { onMessage('Hãy tạo câu hỏi trước khi xuất bản.'); return; }
@@ -303,6 +442,13 @@ export function AssignmentStudio({ onMessage, api }) {
     <div className="studio-grid">
       <section className="teacher-card studio-source">
         <h3>1. Chọn bài học làm nguồn</h3>
+        <button className="secondary-studio" type="button" onClick={createChapterOnePractice} disabled={busy}>
+          {busy && chapterBatch ? `Đang tạo Chương 1 (${chapterBatch.current}/${chapterBatch.total})...` : 'Tạo 10 câu luyện tập cho mỗi bài Chương 1'}
+        </button>
+        {chapterBatch && <div className="studio-source-note" role="status">
+          {chapterBatch.lesson && <p>Đang xử lý {chapterBatch.lesson}.</p>}
+          {chapterBatch.results.map((result) => <p key={result}>{result}</p>)}
+        </div>}
         <label className="lesson-question-source">Bài học
           <select value={selectedLessonId} onChange={(event) => selectLesson(event.target.value)} disabled={busy}>
             <option value="">Chọn bài học</option>
