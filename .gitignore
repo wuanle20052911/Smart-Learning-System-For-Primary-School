@@ -2,3 +2,9 @@ node_modules/
 .env
 npm-debug.log*
 dist/
+/data/knowledge-base-index.json
+/data/knowledge-base-index.json.tmp
+/data/knowledge-base.sqlite3
+/data/knowledge-base.sqlite3.tmp
+/data/chat-history.sqlite3
+/data/chat-history.sqlite3.tmp

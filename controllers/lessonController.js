@@ -223,9 +223,8 @@ async function getMaterial(req, res) {
 
 async function create(req, res) {
   try {
-    return res.status(201).json({
-      lesson: await lessonModel.create(req.accessToken, req.user.id, normalizeLesson(req.body))
-    });
+    const lesson = await lessonModel.create(req.accessToken, req.user.id, normalizeLesson(req.body));
+    return res.status(201).json({ lesson });
   } catch (error) {
     console.error('Could not create lesson:', error);
     return res.status(400).json({
@@ -239,9 +238,8 @@ async function create(req, res) {
 
 async function update(req, res) {
   try {
-    return res.json({
-      lesson: await lessonModel.update(req.accessToken, req.user.id, req.params.id, normalizeLesson(req.body))
-    });
+    const lesson = await lessonModel.update(req.accessToken, req.user.id, req.params.id, normalizeLesson(req.body));
+    return res.json({ lesson });
   } catch (error) {
     console.error('Could not update lesson:', error);
     return res.status(400).json({

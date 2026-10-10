@@ -78,7 +78,15 @@ export default function LessonView({ lesson, onBack, onComplete, onStudyActivity
   };
   if (practiceQuestions) {
     return <AssignedWorkView
-      assignment={{ title: lesson.title, lessonTitle: lesson.title, questions: practiceQuestions, isPractice: true }}
+      assignment={{
+        title: lesson.title,
+        lessonTitle: lesson.title,
+        lesson_id: lesson.id,
+        grade: lesson.grade || 'Tiểu học',
+        chapter: lesson.topic || 'Luyện tập ngân hàng câu hỏi',
+        questions: practiceQuestions,
+        isPractice: true
+      }}
       onBack={() => setPracticeQuestions(null)}
       onStudyActivity={onStudyActivity}
       api={api}

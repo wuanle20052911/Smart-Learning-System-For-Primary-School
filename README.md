@@ -9,6 +9,8 @@ Dự án web tạo bộ câu hỏi ôn tập cho học sinh tiểu học bằng 
 - Sinh câu hỏi theo chủ đề và số lượng yêu cầu
 - Tự động kiểm tra và lọc câu hỏi không hợp lệ
 - Xuất câu hỏi ra file HTML hoặc TXT
+- Chatbot hỏi đáp chỉ dựa trên Markdown trong Supabase Storage, tìm kiếm bằng Ollama embedding và hiển thị nguồn trích dẫn
+- Hội thoại chatbot chỉ tồn tại trong phiên giao diện hiện tại, không lưu vào Supabase
 - Chạy hoàn toàn local, không cần API key
 
 ## Yêu cầu hệ thống
@@ -30,6 +32,8 @@ Dự án web tạo bộ câu hỏi ôn tập cho học sinh tiểu học bằng 
 
    ```bash
    ollama pull deepseek-r1:8b
+   ollama pull llama3.2:3b
+   ollama pull nomic-embed-text
    ```
 
 4. Cài đặt dependency của project:
@@ -44,9 +48,18 @@ Dự án web tạo bộ câu hỏi ôn tập cho học sinh tiểu học bằng 
    PORT=3000
    OLLAMA_BASE_URL=http://localhost:11434
    OLLAMA_MODEL=deepseek-r1:8b
+   OLLAMA_CHAT_MODEL=llama3.2:3b
+   OLLAMA_EMBEDDING_MODEL=nomic-embed-text
+   KB_TOP_K=4
+   KB_MIN_SIMILARITY=0.35
+   KB_STORAGE_BUCKET=Math4mdfile
+   KB_STORAGE_PREFIX=
    SUPABASE_URL=https://your-project.supabase.co
    SUPABASE_ANON_KEY=your-anon-key
+   SUPABASE_SERVICE_ROLE_KEY=your-server-only-service-role-key
    ```
+
+   `SUPABASE_SERVICE_ROLE_KEY` chỉ đặt ở backend `.env`, không bao giờ đưa vào React/frontend hoặc commit lên Git.
 
    Ollama tạo câu hỏi theo luồng để tránh timeout khi model cần thời gian khởi động hoặc sinh nội dung dài. Nếu vẫn gặp timeout, kiểm tra Ollama tại `http://localhost:11434` và đảm bảo model trong `OLLAMA_MODEL` đã được tải.
 
@@ -71,6 +84,8 @@ Dự án web tạo bộ câu hỏi ôn tập cho học sinh tiểu học bằng 
    - Chạy `supabase/016_create_feedback.sql` để giáo viên xem bài nộp chi tiết và lưu nhận xét cho học sinh.
    - Chạy `supabase/023_create_risk_alerts.sql` để lưu riêng cảnh báo Learning Analytics, cập nhật cảnh báo đang mở và giữ lịch sử cảnh báo đã đóng.
    - Chạy `supabase/024_enforce_assignment_deadlines.sql` để chặn bài nộp hết hạn trực tiếp tại Supabase; bài tập không có hạn tiếp tục nhận bài.
+   - Chạy `supabase/027_chatbot_supabase_storage.sql` để tạo vector store pgvector cho chatbot và các bảng lịch sử có RLS theo tài khoản.
+   - Nếu trước đây đã tạo bảng `lesson_chunks`, chạy `supabase/026_remove_lesson_chunks.sql` để xóa bảng và hàm tìm kiếm cũ.
 
   - Chạy `supabase/017_lesson_chapters_storage.sql` để liên kết bài học với chương, tạo bucket riêng tư `lesson-materials` và policy đọc các bucket mẫu `Math4`/`Chapter1`.
   - Tài khoản **Giáo viên** mở `http://localhost:3000/teacher` → **Bài học** để chọn môn, tạo chương, thêm, sửa hoặc xóa bài học và chọn nguồn file từ máy hoặc các bucket chương hiện có (`Math4`, `Chapter1`–`Chapter3`). Nội dung bài được lưu trong `public.lessons`; `source_bucket` và `source_path` giữ địa chỉ file để backend mở lại bằng signed URL.
@@ -92,6 +107,20 @@ Dự án web tạo bộ câu hỏi ôn tập cho học sinh tiểu học bằng 
    npm run dev
    ```
 
+9. Tạo hoặc cập nhật vector store cho chatbot từ Supabase Storage:
+
+   ```bash
+   npm run kb:ingest
+   ```
+
+   Chạy lần lượt migration `supabase/027_chatbot_supabase_storage.sql`, `supabase/028_chatbot_multi_file_search.sql` và `supabase/029_disable_chat_history_storage.sql` trong Supabase SQL Editor; migration đầu tạo bucket riêng tư `Math4mdfile`, migration thứ hai bật tìm kiếm trên nhiều file, migration cuối vô hiệu hóa quyền và hàm lưu lịch sử cũ mà không xóa dữ liệu đã tồn tại. Tải file `.md` lên bucket đó (có thể đặt trong thư mục con). `KB_STORAGE_BUCKET` chọn bucket; `KB_STORAGE_PREFIX` không bắt buộc và có thể giới hạn việc quét vào một thư mục. Khi có câu hỏi, chatbot quét danh sách file Markdown, tự thêm file mới, cập nhật file đã đổi và bỏ vector của file đã xóa; vì vậy file mới được nạp tự động trước khi chatbot trả lời câu hỏi kế tiếp. Lệnh `npm run kb:ingest` cũng quét và đồng bộ toàn bucket thủ công. Chatbot tải Markdown bằng service role ở backend, chia theo mục, tạo embedding bằng Ollama (`nomic-embed-text`) và lưu vector trong Supabase pgvector. `SUPABASE_SERVICE_ROLE_KEY` chỉ được dùng ở server, không đưa vào frontend. Vector được xếp hạng bằng cosine similarity; mặc định lấy 4 đoạn gần nhất và chỉ dùng đoạn đạt `KB_MIN_SIMILARITY=0.35`. Nội dung chat chỉ nằm trong giao diện hiện tại; đóng hoặc tải lại trang sẽ mất. Có thể ép tạo lại toàn bộ vector:
+
+   ```bash
+   npm run kb:ingest -- --rebuild
+   ```
+
+   Cả embedding lẫn model trả lời đều chạy qua Ollama. Chatbot chỉ gửi các đoạn có bằng chứng vào model, kiểm tra ID nguồn model trả về và từ chối câu trả lời không có trích dẫn hợp lệ. Nút **Xem các đoạn truy xuất** trong cửa sổ chat hiển thị các đoạn top‑K cùng điểm tương đồng để kiểm tra luồng tìm kiếm.
+
    Vite sẽ chạy tại `http://localhost:5173` và chuyển tiếp các request `/api`
    tới backend ở port `3000`. Trong một terminal khác, chạy backend:
 
@@ -104,7 +133,6 @@ Dự án web tạo bộ câu hỏi ôn tập cho học sinh tiểu học bằng 
    ```bash
    npm start
    ```
-
 9. Mở trình duyệt tại:
 
    ```text
@@ -226,4 +254,6 @@ Sau đó chạy lại:
 ```bash
 npm start
 ```
-   
+### Chat trợ lý học tập
+
+Chat sử dụng model Ollama được cấu hình trong `OLLAMA_CHAT_MODEL`. Nội dung hội thoại không được lưu trên server hoặc gửi làm lịch sử cho model; các câu hỏi được trả lời dựa trên nội dung truy xuất từ kho tài liệu.

@@ -25,8 +25,6 @@ export default function AIQuizGenerator({ lesson, onBack, api }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [finished, setFinished] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
 
   const generate = async () => {
     const content = lesson.content?.trim();
@@ -70,62 +68,20 @@ export default function AIQuizGenerator({ lesson, onBack, api }) {
     : item.type === 'matching'
       ? JSON.stringify(answer) === JSON.stringify(item.correctMatches)
       : Number(answer) === item.correctIndex;
-  const answerText = (item, answer) => {
-    if (item.type === 'matching') return Array.isArray(answer) ? answer.map((value) => value === '' ? 'Chưa chọn' : item.pairs[value]?.right || '').join(', ') : '';
-    if (item.type === 'fill-blank' || item.type === 'short-answer') return answer || '';
-    return item.options?.[answer] || '';
-  };
   const correctText = (item) => {
     if (item.type === 'matching') return item.correctMatches.map((value) => item.pairs[value]?.right || '').join(', ');
     if (item.type === 'fill-blank' || item.type === 'short-answer') return item.answer;
     return item.options?.[item.correctIndex] || '';
-  };
-  const saveAttempt = async () => {
-    setSaving(true);
-    const questionsForHistory = questions.map((item, index) => ({
-      type: item.type || 'multiple-choice',
-      question: item.question,
-      options: item.options || [],
-      pairs: item.pairs || [],
-      correctIndex: item.correctIndex ?? null,
-      answer: item.answer || null,
-      correctMatches: item.correctMatches || [],
-      explanation: item.explanation || 'Đáp án được xác định dựa trên nội dung bài học.',
-      chosenAnswer: answerText(item, answers[index]),
-      correctAnswer: correctText(item),
-      isCorrect: isCorrect(item, answers[index])
-    }));
-    try {
-      await api('/api/attempts', {
-        method: 'POST',
-        body: JSON.stringify({
-          lesson_id: lesson.id || null,
-          title: `Bài tập AI - ${lesson.title}`,
-          grade: lesson.grade || 'Tiểu học',
-          chapter: lesson.topic || 'Luyện tập AI',
-          score,
-          total: questions.length,
-          questions: questionsForHistory,
-          incorrect_answers: questionsForHistory.filter((item) => !item.isCorrect)
-        })
-      });
-      setSaved(true);
-    } catch (saveError) {
-      setError(saveError.message || 'Không thể lưu lịch sử bài làm.');
-    } finally {
-      setSaving(false);
-    }
   };
   const next = () => {
     if (current + 1 < questions.length) {
       setCurrent(current + 1);
     } else {
       setFinished(true);
-      saveAttempt();
     }
   };
   const score = questions.filter((item, index) => isCorrect(item, answers[index])).length;
-  if (finished) return <section className="ai-card"><div className="ai-result">🎉</div><h2>Con đã hoàn thành!</h2><strong className="ai-score">{score}/{questions.length}</strong><p>{score === questions.length ? 'Tuyệt vời! Con làm đúng tất cả rồi!' : 'Cố gắng thêm một chút ở lần sau nhé!'}</p>{saving && <p className="ai-saving">⏳ Đang lưu kết quả...</p>}{saved && <p className="ai-saved">✓ Đã lưu vào lịch sử làm bài</p>}{error && <p className="ai-error">{error}</p>}<div className="ai-review"><h3>📖 Xem đáp án và giải thích</h3>{questions.map((item, index) => <article className={`ai-review-item ${isCorrect(item, answers[index]) ? 'correct' : 'wrong'}`} key={`${item.question}-${index}`}><strong>Câu {index + 1}: {isCorrect(item, answers[index]) ? '✓ Đúng' : '✗ Chưa đúng'}</strong><p>{item.question}</p><small>Đáp án: <b>{correctText(item)}</b></small><small>Giải thích: {item.explanation || 'Đáp án dựa trên nội dung bài học.'}</small></article>)}</div><button className="submit" type="button" onClick={() => { setFinished(false); setCurrent(0); setAnswers({}); setSaved(false); setError(''); }}>Làm lại</button><button className="ai-link" type="button" onClick={onBack}>← Về bài học</button></section>;
+  if (finished) return <section className="ai-card"><div className="ai-result">🎉</div><h2>Con đã hoàn thành!</h2><strong className="ai-score">{score}/{questions.length}</strong><p>{score === questions.length ? 'Tuyệt vời! Con làm đúng tất cả rồi!' : 'Cố gắng thêm một chút ở lần sau nhé!'}</p><div className="ai-review"><h3>📖 Xem đáp án và giải thích</h3>{questions.map((item, index) => <article className={`ai-review-item ${isCorrect(item, answers[index]) ? 'correct' : 'wrong'}`} key={`${item.question}-${index}`}><strong>Câu {index + 1}: {isCorrect(item, answers[index]) ? '✓ Đúng' : '✗ Chưa đúng'}</strong><p>{item.question}</p><small>Đáp án: <b>{correctText(item)}</b></small><small>Giải thích: {item.explanation || 'Đáp án dựa trên nội dung bài học.'}</small></article>)}</div><button className="submit" type="button" onClick={() => { setFinished(false); setCurrent(0); setAnswers({}); setError(''); }}>Làm lại</button><button className="ai-link" type="button" onClick={onBack}>← Về bài học</button></section>;
   if (question) return <section className="ai-card"><div className="ai-card-head"><div><span className="ai-kicker">BÀI TẬP AI ✨</span><h2>{lesson.title}</h2></div><span className="ai-counter">{current + 1}/{questions.length}</span></div><div className="ai-progress"><span style={{ width: `${((current + 1) / questions.length) * 100}%` }} /></div><div className="ai-question"><span className="ai-question-number">Câu {current + 1}</span><h3>{question.question}</h3>{question.type === 'fill-blank' || question.type === 'short-answer' ? <input className="ai-answer-input" value={answers[current] || ''} onChange={(event) => choose(event.target.value)} placeholder="Nhập câu trả lời của con..." /> : question.type === 'matching' ? <div className="ai-options">{question.pairs.map((pair, index) => <label className="ai-option" key={`${pair.left}-${index}`}><span>{pair.left}</span><select value={answers[current]?.[index] ?? ''} onChange={(event) => { const nextAnswer = [...(answers[current] || Array(question.pairs.length).fill(''))]; nextAnswer[index] = Number(event.target.value); choose(nextAnswer); }}><option value="">Chọn vế phải</option>{question.pairs.map((choice, choiceIndex) => <option value={choiceIndex} key={choiceIndex}>{choice.right}</option>)}</select></label>)}</div> : <div className="ai-options">{question.options.map((option, index) => <button className={`ai-option ${answers[current] === index ? 'selected' : ''}`} type="button" key={option} onClick={() => choose(index)}><span>{String.fromCharCode(65 + index)}</span>{option}</button>)}</div>}</div><button className="submit ai-next" type="button" disabled={answers[current] === undefined} onClick={next}>{current + 1 < questions.length ? 'Câu tiếp theo →' : 'Xem kết quả 🎉'}</button></section>;
   return <section className="ai-card"><div className="ai-hero">🪄</div><span className="ai-kicker">GÓC SÁNG TẠO AI</span><h2>Tạo bài tập thật vui!</h2><p>AI sẽ đọc nội dung bài học <strong>{lesson.title}</strong> và tạo câu hỏi vừa sức cho con.</p><div className="ai-field"><label>Dạng bài tập</label><div className="ai-type-grid">{quizTypes.map(([value, icon, label, hint]) => <button type="button" className={`ai-type ${type === value ? 'selected' : ''}`} onClick={() => setType(value)} key={value}><span>{icon}</span><b>{label}</b><small>{hint}</small></button>)}</div></div><div className="ai-settings"><label>Độ khó<select value={difficulty} onChange={(event) => setDifficulty(event.target.value)}><option value="dễ">Dễ</option><option value="vừa">Vừa</option><option value="khó">Khó</option></select></label><label>Số câu<select value={count} onChange={(event) => setCount(Number(event.target.value))}><option value="3">3 câu</option><option value="5">5 câu</option><option value="7">7 câu</option><option value="10">10 câu</option></select></label></div>{error && <p className="ai-error">{error}</p>}<button className="submit ai-generate" type="button" onClick={generate} disabled={busy}>{busy ? '⏳ AI đang soạn bài...' : '✨ Tạo bài tập ngay'}</button><button className="ai-link" type="button" onClick={onBack}>← Về nội dung bài học</button></section>;
 }
