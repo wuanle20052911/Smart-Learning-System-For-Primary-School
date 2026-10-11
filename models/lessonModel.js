@@ -1,6 +1,6 @@
 const { getSupabaseClient } = require('./supabaseClient');
 
-const lessonFields = 'id,title,description,subject,grade,topic,topic_id,icon,color,published,content,source_filename,source_bucket,source_path,created_by,created_at,updated_at';
+const lessonFields = 'id,title,description,subject,grade,topic,topic_id,color,published,content,source_filename,source_bucket,source_path,created_by,created_at,updated_at';
 
 async function listPublished(accessToken) {
   const { data, error } = await getSupabaseClient(accessToken)

@@ -49,4 +49,30 @@ async function listForTeacher(accessToken, teacherId) {
   return data;
 }
 
-module.exports = { create, listForStudent, listForTeacher };
+async function listForTeacherStudent(accessToken, teacherId, studentId) {
+  const client = getSupabaseClient(accessToken);
+  const { data: lessons, error: lessonsError } = await client
+    .from('lessons')
+    .select('id,title')
+    .eq('created_by', teacherId);
+  if (lessonsError) throw lessonsError;
+
+  const lessonIds = lessons.map((lesson) => lesson.id);
+  if (!lessonIds.length) return [];
+
+  const { data, error } = await client
+    .from('quiz_attempts')
+    .select('id,lesson_id,title,grade,chapter,score,total,created_at')
+    .in('lesson_id', lessonIds)
+    .eq('student_id', studentId)
+    .order('created_at', { ascending: false })
+    .limit(1000);
+  if (error) throw error;
+  const lessonTitles = new Map(lessons.map((lesson) => [lesson.id, lesson.title]));
+  return data.map((attempt) => ({
+    ...attempt,
+    lesson_title: lessonTitles.get(attempt.lesson_id) || ''
+  }));
+}
+
+module.exports = { create, listForStudent, listForTeacher, listForTeacherStudent };

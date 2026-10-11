@@ -33,7 +33,6 @@ function normalizeLesson(body = {}) {
     source_filename: typeof body.source_filename === 'string' ? body.source_filename.trim().slice(0, 255) : null,
     source_bucket: sourceBucket,
     source_path: sourcePath,
-    icon: typeof body.icon === 'string' ? body.icon.trim() : '📚',
     color: colors.has(body.color) ? body.color : 'blue',
     published: body.published === true
   };

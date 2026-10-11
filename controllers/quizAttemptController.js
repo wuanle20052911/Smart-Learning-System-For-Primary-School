@@ -69,6 +69,17 @@ async function listForTeacher(req, res) {
   }
 }
 
+async function competencyProfileForTeacher(req, res) {
+  try {
+    return res.json({
+      attempts: await quizAttemptModel.listForTeacherStudent(req.accessToken, req.user.id, req.params.studentId)
+    });
+  } catch (error) {
+    console.error('Could not load student competency profile:', error);
+    return res.status(500).json({ error: 'Không thể tải hồ sơ năng lực học sinh.' });
+  }
+}
+
 async function analyticsForTeacher(req, res) {
   try {
     const now = Date.now();
@@ -192,4 +203,4 @@ async function analyticsForTeacher(req, res) {
   }
 }
 
-module.exports = { create, listMine, listForTeacher, analyticsForTeacher, teacherOnly };
+module.exports = { create, listMine, listForTeacher, competencyProfileForTeacher, analyticsForTeacher, teacherOnly };

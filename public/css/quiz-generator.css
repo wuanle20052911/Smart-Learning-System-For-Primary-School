@@ -456,3 +456,53 @@
 
   @media(max-width:1240px){.home:before,.home:after{width:66px;height:86px;top:8px}.home:before{left:-6px}.home:after{right:-6px}}
   @media(max-width:760px){.home:before,.home:after{display:none}.christmas-candy-cane{width:28px;height:40px}.stat>.christmas-stocking{width:28px;height:36px}.ai-fab{right:14px;bottom:14px;padding:11px 18px}}
+
+  /* Use the supplied MathJoy animation as the learning page's winter scene. */
+  body.mathjoy-winter-scene {
+    background-color: #e5f5fc;
+    background-image: var(--mathjoy-winter-scene);
+    background-position: center top;
+    background-repeat: no-repeat;
+    background-size: 100% auto;
+    background-attachment: fixed;
+  }
+  body.mathjoy-winter-scene:before,
+  body.mathjoy-winter-scene:after { display: none; }
+  body.mathjoy-winter-scene .topbar:after,
+  body.mathjoy-winter-scene .stat:before,
+  body.mathjoy-winter-scene .daily-card:before,
+  body.mathjoy-winter-scene .assigned-work-card:before,
+  body.mathjoy-winter-scene .christmas-frame:before {
+    content: none !important;
+    display: none !important;
+    background: none !important;
+    animation: none !important;
+  }
+  body.mathjoy-winter-scene .home:before,
+  body.mathjoy-winter-scene .home:after { display: none; }
+  body.mathjoy-winter-scene .home { padding-top: 96px; }
+  body.mathjoy-winter-scene .topbar > .brand { visibility: hidden; }
+  body.mathjoy-winter-scene .welcome { margin: 8px 0 26px; }
+  body.mathjoy-winter-scene .welcome-box {
+    position: relative;
+    display: grid;
+    place-content: center;
+    width: 100%;
+    min-height: 0;
+    box-sizing: border-box;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+    transform: none;
+  }
+  body.mathjoy-winter-scene .welcome-box h1,
+  body.mathjoy-winter-scene .welcome-box p { position: relative; z-index: 1; }
+  body.mathjoy-winter-scene .welcome-box h1 { font-size: clamp(21px, 3vw, 33px); }
+  body.mathjoy-winter-scene .welcome-box p { font-size: clamp(11px, 1.5vw, 16px); }
+  @media(max-width:760px) {
+    body.mathjoy-winter-scene .topbar > .brand { display: none; }
+    body.mathjoy-winter-scene .topbar { justify-content: flex-end; }
+    body.mathjoy-winter-scene .welcome { margin-top: 8px; }
+  }

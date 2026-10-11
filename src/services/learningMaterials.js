@@ -38,8 +38,15 @@ export function deduplicateLessonsBySourceNumber(lessons) {
 }
 
 export function getLessonDisplayTitle(lesson) {
+  const title = typeof lesson.title === 'string' ? lesson.title.trim() : '';
+  if (title) return title;
   const sourceCode = getLessonSourceCode(lesson);
-  return sourceCode ? `Bài ${sourceCode.lessonNumber}` : lesson.title;
+  return sourceCode ? `Bài ${sourceCode.lessonNumber}` : 'Bài học';
+}
+
+export function getLessonDescription(lesson) {
+  const description = typeof lesson.description === 'string' ? lesson.description.trim() : '';
+  return /^tài liệu bài học\b/i.test(description) ? '' : description;
 }
 
 export function getLessonChapterName(lesson) {

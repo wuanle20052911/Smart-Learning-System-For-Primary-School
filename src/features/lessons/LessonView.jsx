@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { getLessonDescription } from '../../services/learningMaterials.js';
 import { getLessonSourceCode, renderDocxHtml } from '../../services/learningMaterials.js';
 
 function getLessonMaterialEndpoint(lesson) {
@@ -98,7 +99,7 @@ export default function LessonView({ lesson, onBack, onComplete, onStudyActivity
       <button className="lesson-close" type="button" onClick={onBack}>← Quay lại</button>
     </div>
     <article className="lesson-detail">
-      <div className="lesson-detail-heading"><span className="lesson-detail-icon">{lesson.icon || '📚'}</span><div><small>{lesson.subject || 'Toán'} · {lesson.grade || 'Tiểu học'}</small><h1>{lesson.title}</h1><p>{lesson.description || 'Cùng khám phá bài học này nhé!'}</p></div></div>
+      <div className="lesson-detail-heading"><div><small>{lesson.subject || 'Toán'} · {lesson.grade || 'Tiểu học'}</small><h1>{lesson.title}</h1>{getLessonDescription(lesson) && <p>{getLessonDescription(lesson)}</p>}</div></div>
       <div className="lesson-content"><h2>Nội dung bài học</h2>{lesson.source_filename && <p className="lesson-material">📎 Tài liệu: <b>{lesson.source_filename}</b>{materialEndpoint && <button className="lesson-material-open" type="button" onClick={openMaterial}>Mở tài liệu</button>}</p>}{docxLoading && <p className="lesson-material-status">Đang tải nội dung Word...</p>}{materialError && <p className="ai-error">{materialError}</p>}{docxHtml ? <div className="lesson-content-text lesson-docx-content" dangerouslySetInnerHTML={{ __html: docxHtml }} /> : content ? <div className="lesson-content-text">{content}</div> : <p>{docxLoading ? 'Đang đọc tài liệu bài học...' : 'Bài học này chưa có tài liệu chi tiết. Hãy xem hướng dẫn của giáo viên để bắt đầu nhé.'}</p>}</div>
       <div className="lesson-actions">
         <button className="lesson-action-button lesson-start" type="button" onClick={onComplete}><img src="/public/img/medal.png" alt="" />ĐÃ HỌC XONG BÀI NÀY ✓</button>
