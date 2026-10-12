@@ -448,6 +448,14 @@
   .daily-card:after{right:24px;bottom:8px;font-size:96px;line-height:.8}
 
   .chapter-card-icon{background:#fff;border-color:#d59a37}
+  .panel-heading-main{display:flex;align-items:center;gap:12px;min-width:0}
+  .panel-heading-icon{display:block;flex:0 0 56px;width:56px;height:48px;filter:drop-shadow(0 3px 1px rgba(97,61,34,.2))}
+  .panel-heading-icon svg{display:block;width:100%;height:100%;overflow:visible}
+  .panel-heading-icon.is-open-book{transform:rotate(-5deg)}
+  .panel-heading-icon.is-book-stack{flex-basis:50px;width:50px;height:44px}
+  .chapter-selected-heading h2{font-size:30px!important;color:#c9363c!important}
+  .chapter-selected-heading p{color:#805d40!important}
+  .panel-heading-main>div{min-width:0}
 
   /* Nút "Hỏi AI học gì?" có mũ ông già Noel */
   .ai-fab{position:fixed;right:28px;bottom:24px;z-index:50;display:inline-flex;align-items:center;gap:8px;padding:14px 26px;border:3px solid #b93b1f;border-radius:20px;background:linear-gradient(180deg,#ff8a45,#ff5a2f);color:#fff;font:800 15px 'Quicksand',sans-serif;box-shadow:0 4px 0 #8e2b19;cursor:pointer;transition:transform .15s}
@@ -487,22 +495,86 @@
     position: relative;
     display: grid;
     place-content: center;
-    width: 100%;
-    min-height: 0;
+    width: min(980px, 100%);
+    min-height: 134px;
     box-sizing: border-box;
-    padding: 0;
+    margin: 0 auto;
+    padding: 10px 48px 30px;
     border: 0;
-    border-radius: 0;
-    background: transparent;
+    border-radius: 30px;
+    background: rgba(255, 253, 244, .96);
     box-shadow: none;
     transform: none;
   }
-  body.mathjoy-winter-scene .welcome-box h1,
-  body.mathjoy-winter-scene .welcome-box p { position: relative; z-index: 1; }
-  body.mathjoy-winter-scene .welcome-box h1 { font-size: clamp(21px, 3vw, 33px); }
-  body.mathjoy-winter-scene .welcome-box p { font-size: clamp(11px, 1.5vw, 16px); }
+  body.mathjoy-winter-scene .welcome-lights {
+    position: absolute;
+    z-index: 0;
+    inset: -18px;
+    width: calc(100% + 36px);
+    height: calc(100% + 36px);
+    object-fit: fill;
+    pointer-events: none;
+  }
+  body.mathjoy-winter-scene .welcome-copy { position: relative; z-index: 2; }
+  body.mathjoy-winter-scene .welcome-box h1 { font-size: clamp(23px, 3vw, 36px); }
+  body.mathjoy-winter-scene .welcome-box p { margin-top: 4px; font-size: clamp(12px, 1.5vw, 16px); }
   @media(max-width:760px) {
     body.mathjoy-winter-scene .topbar > .brand { display: none; }
     body.mathjoy-winter-scene .topbar { justify-content: flex-end; }
     body.mathjoy-winter-scene .welcome { margin-top: 8px; }
+    body.mathjoy-winter-scene .welcome-box { min-height: 112px; padding: 8px 24px 24px; }
+    body.mathjoy-winter-scene .welcome-lights { inset: -13px; width: calc(100% + 26px); height: calc(100% + 26px); }
+  }
+
+  /* Lesson cards use a large illustration beside the lesson title. */
+  .lesson-grid .lesson {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-height: 158px;
+    padding: 14px;
+    text-align: left;
+  }
+  .lesson-illustration {
+    display: grid;
+    place-items: center;
+    flex: 0 0 118px;
+    width: 118px;
+    height: 124px;
+  }
+  .lesson-illustration svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+    filter: drop-shadow(0 4px 2px rgba(106, 67, 28, .2));
+  }
+  .lesson-copy {
+    display: grid;
+    align-content: center;
+    gap: 7px;
+    min-width: 0;
+    flex: 1;
+  }
+  .lesson-grid .lesson h3 {
+    margin: 0;
+    color: #7d291f;
+    font: 800 17px/1.35 'Baloo 2', sans-serif;
+    text-shadow: none;
+    overflow-wrap: anywhere;
+  }
+  .lesson-grid .lesson p {
+    margin: 0;
+    font-size: 12px;
+    line-height: 1.45;
+  }
+  @media(max-width:900px) {
+    .lesson-illustration { flex-basis: 94px; width: 94px; height: 104px; }
+    .lesson-grid .lesson h3 { font-size: 15px; }
+  }
+  @media(max-width:600px) {
+    .lesson-grid .lesson { min-height: 126px; gap: 9px; padding: 10px; }
+    .lesson-illustration { flex-basis: 78px; width: 78px; height: 92px; }
+    .lesson-grid .lesson h3 { font-size: 15px; }
+    .lesson-grid .lesson p { font-size: 11px; }
   }
