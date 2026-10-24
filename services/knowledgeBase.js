@@ -196,6 +196,7 @@ async function embedTexts(texts, options = {}) {
     throw new Error(`Ollama embedding request failed (${response.status}): ${details}`);
   }
   const data = await response.json();
+  options.onUsage?.({ promptTokens: data.prompt_eval_count || 0 });
   if (!Array.isArray(data.embeddings) || data.embeddings.length !== texts.length
     || data.embeddings.some((embedding) => !Array.isArray(embedding)
       || embedding.length !== EMBEDDING_DIMENSIONS
@@ -297,7 +298,8 @@ async function ingestKnowledgeBase(options = {}) {
 
     const embeddings = await embedTexts(chunks.map((chunk) => chunk.text), {
       model: embeddingModel,
-      signal: options.signal
+      signal: options.signal,
+      onUsage: options.onUsage
     });
     await replaceKnowledgeBase(client, chunks, embeddings, sourceHash, sourceFile, embeddingModel);
     indexedFiles += 1;
@@ -376,7 +378,10 @@ async function retrieveKnowledge(query, options = {}) {
     throw new Error('An authenticated Supabase session is required to search the knowledge base.');
   }
   await ensureKnowledgeBase(options);
-  const queryEmbedding = (await embedTexts([query], { signal: options.signal }))[0];
+  const queryEmbedding = (await embedTexts([query], {
+    signal: options.signal,
+    onUsage: options.onUsage
+  }))[0];
   const client = options.userClient || getSupabaseClient(options.accessToken);
   const { data, error } = await client.rpc('match_chatbot_kb_chunks', {
     query_embedding: `[${queryEmbedding.join(',')}]`,

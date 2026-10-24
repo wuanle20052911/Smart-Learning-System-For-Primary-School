@@ -1,5 +1,19 @@
 body { min-width: 320px; }
 button, input, select { font: inherit; }
+.ai-usage-card { grid-column: 1 / -1; margin-bottom: 16px; }
+.ai-usage-card .card-heading small { display: block; margin-top: 4px; color: #8292a5; font-size: 10px; }
+.ai-usage-metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+.ai-usage-metrics article { display: grid; gap: 4px; padding: 12px; border: 1px solid #eaf0f6; border-radius: 10px; background: #f9fbfe; }
+.ai-usage-metrics small, .ai-usage-metrics span { color: #8292a5; font-size: 10px; }
+.ai-usage-metrics strong { color: #172942; font: 800 20px 'Baloo 2', sans-serif; overflow-wrap: anywhere; }
+.ai-usage-recent { margin-top: 15px; }
+.ai-usage-recent h3 { margin: 0 0 8px; color: #283b56; font-size: 11px; }
+.ai-usage-row { display: grid; grid-template-columns: 1.1fr 1.4fr .8fr .7fr 1.2fr .4fr; gap: 8px; padding: 8px 0; border-top: 1px solid #edf1f5; color: #65778e; font-size: 9px; overflow-wrap: anywhere; }
+.ai-usage-ok { color: #2c9b64; font-weight: 800; }
+.ai-usage-failed, .ai-usage-error { color: #c34d4d; font-weight: 700; }
+.ai-usage-empty { color: #8292a5; font-size: 11px; }
+@media (max-width: 900px) { .ai-usage-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }.ai-usage-row { grid-template-columns: 1fr 1.2fr .8fr .7fr; }.ai-usage-row span:nth-child(5) { display: none; } }
+@media (max-width: 600px) { .ai-usage-metrics { grid-template-columns: 1fr 1fr; }.ai-usage-row { grid-template-columns: 1fr 1fr; }.ai-usage-row span:nth-child(3), .ai-usage-row span:nth-child(4) { display: none; } }
 .topbar .top-actions .nav-chip.streak-chip { position: relative; display: inline-flex; align-items: center; justify-content: center; width: max-content; height: 48px; min-height: 48px; box-sizing: border-box; padding: 3px 24px 3px 72px; overflow: visible; border: 4px solid #ffd33d; border-radius: 999px; background: linear-gradient(180deg, #ff9e20 0%, #ff641f 100%); box-shadow: 0 3px 0 #bd461d, inset 0 2px 0 rgba(255,255,255,.38); color: #fff; font-size: 18px; line-height: 1; text-shadow: 0 2px 0 rgba(164,57,21,.35); }
 .streak-chip-bulb { position: absolute; top: 50%; left: -3px; display: grid; width: 50px; height: 50px; place-items: center; transform: translateY(-50%); border: 0; border-radius: 50%; background: transparent; box-shadow: none; z-index: 2; }
 .topbar .top-actions .streak-chip .streak-chip-bulb img { display: block; width: 82px; height: 82px; max-width: none; object-fit: contain; transform: translateY(-38px); filter: drop-shadow(0 2px 1px rgba(145,54,20,.28)); }

@@ -1,6 +1,8 @@
 # Smart Learning System for Primary School
 
-Dự án web tạo bộ câu hỏi ôn tập cho học sinh tiểu học bằng trí tuệ nhân tạo local qua Ollama.
+Dự án web hỗ trợ học tập cho học sinh tiểu học, dùng Ollama chạy local cho tạo câu hỏi và chatbot tra cứu tài liệu. Ứng dụng dùng Supabase bên ngoài cho đăng nhập và dữ liệu; xem [AI_USAGE.md](./AI_USAGE.md) để biết kiến trúc AI, cách sử dụng, đánh giá và telemetry.
+
+Rubric đánh giá gắn từng tiêu chí với luồng và file code nằm trong [EVALUATION_CRITERIA.md](./EVALUATION_CRITERIA.md).
 
 ## Tính năng
 
@@ -11,7 +13,8 @@ Dự án web tạo bộ câu hỏi ôn tập cho học sinh tiểu học bằng 
 - Xuất câu hỏi ra file HTML hoặc TXT
 - Chatbot hỏi đáp chỉ dựa trên Markdown trong Supabase Storage, tìm kiếm bằng Ollama embedding và hiển thị nguồn trích dẫn
 - Hội thoại chatbot chỉ tồn tại trong phiên giao diện hiện tại, không lưu vào Supabase
-- Chạy hoàn toàn local, không cần API key
+- Model AI chạy local qua Ollama, không cần API key của nhà cung cấp AI
+- Có thể chạy ứng dụng và Ollama trong Docker Compose; Supabase vẫn là dịch vụ bên ngoài
 
 ## Yêu cầu hệ thống
 
@@ -42,22 +45,7 @@ Dự án web tạo bộ câu hỏi ôn tập cho học sinh tiểu học bằng 
    npm install
    ```
 
-5. Tạo hoặc chỉnh file `.env` theo mẫu:
-
-   ```env
-   PORT=3000
-   OLLAMA_BASE_URL=http://localhost:11434
-   OLLAMA_MODEL=deepseek-r1:8b
-   OLLAMA_CHAT_MODEL=llama3.2:3b
-   OLLAMA_EMBEDDING_MODEL=nomic-embed-text
-   KB_TOP_K=4
-   KB_MIN_SIMILARITY=0.35
-   KB_STORAGE_BUCKET=Math4mdfile
-   KB_STORAGE_PREFIX=
-   SUPABASE_URL=https://your-project.supabase.co
-   SUPABASE_ANON_KEY=your-anon-key
-   SUPABASE_SERVICE_ROLE_KEY=your-server-only-service-role-key
-   ```
+5. Tạo file `.env` từ `.env.example`, rồi tự điền cấu hình Supabase và Ollama cho môi trường của bạn. Không đưa giá trị bí mật vào README, image, frontend hoặc Git. Danh sách tên biến được ghi ở mục [Biến môi trường](#biến-môi-trường).
 
    `SUPABASE_SERVICE_ROLE_KEY` chỉ đặt ở backend `.env`, không bao giờ đưa vào React/frontend hoặc commit lên Git.
 
@@ -85,6 +73,7 @@ Dự án web tạo bộ câu hỏi ôn tập cho học sinh tiểu học bằng 
    - Chạy `supabase/023_create_risk_alerts.sql` để lưu riêng cảnh báo Learning Analytics, cập nhật cảnh báo đang mở và giữ lịch sử cảnh báo đã đóng.
    - Chạy `supabase/024_enforce_assignment_deadlines.sql` để chặn bài nộp hết hạn trực tiếp tại Supabase; bài tập không có hạn tiếp tục nhận bài.
    - Chạy `supabase/027_chatbot_supabase_storage.sql` để tạo vector store pgvector cho chatbot và các bảng lịch sử có RLS theo tài khoản.
+   - Chạy `supabase/028_ai_usage_observability.sql` để lưu telemetry và cấp quyền tổng hợp thống kê AI cho backend.
    - Nếu trước đây đã tạo bảng `lesson_chunks`, chạy `supabase/026_remove_lesson_chunks.sql` để xóa bảng và hàm tìm kiếm cũ.
 
   - Chạy `supabase/017_lesson_chapters_storage.sql` để liên kết bài học với chương, tạo bucket riêng tư `lesson-materials` và policy đọc các bucket mẫu `Math4`/`Chapter1`.
@@ -113,7 +102,7 @@ Dự án web tạo bộ câu hỏi ôn tập cho học sinh tiểu học bằng 
    npm run kb:ingest
    ```
 
-   Chạy lần lượt migration `supabase/027_chatbot_supabase_storage.sql`, `supabase/028_chatbot_multi_file_search.sql` và `supabase/029_disable_chat_history_storage.sql` trong Supabase SQL Editor; migration đầu tạo bucket riêng tư `Math4mdfile`, migration thứ hai bật tìm kiếm trên nhiều file, migration cuối vô hiệu hóa quyền và hàm lưu lịch sử cũ mà không xóa dữ liệu đã tồn tại. Tải file `.md` lên bucket đó (có thể đặt trong thư mục con). `KB_STORAGE_BUCKET` chọn bucket; `KB_STORAGE_PREFIX` không bắt buộc và có thể giới hạn việc quét vào một thư mục. Khi có câu hỏi, chatbot quét danh sách file Markdown, tự thêm file mới, cập nhật file đã đổi và bỏ vector của file đã xóa; vì vậy file mới được nạp tự động trước khi chatbot trả lời câu hỏi kế tiếp. Lệnh `npm run kb:ingest` cũng quét và đồng bộ toàn bucket thủ công. Chatbot tải Markdown bằng service role ở backend, chia theo mục, tạo embedding bằng Ollama (`nomic-embed-text`) và lưu vector trong Supabase pgvector. `SUPABASE_SERVICE_ROLE_KEY` chỉ được dùng ở server, không đưa vào frontend. Vector được xếp hạng bằng cosine similarity; mặc định lấy 4 đoạn gần nhất và chỉ dùng đoạn đạt `KB_MIN_SIMILARITY=0.35`. Nội dung chat chỉ nằm trong giao diện hiện tại; đóng hoặc tải lại trang sẽ mất. Có thể ép tạo lại toàn bộ vector:
+   Chạy lần lượt migration `supabase/027_chatbot_supabase_storage.sql`, `supabase/028_chatbot_multi_file_search.sql` và `supabase/029_disable_chat_history_storage.sql` trong Supabase SQL Editor; migration đầu tạo bucket riêng tư `Math4mdfile`, migration thứ hai bật tìm kiếm trên nhiều file, migration cuối vô hiệu hóa quyền và hàm lưu lịch sử cũ mà không xóa dữ liệu đã tồn tại. Tải file `.md` lên bucket đó (có thể đặt trong thư mục con). `KB_STORAGE_BUCKET` chọn bucket; `KB_STORAGE_PREFIX` không bắt buộc và có thể giới hạn việc quét vào một thư mục. Khi có câu hỏi, chatbot quét danh sách file Markdown, tự thêm file mới, cập nhật file đã đổi và bỏ vector của file đã xóa; vì vậy file mới được nạp tự động trước khi chatbot trả lời câu hỏi kế tiếp. Lệnh `npm run kb:ingest` cũng quét và đồng bộ toàn bucket thủ công. Chatbot tải Markdown bằng service role ở backend, chia theo mục, tạo embedding bằng Ollama (`nomic-embed-text`) và lưu vector trong Supabase pgvector. `SUPABASE_SERVICE_ROLE_KEY` chỉ được dùng ở server, không đưa vào frontend. Vector được xếp hạng bằng cosine similarity; mặc định lấy 4 đoạn gần nhất và chỉ dùng đoạn đạt ngưỡng tương đồng cấu hình. Nội dung chat chỉ nằm trong giao diện hiện tại; đóng hoặc tải lại trang sẽ mất. Có thể ép tạo lại toàn bộ vector:
 
    ```bash
    npm run kb:ingest -- --rebuild
@@ -141,6 +130,84 @@ Dự án web tạo bộ câu hỏi ôn tập cho học sinh tiểu học bằng 
 
    Trang đăng nhập/đăng ký nằm tại `/` (route `/auth` sẽ chuyển về `/`).
 
+## Chạy demo bằng Docker Compose
+
+Compose chạy app Express/React và Ollama trong hai container. Supabase Auth, database, Storage và pgvector vẫn dùng project Supabase bên ngoài; chuẩn bị các biến Supabase trước khi khởi động.
+
+1. Cài Docker Desktop hoặc Docker Engine kèm Docker Compose plugin.
+2. Sao chép `.env.example` thành `.env` (PowerShell: `Copy-Item .env.example .env`; macOS/Linux: `cp .env.example .env`) và điền cấu hình Supabase của riêng bạn. Không chia sẻ hoặc commit `.env`.
+3. Trong Supabase SQL Editor, áp dụng các migration ứng dụng cần thiết theo thứ tự trong phần **Cài đặt**, bao gồm `supabase/027_chatbot_supabase_storage.sql`, `supabase/028_chatbot_multi_file_search.sql`, `supabase/029_disable_chat_history_storage.sql` và `supabase/028_ai_usage_observability.sql` để bật thống kê AI.
+4. Khởi động container:
+
+   ```bash
+   docker compose up --build -d
+   ```
+
+5. Tải các model vào volume của Ollama (có thể mất thời gian và cần nhiều dung lượng):
+
+   ```bash
+   docker compose exec ollama ollama pull deepseek-r1:8b
+   docker compose exec ollama ollama pull llama3.2:3b
+   docker compose exec ollama ollama pull nomic-embed-text
+   ```
+
+   Nếu cần đồng bộ kho tài liệu chatbot từ container, chạy `docker compose exec app npm run kb:ingest`. File Markdown nguồn cần có trong Supabase Storage bucket đã cấu hình; chatbot cũng tự đồng bộ khi nhận câu hỏi đầu tiên.
+
+6. Mở `http://localhost:3000`. Kiểm tra trạng thái app bằng `http://localhost:3000/health`.
+
+Các lệnh quản lý:
+
+```bash
+docker compose ps
+docker compose logs -f app
+docker compose down
+```
+
+Model Ollama được giữ trong volume `ollama-data` qua các lần dừng/chạy. Xóa volume sẽ xóa các model đã tải. Cần cân nhắc RAM/CPU của máy; có thể cần cấu hình GPU riêng cho Docker nếu muốn tăng tốc.
+
+### Tài khoản demo và kiểm tra theo vai trò
+
+Repository không chứa URL deployment công khai hoặc tài khoản/mật khẩu demo dùng chung. Tài khoản phải được tạo trong project Supabase của từng môi trường; không dùng thông tin đăng nhập mẫu hoặc mật khẩu dùng chung trong tài liệu.
+
+| Vai trò | Cách tạo tài khoản demo |
+|---|---|
+| Học sinh | Đăng ký ở trang đăng nhập. Tài khoản đăng ký công khai được cấp vai trò học sinh. |
+| Giáo viên | Đăng nhập bằng tài khoản quản trị, tạo giáo viên tại mục quản lý nhanh, rồi đăng nhập bằng tài khoản giáo viên vừa tạo. |
+| Quản trị viên đầu tiên | Chủ project tạo user qua Supabase Auth Admin/Dashboard, xác nhận hồ sơ ở `public.users`, rồi cập nhật role `admin` trong Supabase SQL Editor bằng UUID của user vừa tạo. Không cấp role admin cho tài khoản công khai. |
+
+Để demo, đăng nhập từng vai trò bằng tài khoản do bạn tự tạo, kiểm tra quyền tương ứng, và tạo lớp/bài tập/dữ liệu học thử. Dùng tài khoản thử nghiệm riêng, không đưa mật khẩu hoặc access token vào README, issue hay ảnh chụp màn hình.
+
+Ví dụ cấp vai trò quản trị cho user bootstrap (thay placeholder bằng UUID lấy từ Supabase Auth Dashboard; chỉ chủ project thực hiện):
+
+```sql
+update public.users
+set role = 'admin'
+where id = '<AUTH_USER_UUID>';
+```
+
+### Biến môi trường
+
+README chỉ liệt kê **tên** biến; `.env.example` là mẫu rỗng để sao chép. Không điền giá trị thật trong README.
+
+| Biến | Mục đích |
+|---|---|
+| `SUPABASE_URL` | URL project Supabase |
+| `SUPABASE_ANON_KEY` | Khóa public/anon dùng phía server cho truy cập theo phiên người dùng |
+| `SUPABASE_SERVICE_ROLE_KEY` | Khóa quản trị chỉ dùng ở backend |
+| `PORT` | Cổng HTTP của ứng dụng |
+| `OLLAMA_BASE_URL` | Địa chỉ Ollama; Compose tự trỏ app tới service `ollama` |
+| `OLLAMA_MODEL` | Model mặc định cho tạo câu hỏi |
+| `OLLAMA_CHAT_MODEL` | Model ưu tiên cho chatbot |
+| `OLLAMA_EMBEDDING_MODEL` | Model tạo embedding cho truy xuất tài liệu |
+| `KB_TOP_K` | Số đoạn tài liệu lấy khi truy xuất |
+| `KB_MIN_SIMILARITY` | Ngưỡng tương đồng tối thiểu của đoạn truy xuất |
+| `KB_STORAGE_BUCKET` | Bucket Supabase Storage chứa tài liệu Markdown |
+| `KB_STORAGE_PREFIX` | Thư mục con tùy chọn trong bucket |
+| `AI_INPUT_COST_PER_MILLION_USD` | Đơn giá token đầu vào để ước tính chi phí |
+| `AI_OUTPUT_COST_PER_MILLION_USD` | Đơn giá token đầu ra để ước tính chi phí |
+
+Hai biến giá là tùy chọn; nếu không khai báo, chi phí API được tính bằng 0. Giá trị này không bao gồm chi phí máy chủ/điện khi tự chạy Ollama.
+
 ## Kiến trúc ứng dụng
 
 Frontend sử dụng React và Vite:
@@ -156,6 +223,7 @@ Frontend sử dụng React và Vite:
 - `src/components/`: các thành phần UI dùng chung như header, thương hiệu và phân quyền.
 - `src/features/assignments/`: tạo bài tập AI, bài tập được giao và xử lý nộp bài.
 - `src/features/lessons/`: hiển thị bài học và khởi tạo bài tập AI từ bài học.
+- `services/knowledgeBase.js`, `services/aiPolicy.js`, `services/aiUsage.js`: lập chỉ mục/truy xuất tài liệu, policy chat và telemetry AI ở backend.
 - `src/services/`: gọi API, đọc session, điều hướng và đăng xuất.
 - `src/styles.css`: style dùng chung của ứng dụng React.
 - `public/css/`: style theo từng khu vực, được tải theo route.
@@ -229,10 +297,11 @@ Xuất bộ câu hỏi ra file HTML hoặc TXT.
 
 ## Lưu ý
 
-- Dự án đang dùng model local Ollama, không cần API key.
+- Dự án dùng model local Ollama, không cần API key nhà cung cấp AI; tuy nhiên ứng dụng cần cấu hình Supabase để xác thực và lưu dữ liệu.
 - Nếu Ollama chưa chạy hoặc model chưa được pull, server sẽ trả lỗi rõ ràng.
 - Nếu máy bạn mạnh hơn, bạn có thể thay model ở `.env` thành `deepseek-r1:14b` hoặc các model khác phù hợp.
 - Bản mặc định hiện đang dùng: `deepseek-r1:8b`.
+- Kết quả đánh giá policy, cách chạy bộ kiểm thử và giới hạn của benchmark được ghi trong [AI_USAGE.md](./AI_USAGE.md).
 
 ## Xử lý sự cố
 

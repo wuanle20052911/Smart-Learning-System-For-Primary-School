@@ -8,7 +8,8 @@
     "dev": "vite",
     "build": "vite build",
     "serve": "node server.js",
-    "kb:ingest": "node scripts/ingest-knowledge-base.js"
+    "kb:ingest": "node scripts/ingest-knowledge-base.js",
+    "ai:evaluate": "node tests/ai-evaluation.js"
   },
   "keywords": [
     "smart-learning",
