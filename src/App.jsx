@@ -11,7 +11,7 @@ import Header from './components/Header.jsx';
 import AccessDenied from './components/AccessDenied.jsx';
 import AssignedWorkView from './features/assignments/AssignedWorkView.jsx';
 import TeacherSubmissions from './features/assignments/TeacherSubmissions.jsx';
-import { AssignmentStudio, TeacherClassManagement, TeacherStudents, TeacherOverview, TeacherAnalytics, TeacherRecommendations, TeacherQuestionBank } from './features/assignments/AssignmentStudio.jsx';
+import { AssignmentStudio, TeacherClassManagement, TeacherStudents, TeacherOverview, TeacherAnalytics, TeacherQuestionBank } from './features/assignments/AssignmentStudio.jsx';
 import LessonView from './features/lessons/LessonView.jsx';
 import LessonStudio from './features/lessons/LessonStudio.jsx';
 import { api, readSession, sessionKey } from './services/api.js';
@@ -65,7 +65,6 @@ function App() {
       TeacherStudents={TeacherStudents}
       TeacherOverview={TeacherOverview}
       TeacherAnalytics={TeacherAnalytics}
-      TeacherRecommendations={TeacherRecommendations}
       TeacherQuestionBank={TeacherQuestionBank}
       TeacherSubmissions={TeacherSubmissions}
       LessonStudio={LessonStudio}

@@ -12,7 +12,6 @@ Rubric đánh giá gắn từng tiêu chí với luồng và file code nằm tro
 - Tự động kiểm tra và lọc câu hỏi không hợp lệ
 - Xuất câu hỏi ra file HTML hoặc TXT
 - Chatbot hỏi đáp chỉ dựa trên Markdown trong Supabase Storage, tìm kiếm bằng Ollama embedding và hiển thị nguồn trích dẫn
-- Đề xuất ôn tập cho giáo viên do Ollama tạo từ thống kê bài làm và bài nộp thật; chỉ gửi dữ liệu tổng hợp, không gửi tên/email học sinh
 - Hội thoại chatbot chỉ tồn tại trong phiên giao diện hiện tại, không lưu vào Supabase
 - Model AI chạy local qua Ollama, không cần API key của nhà cung cấp AI
 - Có thể chạy ứng dụng và Ollama trong Docker Compose; Supabase vẫn là dịch vụ bên ngoài
@@ -299,10 +298,6 @@ Xuất bộ câu hỏi ra file HTML hoặc TXT.
   "filename": "de-on-tap"
 }
 ```
-
-### GET /api/attempts/recommendations
-
-API dành cho giáo viên/quản trị viên. Tổng hợp bài làm, bài nộp, bài tập đã giao và kết quả theo chủ đề; gửi thống kê tổng hợp tới Ollama để chọn tối đa 3 hoạt động ôn tập từ các tín hiệu đã xác nhận. Lý do, mức ưu tiên và tỷ lệ được tạo/kiểm tra từ thống kê phía server, không để LLM tự suy diễn số liệu. Tỷ lệ nộp bài thấp chỉ được đề xuất khi tỷ lệ tính từ danh sách học sinh và bài tập đã giao dưới 70%. Prompt được quản lý tại `prompts/teacher-recommendations-v1.txt`. Ưu tiên `OLLAMA_CHAT_MODEL` (mặc định chọn model chat có sẵn như `llama3.2:3b` hoặc `qwen2.5:7b`), không mặc định dùng model suy luận quiz như `deepseek-r1:8b`. Nếu Ollama hoặc model chat không hoạt động, API trả lỗi rõ ràng thay vì hiển thị đề xuất giả.
 
 ## Lưu ý
 

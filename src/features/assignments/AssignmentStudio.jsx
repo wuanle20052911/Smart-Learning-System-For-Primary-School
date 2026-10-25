@@ -750,46 +750,6 @@ export function TeacherOverview({ data, loading, error, onRetry, onOpenAssignmen
   </>;
 }
 
-export function TeacherRecommendations({ api, onCreateAssignment }) {
-  const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const loadRecommendations = async () => {
-    setLoading(true);
-    setError('');
-    try {
-      setData(await api('/api/attempts/recommendations'));
-    } catch (requestError) {
-      setError(requestError.message || 'Không thể tạo đề xuất AI.');
-    } finally {
-      setLoading(false);
-    }
-  };
-  useEffect(() => { loadRecommendations(); }, []);
-
-  return <section className="teacher-recommendations-view">
-    <div className="analytics-intro"><h2>Đề xuất ôn tập</h2><button className="teacher-create" type="button" onClick={loadRecommendations} disabled={loading}>{loading ? 'Đang phân tích...' : '↻ Phân tích lại'}</button></div>
-    {loading ? <section className="teacher-placeholder teacher-card"><span>✦</span><h2>AI đang phân tích dữ liệu lớp...</h2><p>Đang xem kết quả học tập và bài tập đã giao.</p></section>
-      : error ? <section className="teacher-placeholder teacher-card"><span>!</span><h2>Chưa tạo được đề xuất</h2><p>{error}</p><button className="teacher-create" type="button" onClick={loadRecommendations}>Thử lại</button></section>
-        : <><section className="recommendation-summary teacher-card"><div><span className="panel-kicker">TÓM TẮT PHÂN TÍCH</span><p>{data.summary}</p></div><small>{data.recommendationSource === 'evidence_fallback' ? `Gợi ý dựa trên dữ liệu học tập · ${data.promptVersion}` : data.model ? `Model ${data.model} · ${data.promptVersion}` : data.promptVersion}</small></section>
-          {data.recommendations.length ? <div className="recommendation-list">{data.recommendations.map((recommendation, index) => {
-            const evidence = data.evidence.recommendationSignals.find((metric) => metric.topic === recommendation.topic);
-            return <article className="recommendation-card teacher-card" key={`${recommendation.topic}-${index}`}>
-              <div className="recommendation-card-heading"><span className={`recommendation-priority ${recommendation.priority}`}>{recommendation.priority === 'high' ? 'Ưu tiên cao' : recommendation.priority === 'medium' ? 'Ưu tiên vừa' : 'Gợi ý'}</span><small>Chủ đề: {recommendation.topic}</small></div>
-              <h3>{recommendation.title}</h3>
-              <p>{recommendation.reason}</p>
-              {evidence && <small className="recommendation-evidence">{evidence.kind === 'completion'
-                ? `Dữ liệu: đã nộp ${evidence.submitted}/${evidence.expected} lượt (${evidence.accuracy}%)`
-                : `Dữ liệu: đúng ${evidence.accuracy}% · ${evidence.attempts} lượt · ${evidence.answeredQuestions} câu trả lời`}</small>}
-              <div className="recommendation-action"><strong>Bước đề xuất</strong><p>{recommendation.action}</p></div>
-              <button className="teacher-create" type="button" onClick={() => onCreateAssignment(recommendation)}>Mở khu vực bài tập</button>
-            </article>;
-          })}</div> : <section className="teacher-placeholder teacher-card"><span>✓</span><h2>Chưa có đề xuất cụ thể</h2><p>{data.summary}</p></section>}
-          <section className="recommendation-data-footnote teacher-card"><strong>Dữ liệu đã phân tích</strong><span>{data.evidence.quizAttemptCount} lượt làm quiz · {data.evidence.submissionCount} bài nộp{data.evidence.completion ? ` · ${data.evidence.completion.rate}% lượt nộp bài tập` : ''}</span></section>
-        </>}
-  </section>;
-}
-
 export function TeacherAnalytics({ analytics, onRetry }) {
   if (!analytics) return <section className="teacher-placeholder teacher-card"><span>▥</span><h2>Đang tải phân tích học tập...</h2><p>Dữ liệu sẽ được tổng hợp từ các bài làm đã lưu.</p></section>;
   const { overview, students, recentAttempts } = analytics;

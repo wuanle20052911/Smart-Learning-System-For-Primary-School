@@ -7,14 +7,6 @@ const riskAlertModel = require('../models/riskAlertModel');
 const { buildStudyPlan } = require('../services/studyPlan');
 const { classifyStudyIntent } = require('../services/studyIntent');
 const { assessStudentRisk } = require('../services/riskAssessment');
-const {
-  PROMPT_VERSION,
-  prompt: recommendationPrompt,
-  selectRecommendationModel,
-  buildTeacherLearningSummary,
-  validateTeacherRecommendations,
-  buildFallbackRecommendations
-} = require('../services/teacherRecommendations');
 
 function normalizeAttempt(body = {}) {
   const score = Number(body.score);
@@ -266,150 +258,6 @@ async function analyticsForTeacher(req, res) {
   }
 }
 
-async function recommendationsForTeacher(req, res) {
-  const baseUrl = (process.env.OLLAMA_BASE_URL || 'http://localhost:11434').replace(/\/$/, '');
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 90000);
-
-  try {
-    const client = catalogModel.getSupabaseClient(req.accessToken);
-    const [attempts, assignments, submissions, classes, topics] = await Promise.all([
-      quizAttemptModel.listForTeacher(req.accessToken, req.user.id),
-      assignmentModel.listForTeacher(req.accessToken, req.user.id),
-      submissionModel.listForTeacher(req.accessToken, req.user.id),
-      req.profile.role === 'admin'
-        ? catalogModel.listManagedClasses(client)
-        : catalogModel.listClasses(client, req.user.id),
-      catalogModel.list(client, 'topics', 'id,name')
-    ]);
-    const assignedClassIds = [...new Set(assignments
-      .filter((assignment) => assignment.published && assignment.class_id)
-      .map((assignment) => assignment.class_id))];
-    const rosters = await Promise.all(assignedClassIds.map(async (classId) => [
-      classId,
-      await catalogModel.listClassStudents(client, classId)
-    ]));
-    const learningSummary = buildTeacherLearningSummary({
-      attempts,
-      assignments,
-      submissions,
-      topics,
-      classes,
-      classRosters: Object.fromEntries(rosters)
-    });
-    if (!learningSummary.recommendationSignals.length) {
-      return res.json({
-        promptVersion: PROMPT_VERSION,
-        model: null,
-        summary: 'Dữ liệu hiện có chưa cho thấy chủ đề nào cần ưu tiên ôn tập hoặc tỷ lệ nộp bài thấp.',
-        recommendations: [],
-        evidence: learningSummary
-      });
-    }
-
-    const modelsResponse = await fetch(`${baseUrl}/api/tags`, { signal: controller.signal });
-    if (!modelsResponse.ok) {
-      return res.status(503).json({ error: 'Không thể kết nối Ollama để tạo đề xuất. Hãy kiểm tra dịch vụ Ollama.' });
-    }
-    const modelData = await modelsResponse.json();
-    const installedModels = Array.isArray(modelData?.models)
-      ? modelData.models.map((item) => item.name || item.model).filter((name) => typeof name === 'string')
-      : [];
-    const model = selectRecommendationModel(
-      installedModels,
-      process.env.OLLAMA_CHAT_MODEL,
-      process.env.OLLAMA_MODEL
-    );
-    if (!model) {
-      return res.status(503).json({ error: 'Chưa cài model chat Ollama. Hãy cài llama3.2:3b hoặc cấu hình OLLAMA_CHAT_MODEL.' });
-    }
-
-    const response = await fetch(`${baseUrl}/api/chat`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      signal: controller.signal,
-      body: JSON.stringify({
-        model,
-        messages: [
-          { role: 'system', content: recommendationPrompt },
-          { role: 'user', content: JSON.stringify(learningSummary) }
-        ],
-        format: {
-          type: 'object',
-          properties: {
-            recommendations: {
-              type: 'array',
-              maxItems: 3,
-              items: {
-                type: 'object',
-                properties: {
-                  topic: { type: 'string', enum: learningSummary.allowedTopics },
-                  activity: {
-                    type: 'string',
-                    enum: ['guided_review', 'short_practice', 'check_questions', 'follow_up_submissions']
-                  }
-                },
-                required: ['topic', 'activity'],
-                additionalProperties: false
-              }
-            }
-          },
-          required: ['recommendations'],
-          additionalProperties: false
-        },
-        stream: false,
-        keep_alive: '10m',
-        options: { temperature: 0.2, top_p: 0.8, num_predict: 250, num_ctx: 4096 }
-      })
-    });
-    if (!response.ok) {
-      const details = (await response.text()).slice(0, 300);
-      console.error(`Teacher recommendation model request failed (${response.status}):`, details);
-      return res.status(502).json({
-        error: 'Không thể tạo đề xuất AI. Hãy kiểm tra Ollama và model chat đã cài.'
-      });
-    }
-
-    let generated;
-    let usedFallback = false;
-    try {
-      const result = await response.json();
-      const content = result?.message?.content?.trim();
-      if (!content) {
-        throw new Error(`Ollama returned an empty response (model: ${model}, done_reason: ${result?.done_reason || 'unknown'}).`);
-      }
-      generated = validateTeacherRecommendations(JSON.parse(content), learningSummary.recommendationSignals);
-    } catch (error) {
-      console.warn(`Invalid teacher recommendation output from ${model}; using evidence-based fallback:`, error.message);
-      generated = buildFallbackRecommendations(learningSummary.recommendationSignals);
-      usedFallback = true;
-    }
-
-    return res.json({
-      promptVersion: PROMPT_VERSION,
-      model,
-      recommendationSource: usedFallback ? 'evidence_fallback' : 'ai',
-      summary: `Có ${learningSummary.recommendationSignals.length} chỉ số cần được giáo viên xem xét dựa trên dữ liệu hiện có.`,
-      recommendations: generated,
-      evidence: {
-        completion: learningSummary.completion,
-        topicMetrics: learningSummary.topicMetrics,
-        recommendationSignals: learningSummary.recommendationSignals,
-        quizAttemptCount: learningSummary.quizAttemptCount,
-        submissionCount: learningSummary.submissionCount
-      }
-    });
-  } catch (error) {
-    if (controller.signal.aborted) {
-      return res.status(504).json({ error: 'AI phản hồi quá lâu. Vui lòng thử lại sau.' });
-    }
-    console.error('Could not generate teacher recommendations:', error);
-    return res.status(500).json({ error: 'Không thể tải dữ liệu để tạo đề xuất AI.' });
-  } finally {
-    clearTimeout(timeout);
-  }
-}
-
 module.exports = {
   create,
   listMine,
@@ -417,6 +265,5 @@ module.exports = {
   listForTeacher,
   competencyProfileForTeacher,
   analyticsForTeacher,
-  recommendationsForTeacher,
   teacherOnly
 };
