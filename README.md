@@ -75,6 +75,7 @@ Rubric đánh giá gắn từng tiêu chí với luồng và file code nằm tro
    - Chạy `supabase/024_enforce_assignment_deadlines.sql` để chặn bài nộp hết hạn trực tiếp tại Supabase; bài tập không có hạn tiếp tục nhận bài.
    - Chạy `supabase/027_chatbot_supabase_storage.sql` để tạo vector store pgvector cho chatbot và các bảng lịch sử có RLS theo tài khoản.
    - Chạy `supabase/028_ai_usage_observability.sql` để lưu telemetry và cấp quyền tổng hợp thống kê AI cho backend.
+   - Nếu đã áp dụng migration thống kê AI trước đây, chạy `supabase/032_remove_ai_usage_costs.sql` để bỏ dữ liệu chi phí ước tính khỏi database.
    - Nếu trước đây đã tạo bảng `lesson_chunks`, chạy `supabase/026_remove_lesson_chunks.sql` để xóa bảng và hàm tìm kiếm cũ.
 
   - Chạy `supabase/017_lesson_chapters_storage.sql` để liên kết bài học với chương, tạo bucket riêng tư `lesson-materials` và policy đọc các bucket mẫu `Math4`/`Chapter1`.
@@ -137,7 +138,7 @@ Compose chạy app Express/React và Ollama trong hai container. Supabase Auth, 
 
 1. Cài Docker Desktop hoặc Docker Engine kèm Docker Compose plugin.
 2. Sao chép `.env.example` thành `.env` (PowerShell: `Copy-Item .env.example .env`; macOS/Linux: `cp .env.example .env`) và điền cấu hình Supabase của riêng bạn. Không chia sẻ hoặc commit `.env`.
-3. Trong Supabase SQL Editor, áp dụng các migration ứng dụng cần thiết theo thứ tự trong phần **Cài đặt**, bao gồm `supabase/027_chatbot_supabase_storage.sql`, `supabase/028_chatbot_multi_file_search.sql`, `supabase/029_disable_chat_history_storage.sql` và `supabase/028_ai_usage_observability.sql` để bật thống kê AI.
+3. Trong Supabase SQL Editor, áp dụng các migration ứng dụng cần thiết theo thứ tự trong phần **Cài đặt**, bao gồm `supabase/027_chatbot_supabase_storage.sql`, `supabase/028_chatbot_multi_file_search.sql`, `supabase/029_disable_chat_history_storage.sql` và `supabase/028_ai_usage_observability.sql` để bật thống kê AI. Nếu database đã dùng phiên bản migration thống kê cũ, áp dụng thêm `supabase/032_remove_ai_usage_costs.sql`.
 4. Khởi động container:
 
    ```bash
@@ -204,10 +205,6 @@ README chỉ liệt kê **tên** biến; `.env.example` là mẫu rỗng để s
 | `KB_MIN_SIMILARITY` | Ngưỡng tương đồng tối thiểu của đoạn truy xuất |
 | `KB_STORAGE_BUCKET` | Bucket Supabase Storage chứa tài liệu Markdown |
 | `KB_STORAGE_PREFIX` | Thư mục con tùy chọn trong bucket |
-| `AI_INPUT_COST_PER_MILLION_USD` | Đơn giá token đầu vào để ước tính chi phí |
-| `AI_OUTPUT_COST_PER_MILLION_USD` | Đơn giá token đầu ra để ước tính chi phí |
-
-Hai biến giá là tùy chọn; nếu không khai báo, chi phí API được tính bằng 0. Giá trị này không bao gồm chi phí máy chủ/điện khi tự chạy Ollama.
 
 ## Kiến trúc ứng dụng
 

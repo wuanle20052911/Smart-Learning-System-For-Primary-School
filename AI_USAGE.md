@@ -70,19 +70,17 @@ Tăng **33,3 điểm phần trăm**. Ollama không phản hồi tại môi trư�
 - Tính năng, version prompt, model, mã trạng thái và thời điểm ghi.
 - Token input/output và latency tổng request (ms), dựa trên số liệu Ollama trả về.
 - Danh sách tool đã dùng, ví dụ `knowledge_retrieval` hoặc `procedure_answer`.
-- User ID để kiểm toán và chi phí ước tính theo giá cấu hình.
+- User ID để kiểm toán.
 
 Không lưu câu hỏi, prompt, câu trả lời, nội dung tài liệu hay thông tin xác thực vào bảng telemetry. Supabase service role chỉ dùng ở backend; RLS bật, quyền `anon`/`authenticated` bị thu hồi. Log telemetry có thể chứa lỗi vận hành, nên log server cũng cần được bảo vệ như dữ liệu production.
 
-Áp dụng migration [028_ai_usage_observability.sql](./supabase/028_ai_usage_observability.sql) trong Supabase SQL Editor. Dùng `SUPABASE_URL` và `SUPABASE_SERVICE_ROLE_KEY` ở backend để ghi log/tổng hợp; dùng `SUPABASE_ANON_KEY` cho các truy cập theo user session. Lỗi ghi telemetry được log ở server, nhưng không biến phản hồi AI thành lỗi.
+Áp dụng migration [028_ai_usage_observability.sql](./supabase/028_ai_usage_observability.sql) trong Supabase SQL Editor. Nếu database đã áp dụng phiên bản migration có trường chi phí, chạy thêm [032_remove_ai_usage_costs.sql](./supabase/032_remove_ai_usage_costs.sql) để xóa trường đó và cập nhật hàm thống kê. Dùng `SUPABASE_URL` và `SUPABASE_SERVICE_ROLE_KEY` ở backend để ghi log/tổng hợp; dùng `SUPABASE_ANON_KEY` cho các truy cập theo user session. Lỗi ghi telemetry được log ở server, nhưng không biến phản hồi AI thành lỗi.
 
 Các token thống kê đến từ API Ollama; riêng embedding chỉ được cộng vào token input nếu endpoint embedding trả về `prompt_eval_count`. Vì vậy đây là số liệu token **được ghi nhận**, có thể không phản ánh đầy đủ token thực tế của mọi model/Ollama version. Nếu model không báo token, giá trị ghi là 0.
 
-Ollama chạy local mặc định có chi phí API bằng 0; chi phí điện/phần cứng không được tính. Có thể cấu hình hai biến `AI_INPUT_COST_PER_MILLION_USD` và `AI_OUTPUT_COST_PER_MILLION_USD` cho backend tính phí; khi đó chi phí ước tính theo token input/output và mức giá do operator khai báo. Không cấu hình khóa bí mật hoặc dữ liệu giá chứa thông tin nhạy cảm ở frontend.
-
 ## Dashboard admin
 
-`GET /api/admin/ai-usage` yêu cầu tài khoản `admin`, tổng hợp 30 ngày gần nhất và trả số request thành công/lỗi, token, tổng/chi phí trung bình, độ trễ trung bình và tối đa 10 request gần đây. Dashboard hiển thị trạng thái tải/lỗi/không có dữ liệu rõ ràng, không thay số liệu bằng số mẫu. Cần áp dụng migration trước; sau đó phát sinh các request AI để dashboard có dữ liệu thực.
+`GET /api/admin/ai-usage` yêu cầu tài khoản `admin`, tổng hợp 30 ngày gần nhất và trả số request thành công/lỗi, token, độ trễ trung bình và tối đa 10 request gần đây. Token chỉ là số lượng token Ollama báo đã xử lý; chúng không phải hóa đơn API. Dashboard hiển thị trạng thái tải/lỗi/không có dữ liệu rõ ràng, không thay số liệu bằng số mẫu. Cần áp dụng migration trước; sau đó phát sinh các request AI để dashboard có dữ liệu thực.
 
 ## Triển khai container
 

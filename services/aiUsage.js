@@ -1,19 +1,5 @@
 const { getSupabaseAdminClient } = require('../models/supabaseAdminClient');
 
-function getCostUsd(promptTokens, completionTokens) {
-  const getRate = (name) => {
-    const rate = Number(process.env[name] || 0);
-    if (!Number.isFinite(rate) || rate < 0) {
-      console.error(`${name} must be a non-negative number; using $0 for AI usage cost.`);
-      return 0;
-    }
-    return rate;
-  };
-  const inputRate = getRate('AI_INPUT_COST_PER_MILLION_USD');
-  const outputRate = getRate('AI_OUTPUT_COST_PER_MILLION_USD');
-  return ((promptTokens * inputRate) + (completionTokens * outputRate)) / 1_000_000;
-}
-
 async function recordAIUsage(event) {
   const promptTokens = Math.max(0, Math.trunc(event.promptTokens || 0));
   const completionTokens = Math.max(0, Math.trunc(event.completionTokens || 0));
@@ -25,7 +11,6 @@ async function recordAIUsage(event) {
     prompt_tokens: promptTokens,
     completion_tokens: completionTokens,
     latency_ms: Math.max(0, Math.trunc(event.latencyMs || 0)),
-    cost_usd: getCostUsd(promptTokens, completionTokens),
     tools: Array.isArray(event.tools) ? event.tools : [],
     status_code: Math.max(100, Math.trunc(event.statusCode || 500))
   };
@@ -46,4 +31,4 @@ async function getAdminAIUsageSummary(days = 30) {
   return data;
 }
 
-module.exports = { getAdminAIUsageSummary, getCostUsd, recordAIUsage };
+module.exports = { getAdminAIUsageSummary, recordAIUsage };

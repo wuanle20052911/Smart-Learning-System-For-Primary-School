@@ -24,7 +24,6 @@ export default function AdminPage({ Brand, api, logout, go }) {
     ['17/06/2024 14:33', 'Tạo lớp học', 'Lê Quang Huy', 'Lớp 2D', 'Tạo mới lớp 2D năm học 2024-2025', 'green']
   ];
   const subjects = [['Toán', 98], ['Tiếng Việt', 87], ['Tiếng Anh', 76], ['Khoa học', 58], ['Lịch sử & địa lý', 39], ['Tin học', 28]];
-  const formatCost = (value) => `$${Number(value || 0).toFixed(6)}`;
   const formatLatency = (value) => `${(Number(value || 0) / 1000).toFixed(2)} giây`;
   return <main className="admin-dashboard">
     <aside className="admin-sidebar">
@@ -41,7 +40,6 @@ export default function AdminPage({ Brand, api, logout, go }) {
           <div className="ai-usage-metrics">
             <article><small>Yêu cầu thành công</small><strong>{aiUsage.successfulRequestCount}</strong><span>{aiUsage.failedRequestCount} lỗi</span></article>
             <article><small>Thời gian phản hồi trung bình</small><strong>{formatLatency(aiUsage.averageLatencyMs)}</strong><span>Trong 30 ngày</span></article>
-            <article><small>Chi phí trung bình / yêu cầu</small><strong>{formatCost(aiUsage.averageCostUsd)}</strong><span>Tổng: {formatCost(aiUsage.totalCostUsd)}</span></article>
             <article><small>Token vào / ra</small><strong>{Number(aiUsage.promptTokens || 0).toLocaleString()} / {Number(aiUsage.completionTokens || 0).toLocaleString()}</strong><span>Đã ghi nhận</span></article>
           </div>
           {aiUsage.recentRequests?.length > 0 ? <div className="ai-usage-recent">

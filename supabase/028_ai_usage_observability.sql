@@ -7,7 +7,6 @@ create table if not exists public.ai_usage_logs (
   prompt_tokens integer not null default 0 check (prompt_tokens >= 0),
   completion_tokens integer not null default 0 check (completion_tokens >= 0),
   latency_ms integer not null default 0 check (latency_ms >= 0),
-  cost_usd numeric(14, 10) not null default 0 check (cost_usd >= 0),
   tools jsonb not null default '[]'::jsonb,
   status_code integer not null,
   created_at timestamptz not null default now()
@@ -34,14 +33,12 @@ as $$
     'failedRequestCount', count(*) filter (where status_code >= 400),
     'promptTokens', coalesce(sum(prompt_tokens), 0),
     'completionTokens', coalesce(sum(completion_tokens), 0),
-    'totalCostUsd', coalesce(sum(cost_usd), 0),
-    'averageCostUsd', coalesce(avg(cost_usd), 0),
     'averageLatencyMs', coalesce(avg(latency_ms), 0),
     'recentRequests', coalesce((
       select jsonb_agg(to_jsonb(recent) order by recent.created_at desc)
       from (
         select feature, prompt_version, model, prompt_tokens, completion_tokens,
-          latency_ms, cost_usd, tools, status_code, created_at
+          latency_ms, tools, status_code, created_at
         from public.ai_usage_logs
         where created_at >= period_start
         order by created_at desc

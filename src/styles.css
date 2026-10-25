@@ -2,7 +2,7 @@ body { min-width: 320px; }
 button, input, select { font: inherit; }
 .ai-usage-card { grid-column: 1 / -1; margin-bottom: 16px; }
 .ai-usage-card .card-heading small { display: block; margin-top: 4px; color: #8292a5; font-size: 10px; }
-.ai-usage-metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+.ai-usage-metrics { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
 .ai-usage-metrics article { display: grid; gap: 4px; padding: 12px; border: 1px solid #eaf0f6; border-radius: 10px; background: #f9fbfe; }
 .ai-usage-metrics small, .ai-usage-metrics span { color: #8292a5; font-size: 10px; }
 .ai-usage-metrics strong { color: #172942; font: 800 20px 'Baloo 2', sans-serif; overflow-wrap: anywhere; }
