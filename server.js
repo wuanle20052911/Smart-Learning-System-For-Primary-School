@@ -615,6 +615,11 @@ app.get('/auth', (req, res) => {
   res.redirect('/');
 });
 
+app.get('/auth/callback', (req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
+  res.sendFile(path.join(__dirname, 'dist', 'index.html'));
+});
+
 app.get('/learn', (req, res) => {
   res.sendFile(path.join(__dirname, 'dist', 'index.html'));
 });

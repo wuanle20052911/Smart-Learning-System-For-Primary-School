@@ -26,7 +26,7 @@ function App() {
     return () => window.removeEventListener('popstate', update);
   }, []);
   useEffect(() => {
-    const styles = path === '/' || path === '/auth'
+    const styles = path === '/' || path === '/auth' || path === '/auth/callback'
       ? ['/public/css/auth.css']
       : path === '/admin'
         ? ['/public/css/admin.css', '/public/css/admin-dashboard.css']
@@ -45,7 +45,7 @@ function App() {
     });
   }, [path]);
   const session = readSession();
-  const isPublicPath = path === '/' || path === '/auth';
+  const isPublicPath = path === '/' || path === '/auth' || path === '/auth/callback';
   useEffect(() => {
     if (!session?.access_token && !isPublicPath) go('/');
   }, [isPublicPath, session?.access_token]);

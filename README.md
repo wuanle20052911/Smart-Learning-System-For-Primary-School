@@ -58,7 +58,14 @@ Rubric đánh giá gắn từng tiêu chí với luồng và file code nằm tro
    - Chạy nội dung file `supabase/001_create_users.sql`.
    - Supabase Auth vẫn quản lý mật khẩu trong `auth.users`; bảng `public.users` chỉ lưu profile và role.
 
-7. Tạo bảng bài học:
+7. Bật đăng nhập Google (tùy chọn):
+
+   - Trong Supabase Dashboard, mở **Authentication → Sign In / Providers → Google**, bật provider và nhập OAuth Client ID/Secret lấy từ Google Cloud Console.
+   - Thêm URL callback do Supabase hiển thị (dạng `https://<project-ref>.supabase.co/auth/v1/callback`) vào **Authorized redirect URIs** của OAuth Client trong Google Cloud.
+   - Trong **Authentication → URL Configuration**, đặt Site URL và thêm các URL ứng dụng được phép chuyển hướng, ví dụ `http://localhost:3000/auth/callback`, `http://localhost:5173/auth/callback` và URL production tương ứng.
+   - Dùng nút **Tiếp tục với Google** trên màn hình đăng nhập/đăng ký. Tài khoản mới qua Google được tạo mặc định với vai trò học sinh; quản lý có thể đổi role từ Supabase như các tài khoản hiện có.
+
+8. Tạo bảng bài học:
 
    - Trong **SQL Editor**, chạy tiếp nội dung file `supabase/002_create_lessons.sql`.
    - Nếu đã có tài khoản giáo viên từ trước, chạy thêm `supabase/003_sync_existing_user_roles.sql` để đồng bộ role.

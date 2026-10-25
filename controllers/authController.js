@@ -97,4 +97,13 @@ async function getProfile(req, res) {
   }
 }
 
-module.exports = { login, registerStudent, createTeacher, updateProfile, getProfile };
+function getOAuthConfig(req, res) {
+  const { SUPABASE_URL, SUPABASE_ANON_KEY } = process.env;
+  if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+    return res.status(503).json({ error: 'Đăng nhập Google chưa được cấu hình trên máy chủ.' });
+  }
+  res.set('Cache-Control', 'no-store');
+  return res.json({ supabaseUrl: SUPABASE_URL, supabaseAnonKey: SUPABASE_ANON_KEY });
+}
+
+module.exports = { login, registerStudent, createTeacher, updateProfile, getProfile, getOAuthConfig };
