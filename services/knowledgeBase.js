@@ -377,7 +377,9 @@ async function retrieveKnowledge(query, options = {}) {
   if (!options.accessToken && !options.userClient) {
     throw new Error('An authenticated Supabase session is required to search the knowledge base.');
   }
-  await ensureKnowledgeBase(options);
+  if (options.adminClient || process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    await ensureKnowledgeBase(options);
+  }
   const queryEmbedding = (await embedTexts([query], {
     signal: options.signal,
     onUsage: options.onUsage
@@ -389,6 +391,11 @@ async function retrieveKnowledge(query, options = {}) {
   });
   if (error) throw new Error(`Supabase vector search failed: ${error.message}`);
   if (!Array.isArray(data)) throw new Error('Supabase vector search returned an invalid response.');
+  if (!data.length) {
+    throw new Error(
+      'Chưa có tài liệu học tập được lập chỉ mục. Cấu hình SUPABASE_SERVICE_ROLE_KEY ở backend rồi chạy npm run kb:ingest.'
+    );
+  }
 
   return data.map((row) => ({
     id: row.id,

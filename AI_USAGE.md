@@ -34,14 +34,14 @@ Endpoint chỉ cho `teacher` và `admin`. Một số đầu vào của tính nă
 4. Chỉ các đoạn còn phù hợp được gửi cùng câu hỏi cho model chat. UI hiện câu trả lời và nguồn; có thể bật **Xem các đoạn truy xuất** để kiểm tra các đoạn top-K và điểm tương đồng.
 5. Nếu không tìm được bằng chứng hoặc model không trả ID nguồn hợp lệ, chatbot từ chối trả lời chắc chắn. Hội thoại chỉ tồn tại trong state trình duyệt hiện tại, không được lưu làm lịch sử chat.
 
-Tài liệu tri thức là các file `.md` trong bucket Supabase Storage. `npm run kb:ingest` lập chỉ mục thủ công; luồng chatbot cũng đồng bộ file mới/thay đổi trước khi truy xuất. Việc ingest cần Supabase service role ở backend và Ollama embedding model.
+Tài liệu tri thức là các file `.md` trong bucket Supabase Storage. `npm run kb:ingest` lập chỉ mục thủ công; luồng chatbot đồng bộ file mới/thay đổi trước khi truy xuất khi backend có `SUPABASE_SERVICE_ROLE_KEY`. Khóa này và Ollama embedding model (`nomic-embed-text`, vector 768 chiều) cần thiết để tạo/cập nhật chỉ mục. Nếu chỉ có khóa Supabase người dùng, chatbot vẫn truy vấn chỉ mục đã có; nếu chưa có chỉ mục, cần cấu hình service role trong `.env` backend và chạy `npm run kb:ingest`.
 
 ## Prompt, grounding và giới hạn
 
-- Prompt chat hiện được định nghĩa trong `services/aiPolicy.js`, phiên bản `ai-chat-v2`. Nó yêu cầu trả lời tiếng Việt ngắn gọn, chỉ dùng bằng chứng tường minh trong tài liệu, bỏ qua chỉ dẫn nhúng trong tài liệu và từ chối một số yêu cầu không an toàn/ngoài vai trò.
-- Trước khi gọi model chat, `getRefusalReason` áp dụng các mẫu từ chối trên câu hỏi, sau khi chuẩn hóa dấu tiếng Việt. Đây là lớp lọc heuristic hẹp, **không phải** bộ phân loại an toàn toàn diện; prompt cũng không thể bảo đảm model không bao giờ sinh nội dung sai hoặc không phù hợp.
+- Chat hiện khôi phục prompt `ai-chat-v1` trong `server.js`: trả lời ngắn gọn bằng tiếng Việt, chỉ dựa vào bằng chứng tài liệu. Bộ lọc từ chối sớm của `services/aiPolicy.js` không được gắn vào endpoint chat.
+- Mọi câu trả lời AI cần được người lớn/giáo viên kiểm tra; prompt không thể bảo đảm model không bao giờ sinh nội dung sai hoặc không phù hợp.
 - Đầu vào chat được giới hạn tối đa 1.000 ký tự; `includeChunks` phải là boolean.
-- `validateGroundedReply` chỉ chấp nhận phản hồi đúng cấu trúc có ít nhất một ID nguồn thuộc các đoạn đã truy xuất. ID nguồn không hợp lệ bị loại bỏ. Câu trả lời không nguồn sẽ bị abstain; một số câu hỏi quy trình có thể được xử lý bằng các bước trích trực tiếp từ tài liệu.
+- Endpoint chat kiểm tra cấu trúc phản hồi và chỉ hiển thị nguồn thuộc các đoạn đã truy xuất. Câu trả lời không có nguồn sẽ bị từ chối; một số câu hỏi quy trình có thể được xử lý bằng các bước trích trực tiếp từ tài liệu.
 - Tạo câu hỏi không có phiên bản LLM cố định cho mọi prompt do giáo viên cung cấp system/user prompt. Telemetry đánh dấu luồng này là `quiz-generator-v1`; khi thay đổi logic/prompt mặc định, cập nhật version để so sánh kết quả theo phiên bản.
 - Mọi câu trả lời AI cần được kiểm tra bởi giáo viên/người dùng; bộ kiểm thử policy không chứng minh tính chính xác học thuật của model.
 
@@ -59,7 +59,7 @@ node --test tests/ai-policy.test.js
 | Phiên bản | Đạt | Tỷ lệ |
 |---|---:|---:|
 | Trước cải tiến — phát lại policy cũ, không có chốt từ chối sớm | 16/24 | 66,7% |
-| Sau cải tiến — `ai-chat-v2` và chốt từ chối sớm | 24/24 | 100% |
+| Policy helper `ai-chat-v2` (đánh giá độc lập, không gắn vào endpoint chat) | 24/24 | 100% |
 
 Tăng **33,3 điểm phần trăm**. Ollama không phản hồi tại môi trường chạy đánh giá ban đầu, nên chưa có benchmark inference trực tiếp. Không diễn giải tỷ lệ policy này thành độ chính xác của model. Khi thay đổi policy/prompt, cập nhật các ca tương ứng và chạy cả bộ này lẫn unit test; unit test hiện có không thay thế 24 ca đánh giá.
 

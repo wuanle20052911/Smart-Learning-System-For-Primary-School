@@ -251,3 +251,80 @@ test('stores embeddings and metadata in Supabase and re-embeds only when the KB 
     else process.env.OLLAMA_EMBEDDING_MODEL = previousEmbeddingModel;
   }
 });
+
+test('searches an existing index when the server has no service-role key', async () => {
+  const previousFetch = global.fetch;
+  const previousServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const previousEmbeddingModel = process.env.OLLAMA_EMBEDDING_MODEL;
+  let searched = false;
+  delete process.env.SUPABASE_SERVICE_ROLE_KEY;
+  process.env.OLLAMA_EMBEDDING_MODEL = 'test-embedding-model';
+  global.fetch = async () => new Response(JSON.stringify({
+    embeddings: [Array(768).fill(0.25)]
+  }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+
+  try {
+    const matches = await retrieveKnowledge('bài học', {
+      accessToken: 'authenticated-user-token',
+      userClient: {
+        async rpc(name, args) {
+          searched = true;
+          assert.equal(name, 'match_chatbot_kb_chunks');
+          assert.equal(args.match_count, 4);
+          return {
+            data: [{
+              id: 'lesson-1',
+              content: 'Nội dung bài học.',
+              source_file: 'Math4mdfile/lesson.md',
+              section_number: '1',
+              section_title: 'Bài học',
+              chunk_number: 1,
+              similarity: 0.9
+            }],
+            error: null
+          };
+        }
+      }
+    });
+
+    assert.equal(searched, true);
+    assert.equal(matches[0].text, 'Nội dung bài học.');
+  } finally {
+    global.fetch = previousFetch;
+    if (previousServiceRoleKey === undefined) delete process.env.SUPABASE_SERVICE_ROLE_KEY;
+    else process.env.SUPABASE_SERVICE_ROLE_KEY = previousServiceRoleKey;
+    if (previousEmbeddingModel === undefined) delete process.env.OLLAMA_EMBEDDING_MODEL;
+    else process.env.OLLAMA_EMBEDDING_MODEL = previousEmbeddingModel;
+  }
+});
+
+test('explains how to initialize an empty index without a service-role key', async () => {
+  const previousFetch = global.fetch;
+  const previousServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const previousEmbeddingModel = process.env.OLLAMA_EMBEDDING_MODEL;
+  delete process.env.SUPABASE_SERVICE_ROLE_KEY;
+  process.env.OLLAMA_EMBEDDING_MODEL = 'test-embedding-model';
+  global.fetch = async () => new Response(JSON.stringify({
+    embeddings: [Array(768).fill(0.25)]
+  }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+
+  try {
+    await assert.rejects(
+      retrieveKnowledge('bài học', {
+        accessToken: 'authenticated-user-token',
+        userClient: {
+          async rpc() {
+            return { data: [], error: null };
+          }
+        }
+      }),
+      /SUPABASE_SERVICE_ROLE_KEY.*npm run kb:ingest/
+    );
+  } finally {
+    global.fetch = previousFetch;
+    if (previousServiceRoleKey === undefined) delete process.env.SUPABASE_SERVICE_ROLE_KEY;
+    else process.env.SUPABASE_SERVICE_ROLE_KEY = previousServiceRoleKey;
+    if (previousEmbeddingModel === undefined) delete process.env.OLLAMA_EMBEDDING_MODEL;
+    else process.env.OLLAMA_EMBEDDING_MODEL = previousEmbeddingModel;
+  }
+});

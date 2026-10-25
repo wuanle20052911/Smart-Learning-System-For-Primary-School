@@ -1,4 +1,4 @@
-const AI_CHAT_PROMPT_VERSION = 'ai-chat-v2';
+const AI_CHAT_PROMPT_VERSION = 'ai-chat-v1';
 const QUIZ_PROMPT_VERSION = 'quiz-generator-v1';
 
 const AI_CHAT_SYSTEM_PROMPT = [

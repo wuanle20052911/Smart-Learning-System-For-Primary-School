@@ -47,5 +47,5 @@ test('grounded answers require at least one valid source ID', () => {
 });
 
 test('the active student-chat prompt carries a version for telemetry', () => {
-  assert.equal(AI_CHAT_PROMPT_VERSION, 'ai-chat-v2');
+  assert.equal(AI_CHAT_PROMPT_VERSION, 'ai-chat-v1');
 });

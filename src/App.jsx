@@ -30,7 +30,7 @@ function App() {
     const styles = path === '/' || path === '/auth'
       ? ['/public/css/auth.css']
       : path === '/admin'
-        ? ['/public/css/admin.css']
+        ? ['/public/css/admin.css', '/public/css/admin-dashboard.css']
         : path === '/teacher'
           ? ['/public/css/teacher.css']
           : path === '/profile' || path === '/history' || path === '/competency'
