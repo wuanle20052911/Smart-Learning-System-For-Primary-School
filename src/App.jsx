@@ -3,6 +3,8 @@ import AdminPage from './pages/AdminPage.jsx';
 import AuthPage from './pages/AuthPage.jsx';
 import AccountPage from './pages/AccountPage.jsx';
 import StudentHomePage from './pages/StudentHomePage.jsx';
+import StudentLeaderboardPage from './pages/StudentLeaderboardPage.jsx';
+import StudentCompetencyPage from './pages/StudentCompetencyPage.jsx';
 import TeacherPage from './pages/TeacherPage.jsx';
 import Brand from './components/Brand.jsx';
 import Header from './components/Header.jsx';
@@ -10,7 +12,7 @@ import AccessDenied from './components/AccessDenied.jsx';
 import AssignedWorkView from './features/assignments/AssignedWorkView.jsx';
 import AIStudyChat from './features/assignments/AIStudyChat.jsx';
 import TeacherSubmissions from './features/assignments/TeacherSubmissions.jsx';
-import { AssignmentStudio, TeacherClassManagement, TeacherStudents, TeacherOverview, TeacherAnalytics, TeacherQuestionBank } from './features/assignments/AssignmentStudio.jsx';
+import { AssignmentStudio, TeacherClassManagement, TeacherStudents, TeacherOverview, TeacherAnalytics, TeacherRecommendations, TeacherQuestionBank } from './features/assignments/AssignmentStudio.jsx';
 import LessonView from './features/lessons/LessonView.jsx';
 import LessonStudio from './features/lessons/LessonStudio.jsx';
 import { api, readSession, sessionKey } from './services/api.js';
@@ -31,7 +33,7 @@ function App() {
         ? ['/public/css/admin.css']
         : path === '/teacher'
           ? ['/public/css/teacher.css']
-          : path === '/profile' || path === '/history'
+          : path === '/profile' || path === '/history' || path === '/competency'
             ? ['/public/css/quiz-generator.css', '/public/css/account.css']
             : ['/public/css/quiz-generator.css'];
     document.querySelectorAll('link[data-page-style]').forEach((link) => link.remove());
@@ -64,6 +66,7 @@ function App() {
       TeacherStudents={TeacherStudents}
       TeacherOverview={TeacherOverview}
       TeacherAnalytics={TeacherAnalytics}
+      TeacherRecommendations={TeacherRecommendations}
       TeacherQuestionBank={TeacherQuestionBank}
       TeacherSubmissions={TeacherSubmissions}
       LessonStudio={LessonStudio}
@@ -71,6 +74,14 @@ function App() {
   }
   if (path === '/profile') return <AccountPage api={api} readSession={readSession} sessionKey={sessionKey} Header={Header} Brand={Brand} go={go} logout={logout} />;
   if (path === '/history') return <AccountPage history api={api} readSession={readSession} sessionKey={sessionKey} Header={Header} Brand={Brand} go={go} logout={logout} />;
+  if (path === '/competency') {
+    if (role !== 'student') return <AccessDenied destination={role === 'teacher' || role === 'admin' ? '/teacher' : '/learn'} go={go} />;
+    return <StudentCompetencyPage api={api} readSession={readSession} Header={Header} Brand={Brand} go={go} logout={logout} />;
+  }
+  if (path === '/leaderboard') {
+    if (role !== 'student') return <AccessDenied destination={role === 'teacher' || role === 'admin' ? '/teacher' : '/learn'} go={go} />;
+    return <StudentLeaderboardPage api={api} readSession={readSession} Header={Header} Brand={Brand} go={go} logout={logout} />;
+  }
   return <><AIStudyChat api={api} lessons={[]} assignments={[]} progress={{ xp: 0, lessons: 0, answered: 0 }} /><StudentHomePage api={api} readSession={readSession} Header={Header} Brand={Brand} LessonView={LessonView} AssignedWorkView={AssignedWorkView} go={go} logout={logout} /></>;
 }
 

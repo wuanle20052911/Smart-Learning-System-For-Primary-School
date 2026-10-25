@@ -3,13 +3,28 @@ import LessonView from '../features/lessons/LessonView.jsx';
 import { deduplicateLessonsBySourceNumber, getLessonChapterName, getLessonDescription, getLessonDisplayTitle, getLessonSourceCode } from '../services/learningMaterials.js';
 import fireGif from '../assets/Fire.gif';
 import winterScene from '../assets/mathjoy-winter.gif';
-import welcomeLights from '../assets/mathjoy-welcome-blinking.gif';
+import statsPanel from '../assets/Snowy Candy Game UI Panel.png';
+import pointsIcon from '../assets/Glossy Golden Star with Sparkles.png';
+import lessonsIcon from '../assets/Glossy Golden Trophy with Sparkles.png';
+import studyTimeIcon from '../assets/Glossy Cartoon Stopwatch Icon.png';
+import leaderboardEmblem from '../assets/leaderboard/Glossy Golden Trophy Achievement Emblem.png';
+import leaderboardFirstPlace from '../assets/leaderboard/Glossy Golden First Place Trophy Badge.png';
+import leaderboardSecondPlace from '../assets/leaderboard/Glossy Second Place Trophy Badge.png';
+import leaderboardThirdPlace from '../assets/leaderboard/Glossy Bronze Top 3 Trophy Badge.png';
 
 function getLocalDateKey(date) {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, '0');
   const day = String(date.getDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
+}
+
+function getDailyStudyTime(storageKey) {
+  const savedTime = JSON.parse(localStorage.getItem(storageKey) || 'null');
+  const today = getLocalDateKey(new Date());
+  return savedTime?.date === today && Number.isFinite(savedTime.seconds) && savedTime.seconds >= 0
+    ? savedTime
+    : { date: today, seconds: 0 };
 }
 
 function getStreakCount(streakKey) {
@@ -272,7 +287,10 @@ const Stocking = ({ className = '' }) => <span className={`christmas-stocking ${
 
 export default function StudentHomePage({ api, readSession, Header, Brand, LessonView: LessonViewComponent = LessonView, AssignedWorkView, go, logout, onAskAI }) {
   const session = readSession();
+  const studentId = session?.user?.id || session?.profile?.id;
   const streakKey = `mathjoy-study-streak-${session?.profile?.id || session?.user?.id || session?.profile?.email || 'student'}`;
+  const studyTimeKey = `mathjoy-daily-study-time-${session?.profile?.id || session?.user?.id || session?.profile?.email || 'student'}`;
+  const dailyStudyGoalSeconds = 15 * 60;
   const [lessons, setLessons] = useState([]);
   const [assignments, setAssignments] = useState([]);
   const [selectedChapterId, setSelectedChapterId] = useState('');
@@ -281,8 +299,20 @@ export default function StudentHomePage({ api, readSession, Header, Brand, Lesso
   const [loadingChapters, setLoadingChapters] = useState(true);
   const [error, setError] = useState('');
   const [streak, setStreak] = useState(() => getStreakCount(streakKey));
+  const [dailyStudyTime, setDailyStudyTime] = useState(() => getDailyStudyTime(studyTimeKey));
   const [progress, setProgress] = useState(() => JSON.parse(localStorage.getItem('mathjoy-progress') || '{"xp":0,"lessons":0,"answered":0}'));
   const [completedLessons, setCompletedLessons] = useState(() => JSON.parse(localStorage.getItem('mathjoy-completed-lessons') || '[]'));
+  const [leaderboardLoading, setLeaderboardLoading] = useState(true);
+  const [leaderboardError, setLeaderboardError] = useState('');
+  const [leaderboardPosition, setLeaderboardPosition] = useState(null);
+  const [leaderboardRefresh, setLeaderboardRefresh] = useState(0);
+  const leaderboardIcon = leaderboardPosition === 1
+    ? leaderboardFirstPlace
+    : leaderboardPosition === 2
+      ? leaderboardSecondPlace
+      : leaderboardPosition === 3
+        ? leaderboardThirdPlace
+        : leaderboardEmblem;
 
   useEffect(() => {
     const previousScene = document.body.style.getPropertyValue('--mathjoy-winter-scene');
@@ -309,6 +339,74 @@ export default function StudentHomePage({ api, readSession, Header, Brand, Lesso
       .finally(() => setLoadingChapters(false));
   }, []);
 
+  useEffect(() => {
+    let active = true;
+    setLeaderboardLoading(true);
+    api('/api/leaderboard/class')
+      .then(({ leaderboard: entries = [] }) => {
+        if (!active) return;
+        setLeaderboardError('');
+        const currentStudent = entries.find((entry) => entry.student_id === studentId);
+        setLeaderboardPosition(currentStudent ? Number(currentStudent.rank_position) : null);
+        if (currentStudent) {
+          const totalPoints = Number(currentStudent.points);
+          const totalLessons = Number(currentStudent.completed_lessons);
+          setProgress((current) => {
+            const updatedProgress = { ...current, xp: totalPoints, lessons: totalLessons };
+            localStorage.setItem('mathjoy-progress', JSON.stringify(updatedProgress));
+            return updatedProgress;
+          });
+        }
+      })
+      .catch((loadError) => {
+        if (active) {
+          setLeaderboardError(loadError.message || 'Không thể tải bảng xếp hạng lớp.');
+          setLeaderboardPosition(null);
+        }
+      })
+      .finally(() => {
+        if (active) setLeaderboardLoading(false);
+      });
+    return () => { active = false; };
+  }, [api, leaderboardRefresh, studentId]);
+
+  useEffect(() => {
+    if (!selectedLesson && !selectedAssignment) return undefined;
+
+    let lastVisibleAt = document.visibilityState === 'visible' ? Date.now() : null;
+    const recordElapsedTime = () => {
+      if (lastVisibleAt === null) return;
+      const now = Date.now();
+      const elapsedSeconds = Math.floor((now - lastVisibleAt) / 1000);
+      lastVisibleAt += elapsedSeconds * 1000;
+      if (elapsedSeconds <= 0) return;
+
+      setDailyStudyTime((current) => {
+        const today = getLocalDateKey(new Date());
+        const seconds = (current.date === today ? current.seconds : 0) + elapsedSeconds;
+        const updatedTime = { date: today, seconds };
+        localStorage.setItem(studyTimeKey, JSON.stringify(updatedTime));
+        return updatedTime;
+      });
+    };
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        lastVisibleAt = Date.now();
+      } else {
+        recordElapsedTime();
+        lastVisibleAt = null;
+      }
+    };
+    const intervalId = window.setInterval(recordElapsedTime, 15000);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      recordElapsedTime();
+      window.clearInterval(intervalId);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [selectedLesson, selectedAssignment, studyTimeKey]);
+
   const openAssignment = async (item) => {
     try {
       const data = await api(`/api/assignments/${item.id}`);
@@ -320,7 +418,9 @@ export default function StudentHomePage({ api, readSession, Header, Brand, Lesso
 
   const chapters = groupLessonsByChapter(lessons);
   const selectedChapter = chapters.find((chapter) => chapter.id === selectedChapterId);
-
+  const todayStudySeconds = dailyStudyTime.date === getLocalDateKey(new Date()) ? dailyStudyTime.seconds : 0;
+  const studyProgress = Math.min(100, (todayStudySeconds / dailyStudyGoalSeconds) * 100);
+  const studiedMinutes = Math.floor(todayStudySeconds / 60);
   const recordStudyActivity = () => {
     const today = new Date();
     const todayKey = getLocalDateKey(today);
@@ -337,19 +437,40 @@ export default function StudentHomePage({ api, readSession, Header, Brand, Lesso
     setStreak(count);
   };
 
-  const completeLesson = (lessonId) => {
-    recordStudyActivity();
-    if (!completedLessons.includes(lessonId)) {
-      const nextCompleted = [...completedLessons, lessonId];
-      setCompletedLessons(nextCompleted);
-      localStorage.setItem('mathjoy-completed-lessons', JSON.stringify(nextCompleted));
+  const completeLesson = async (lessonId) => {
+    const alreadyCompleted = completedLessons.includes(lessonId);
+    try {
+      const { completion } = await api('/api/leaderboard/complete-lesson', {
+        method: 'POST',
+        body: JSON.stringify({ lessonId })
+      });
+      const totalPoints = Number(completion?.total_points);
+      const totalLessons = Number(completion?.total_lessons);
+      if (!Number.isSafeInteger(totalPoints) || totalPoints < 0 || !Number.isSafeInteger(totalLessons) || totalLessons < 0) {
+        throw new Error('Máy chủ trả về tổng điểm hoặc số bài học không hợp lệ.');
+      }
+
+      recordStudyActivity();
+      if (!alreadyCompleted) {
+        const nextCompleted = [...completedLessons, lessonId];
+        setCompletedLessons(nextCompleted);
+        localStorage.setItem('mathjoy-completed-lessons', JSON.stringify(nextCompleted));
+      }
       setProgress((current) => {
-        const updatedProgress = { ...current, lessons: current.lessons + 1, xp: current.xp + 10 };
+        const updatedProgress = {
+          ...current,
+          lessons: totalLessons,
+          xp: totalPoints
+        };
         localStorage.setItem('mathjoy-progress', JSON.stringify(updatedProgress));
         return updatedProgress;
       });
+      setLeaderboardError('');
+      setLeaderboardRefresh((current) => current + 1);
+      setSelectedLesson(null);
+    } catch (completionError) {
+      setLeaderboardError(completionError.message || 'Không thể ghi nhận điểm hoàn thành bài học.');
     }
-    setSelectedLesson(null);
   };
 
   return <>
@@ -358,22 +479,22 @@ export default function StudentHomePage({ api, readSession, Header, Brand, Lesso
         <span className="streak-chip-bulb"><img src={fireGif} alt="" /></span>
         <span className="streak-chip-value">{streak} ngày</span>
       </span>
+      <a
+        className="nav-chip leaderboard-chip"
+        href="/leaderboard"
+        onClick={(event) => { event.preventDefault(); go('/leaderboard'); }}
+        aria-label={leaderboardPosition ? `Bảng xếp hạng em chăm, hạng ${leaderboardPosition}` : 'Mở bảng xếp hạng em chăm'}
+        title={leaderboardError || 'Mở bảng xếp hạng em chăm'}
+      >
+        <img className={`leaderboard-chip-icon ${leaderboardPosition >= 1 && leaderboardPosition <= 3 ? 'is-rank-badge' : 'is-default-emblem'}`} src={leaderboardIcon} alt="" />
+      </a>
       {session?.profile?.role === 'teacher' && <a className="nav-chip" href="/teacher" onClick={(event) => { event.preventDefault(); go('/teacher'); }}>Bảng giáo viên</a>}
     </Header>
     <main className="home">
-      <section className="welcome">
-        <div className="welcome-box">
-          <img className="welcome-lights" src={welcomeLights} alt="" aria-hidden="true" />
-          <div className="welcome-copy">
-            <h1>Chào bạn nhỏ! 👋</h1>
-            <p>Cùng khám phá những điều thú vị trong thế giới Toán học nhé.</p>
-          </div>
-        </div>
-      </section>
       <section className="stats">
-        <div className="stat"><span className="stat-icon">⭐</span><div><strong>{progress.xp}</strong><span>Điểm hôm nay</span></div><Stocking /></div>
-        <div className="stat"><span className="stat-icon">🏆</span><div><strong>{progress.lessons}</strong><span>Bài đã hoàn thành</span></div><Stocking /></div>
-        <div className="stat"><span className="stat-icon">🎯</span><div><strong>15 phút</strong><span>Mục tiêu mỗi ngày</span></div><Stocking /></div>
+        <div className="stat stat-score" style={{ backgroundImage: `url("${statsPanel}")` }}><img className="stat-icon" src={pointsIcon} alt="" /><div className="stat-content"><strong>{progress.xp}</strong><span>Tổng điểm học tập</span></div></div>
+        <div className="stat stat-lessons" style={{ backgroundImage: `url("${statsPanel}")` }}><img className="stat-icon" src={lessonsIcon} alt="" /><div className="stat-content"><strong>{progress.lessons}</strong><span>Bài đã hoàn thành</span></div></div>
+        <div className="stat daily-time-stat" style={{ backgroundImage: `url("${statsPanel}")` }}><img className="stat-icon" src={studyTimeIcon} alt="" /><div className="daily-time-stat-content"><strong>{Math.min(15, studiedMinutes)}/15 phút</strong><span>Thời gian học hôm nay</span><div className="daily-time-progress" role="progressbar" aria-label="Thời gian học hôm nay" aria-valuemin="0" aria-valuemax={dailyStudyGoalSeconds} aria-valuenow={Math.min(dailyStudyGoalSeconds, todayStudySeconds)}><span style={{ width: `${studyProgress}%` }} /></div></div></div>
       </section>
       <div className="home-grid">
         <section className="home-panel christmas-frame">
@@ -393,7 +514,7 @@ export default function StudentHomePage({ api, readSession, Header, Brand, Lesso
               </>}
         </section>
         <aside>
-          <section className="daily-card christmas-frame"><h2>Mục tiêu hôm nay</h2><p>Hoàn thành 5 câu hỏi để nhận thêm sao và giữ chuỗi học tập!</p><div className="daily-progress"><span style={{ width: `${Math.min(100, (progress.answered / 5) * 100)}%` }} /></div><small>{Math.min(5, progress.answered)}/5 câu hỏi</small><Cane position="br" /></section>
+          <section className="daily-card christmas-frame"><h2>Mục tiêu hôm nay</h2><p>Học 15 phút mỗi ngày để duy trì thói quen học tập nhé!</p><div className="daily-progress" role="progressbar" aria-label="Thời gian học hôm nay" aria-valuemin="0" aria-valuemax={dailyStudyGoalSeconds} aria-valuenow={Math.min(dailyStudyGoalSeconds, todayStudySeconds)}><span style={{ width: `${studyProgress}%` }} /></div><small>{Math.min(15, studiedMinutes)}/15 phút</small><Cane position="br" /></section>
           <section className="assigned-work-card christmas-frame"><Cane position="tr" /><div className="assigned-work-heading"><div><span>📚</span><h2>Bài tập cần làm</h2></div><b>{assignments.length}</b></div><p className="assigned-work-subtitle">Bài tập cô giao cho em</p>{assignments.length ? <div className="assigned-work-list">{assignments.map((item) => {
             const isClosed = item.due_at && new Date(item.due_at).getTime() <= Date.now();
             const canReview = Boolean(item.submission);

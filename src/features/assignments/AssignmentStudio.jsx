@@ -654,8 +654,134 @@ export function TeacherStudents({ classes, onMessage, api }) {
   </section>;
 }
 
-export function TeacherOverview({ students, assignments, onOpenAssignments, onOpenStudents }) {
-  return <><section className="teacher-metrics"><article><span className="metric-icon blue">★</span><div><small>Điểm trung bình lớp ⓘ</small><strong>7.8/10</strong><em>↑ 0.6 so với 30 ngày trước</em></div></article><article><span className="metric-icon green">✓</span><div><small>Tỷ lệ hoàn thành ⓘ</small><strong>86%</strong><em>↑ 8% so với 30 ngày trước</em></div></article><article><span className="metric-icon yellow">◎</span><div><small>Tỷ lệ chính xác ⓘ</small><strong>74%</strong><em className="down">↓ 3% so với 30 ngày trước</em></div></article><article><span className="metric-icon red">♟</span><div><small>Học sinh cần hỗ trợ ⓘ</small><strong>6</strong><em className="neutral">— không đổi</em></div></article></section><section className="teacher-chart-grid"><article className="teacher-card trend-card"><div className="card-heading"><div><small>XU HƯỚNG ĐIỂM TRUNG BÌNH THEO TUẦN</small><h2>Tiến bộ của lớp</h2></div><span>7.8</span></div><div className="line-chart"><svg viewBox="0 0 500 170" role="img" aria-label="Biểu đồ điểm trung bình"><path d="M30 130 L135 112 L240 94 L345 78 L465 48 L465 150 L30 150 Z" fill="#e9f5ff" /><path d="M30 130 L135 112 L240 94 L345 78 L465 48" fill="none" stroke="#46a9ea" strokeWidth="4" />{[[30,130,'6.4'],[135,112,'6.8'],[240,94,'7.1'],[345,78,'7.4'],[465,48,'7.8']].map(([x, y, value]) => <g key={x}><circle cx={x} cy={y} r="5" fill="#46a9ea" /><text x={x - 10} y={y - 12}>{value}</text></g>)}</svg><div className="chart-labels"><span>Tuần 1</span><span>Tuần 2</span><span>Tuần 3</span><span>Tuần 4</span><span>Tuần 5</span></div></div></article><article className="teacher-card skill-card"><div className="card-heading"><div><small>MỨC ĐỘ THÀNH THẠO KỸ NĂNG</small><h2>Kỹ năng của lớp</h2></div></div>{[['Số tự nhiên','85%','green'],['Phép cộng, trừ','80%','green'],['Phép nhân, chia','68%','yellow'],['Hình học','65%','blue'],['Đo lường','60%','blue'],['Phân số','42%','red']].map(([label, value, color]) => <div className="skill-row" key={label}><span>{label}</span><i><b className={color} style={{ width: value }} /></i><strong>{value}</strong></div>)}</article><article className="teacher-card donut-card"><div className="card-heading"><div><small>TỶ LỆ NỘP BÀI</small><h2>Đúng hạn</h2></div></div><div className="donut"><strong>86%</strong><small>Đã nộp bài</small></div><p><span className="dot green" /> Đã nộp: 86% (25 học sinh)</p><p><span className="dot gray" /> Chưa nộp: 14% (4 học sinh)</p></article><article className="teacher-card ai-suggestion"><span className="ai-badge">✦ AI</span><h3>Đề xuất từ AI</h3><p>Dựa trên kết quả học tập 30 ngày, bạn có thể:</p><b>▣ Ôn tập chủ đề Phân số</b><small>Kỹ năng này đang đáng để ôn tập cho lớp (42% thành thạo).</small><ul><li>Giao bài tập ôn Phân số</li><li>Sử dụng bài tập tương tác</li><li>Kiểm tra lại sau 7 ngày</li></ul><button onClick={onOpenAssignments}>Tạo bài tập ôn tập　›</button></article></section><section className="teacher-bottom-grid"><article className="teacher-card assignment-table-card"><div className="card-heading"><div><small>BÀI TẬP ĐANG GIAO</small><h2>Hoạt động gần đây</h2></div><button onClick={onOpenAssignments}>Xem tất cả bài tập　›</button></div><table><thead><tr><th>Tên bài tập</th><th>Chủ đề</th><th>Hoàn thành</th><th>Đã nộp</th></tr></thead><tbody>{assignments.map(([name, topic, progress, submitted, color]) => <tr key={name}><td><span className={`table-file ${color}`}>▣</span>{name}</td><td>{topic}</td><td><b className="mini-progress"><i className={color} style={{ width: progress }} />{progress}</b></td><td>{submitted}</td></tr>)}</tbody></table></article><article className="teacher-card support-card"><div className="card-heading"><div><small>HỌC SINH CẦN HỖ TRỢ</small><h2>Ưu tiên theo dõi</h2></div><button onClick={onOpenStudents}>Xem tất cả</button></div>{students.map(([name, topics, score, risk]) => <div className="support-row" key={name}><span className="student-face">●</span><div><b>{name}</b><small>Yếu: {topics}</small></div><strong>{score}</strong><em className={risk === 'Cao' ? 'high' : 'medium'}>{risk}</em></div>)}</article></section></>;
+export function TeacherOverview({ data, loading, error, onRetry, onOpenAssignments, onOpenStudents }) {
+  if (loading) return <section className="teacher-placeholder teacher-card"><span>◷</span><h2>Đang tải tổng quan lớp...</h2><p>Dữ liệu được lấy từ bài làm, bài tập và danh sách lớp đã lưu.</p></section>;
+  if (error) return <section className="teacher-placeholder teacher-card"><span>!</span><h2>Không thể tải tổng quan</h2><p>{error}</p><button className="teacher-create" type="button" onClick={onRetry}>Thử lại</button></section>;
+  if (!data) return <section className="teacher-placeholder teacher-card"><span>▥</span><h2>Chưa có dữ liệu tổng quan</h2><button className="teacher-create" type="button" onClick={onRetry}>Tải lại</button></section>;
+
+  const { analytics, assignments: allAssignments, submissions, classRosters } = data;
+  const overview = analytics.overview;
+  const attempts = analytics.recentAttempts || [];
+  const assignedWork = allAssignments.filter((assignment) => assignment.published && assignment.class_id);
+  const expectedCount = assignedWork.reduce((total, assignment) => total + (classRosters[assignment.class_id]?.length || 0), 0);
+  const submittedCount = assignedWork.reduce((total, assignment) => {
+    const rosterIds = new Set((classRosters[assignment.class_id] || []).map((student) => student.id || student.student_id));
+    const submittedIds = new Set(submissions
+      .filter((submission) => submission.assignment_id === assignment.id && rosterIds.has(submission.student_id))
+      .map((submission) => submission.student_id));
+    return total + submittedIds.size;
+  }, 0);
+  const completionRate = expectedCount ? Math.round(submittedCount / expectedCount * 100) : null;
+  const attemptAccuracy = overview.accuracyRate;
+  const topicResults = new Map();
+  attempts.forEach((attempt) => {
+    const topic = attempt.chapter?.trim() || attempt.title?.trim() || 'Chưa phân chủ đề';
+    const current = topicResults.get(topic) || { correct: 0, total: 0 };
+    current.correct += Number(attempt.score) || 0;
+    current.total += Number(attempt.total) || 0;
+    topicResults.set(topic, current);
+  });
+  const topics = [...topicResults.entries()]
+    .map(([name, result]) => ({ name, accuracy: result.total ? Math.round(result.correct / result.total * 100) : 0 }))
+    .sort((left, right) => left.accuracy - right.accuracy)
+    .slice(0, 6);
+  const topicColor = (accuracy) => accuracy < 50 ? 'red' : accuracy < 70 ? 'yellow' : accuracy < 85 ? 'blue' : 'green';
+  const weeklyResults = new Map();
+  attempts.forEach((attempt) => {
+    const date = new Date(attempt.created_at);
+    if (Number.isNaN(date.getTime())) return;
+    const weekStart = new Date(date);
+    weekStart.setHours(0, 0, 0, 0);
+    weekStart.setDate(weekStart.getDate() - ((weekStart.getDay() + 6) % 7));
+    const key = weekStart.toISOString().slice(0, 10);
+    const current = weeklyResults.get(key) || { score: 0, count: 0, date: weekStart };
+    current.score += Number(attempt.total) ? Number(attempt.score) / Number(attempt.total) * 10 : 0;
+    current.count += 1;
+    weeklyResults.set(key, current);
+  });
+  const weekly = [...weeklyResults.values()].sort((left, right) => left.date - right.date).slice(-5);
+  const chartPoints = weekly.map((item, index) => ({
+    x: weekly.length === 1 ? 250 : 30 + index * (435 / (weekly.length - 1)),
+    y: 140 - (item.score / item.count / 10) * 100,
+    score: item.score / item.count,
+    label: item.date.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' })
+  }));
+  const linePath = chartPoints.map((point, index) => `${index ? 'L' : 'M'}${point.x} ${point.y}`).join(' ');
+  const areaPath = chartPoints.length ? `${linePath} L${chartPoints[chartPoints.length - 1].x} 150 L${chartPoints[0].x} 150 Z` : '';
+  const flaggedStudents = analytics.students
+    .filter((student) => ['Cao', 'Theo dõi'].includes(student.risk))
+    .slice(0, 4);
+  const latestAssignments = [...assignedWork].sort((left, right) => new Date(right.updated_at || right.created_at) - new Date(left.updated_at || left.created_at)).slice(0, 4);
+
+  return <>
+    <section className="teacher-metrics">
+      <article><span className="metric-icon blue">★</span><div><small>Điểm trung bình lượt làm</small><strong>{overview.attemptCount ? `${(overview.averageScore / 10).toFixed(1)}/10` : '—'}</strong><em>{overview.attemptCount} lượt làm bài</em></div></article>
+      <article><span className="metric-icon green">✓</span><div><small>Tỷ lệ hoàn thành bài tập</small><strong>{completionRate === null ? '—' : `${completionRate}%`}</strong><em>{expectedCount ? `${submittedCount}/${expectedCount} lượt nộp dự kiến` : 'Chưa có bài tập được giao'}</em></div></article>
+      <article><span className="metric-icon yellow">◎</span><div><small>Độ chính xác</small><strong>{overview.attemptCount ? `${attemptAccuracy}%` : '—'}</strong><em>{overview.attemptCount ? 'Tính từ câu trả lời đã lưu' : 'Chưa có lượt làm bài'}</em></div></article>
+      <article><span className="metric-icon red">♟</span><div><small>Học sinh cần hỗ trợ</small><strong>{overview.supportCount}</strong><em>{overview.insufficientDataCount} học sinh chưa đủ dữ liệu</em></div></article>
+    </section>
+    <section className="teacher-chart-grid">
+      <article className="teacher-card trend-card"><div className="card-heading"><div><small>ĐIỂM TRUNG BÌNH THEO TUẦN</small><h2>Tiến bộ của lớp</h2></div><span>{chartPoints.length ? `${chartPoints[chartPoints.length - 1].score.toFixed(1)}/10` : '—'}</span></div>
+        {chartPoints.length ? <div className="line-chart"><svg viewBox="0 0 500 170" role="img" aria-label="Điểm trung bình các lượt làm theo tuần"><path d={areaPath} fill="#e9f5ff" /><path d={linePath} fill="none" stroke="#46a9ea" strokeWidth="4" />{chartPoints.map((point) => <g key={point.label}><circle cx={point.x} cy={point.y} r="5" fill="#46a9ea" /><text x={point.x - 10} y={point.y - 12}>{point.score.toFixed(1)}</text></g>)}</svg><div className="chart-labels">{chartPoints.map((point) => <span key={point.label}>{point.label}</span>)}</div></div> : <p className="student-list-empty">Chưa có lượt làm bài để vẽ biểu đồ.</p>}
+      </article>
+      <article className="teacher-card skill-card"><div className="card-heading"><div><small>ĐỘ CHÍNH XÁC TỪ BÀI LÀM ĐÃ LƯU</small><h2>Kết quả theo chủ đề</h2></div></div>{topics.length ? topics.map(({ name, accuracy }) => <div className="skill-row" key={name}><span>{name}</span><i><b className={topicColor(accuracy)} style={{ width: `${accuracy}%` }} /></i><strong>{accuracy}%</strong></div>) : <p className="student-list-empty">Chưa có dữ liệu theo chủ đề.</p>}</article>
+      <article className="teacher-card donut-card"><div className="card-heading"><div><small>BÀI TẬP ĐÃ GIAO</small><h2>Tỷ lệ nộp bài</h2></div></div>{completionRate === null ? <p className="student-list-empty">Chưa có bài tập/lớp để tính tỷ lệ nộp.</p> : <><div className="donut real-donut" style={{ '--completion-rate': `${completionRate}%` }}><div><strong>{completionRate}%</strong><small>Đã nộp</small></div></div><p><span className="dot green" /> Đã nộp: {submittedCount} lượt</p><p><span className="dot gray" /> Chưa nộp: {expectedCount - submittedCount} lượt</p></>}</article>
+      <article className="teacher-card ai-suggestion"><span className="ai-badge">DỮ LIỆU</span><h3>Ưu tiên ôn tập</h3>{topics.length ? <><p>Dựa trên kết quả các bài làm đã lưu:</p><b>▣ Ôn tập {topics[0].name}</b><small>Độ chính xác hiện tại: {topics[0].accuracy}% trên dữ liệu bài làm.</small><ul><li>Xem kết quả theo chủ đề</li><li>Giao bài tập ôn tập cho lớp</li></ul></> : <p>Chưa đủ bài làm để đưa ra gợi ý ôn tập theo dữ liệu.</p>}<button onClick={onOpenAssignments}>Mở bài tập　›</button></article>
+    </section>
+    <section className="teacher-bottom-grid">
+      <article className="teacher-card assignment-table-card"><div className="card-heading"><div><small>BÀI TẬP ĐANG GIAO</small><h2>Hoạt động gần đây</h2></div><button onClick={onOpenAssignments}>Xem tất cả bài tập　›</button></div><table><thead><tr><th>Tên bài tập</th><th>Lớp</th><th>Hoàn thành</th><th>Đã nộp</th></tr></thead><tbody>{latestAssignments.length ? latestAssignments.map((assignment, index) => {
+        const roster = classRosters[assignment.class_id] || [];
+        const rosterIds = new Set(roster.map((student) => student.id || student.student_id));
+        const submittedIds = new Set(submissions.filter((submission) => submission.assignment_id === assignment.id && rosterIds.has(submission.student_id)).map((submission) => submission.student_id));
+        const progress = roster.length ? Math.round(submittedIds.size / roster.length * 100) : 0;
+        return <tr key={assignment.id}><td><span className={`table-file ${['blue', 'green', 'yellow', 'purple'][index]}`}>▣</span>{assignment.title}</td><td>{roster.length} học sinh</td><td><b className="mini-progress"><i className={['blue', 'green', 'yellow', 'purple'][index]} style={{ width: `${progress}%` }} />{progress}%</b></td><td>{submittedIds.size}/{roster.length}</td></tr>;
+      }) : <tr><td colSpan="4" className="student-list-empty">Chưa có bài tập nào được giao.</td></tr>}</tbody></table></article>
+      <article className="teacher-card support-card"><div className="card-heading"><div><small>THEO DÕI HỌC SINH</small><h2>Ưu tiên hỗ trợ</h2></div><button onClick={onOpenStudents}>Xem học sinh</button></div>{flaggedStudents.length ? flaggedStudents.map((student) => {
+        const topicsForStudent = [...new Set(attempts.filter((attempt) => attempt.student_id === student.student_id).map((attempt) => attempt.chapter || attempt.title).filter(Boolean))].slice(0, 2);
+        return <div className="support-row" key={student.student_id}><span className="student-face">●</span><div><b>{student.student_name}</b><small>{topicsForStudent.length ? `Ôn tập: ${topicsForStudent.join(', ')}` : student.reasons?.[0] || 'Cần theo dõi thêm'}</small></div><strong>{student.averageScore === null ? '—' : `${(student.averageScore / 10).toFixed(1)}/10`}</strong><em className={student.risk === 'Cao' ? 'high' : 'medium'}>{student.risk}</em></div>;
+      }) : <p className="student-list-empty">Chưa có học sinh cần hỗ trợ theo dữ liệu hiện tại.</p>}</article>
+    </section>
+  </>;
+}
+
+export function TeacherRecommendations({ api, onCreateAssignment }) {
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const loadRecommendations = async () => {
+    setLoading(true);
+    setError('');
+    try {
+      setData(await api('/api/attempts/recommendations'));
+    } catch (requestError) {
+      setError(requestError.message || 'Không thể tạo đề xuất AI.');
+    } finally {
+      setLoading(false);
+    }
+  };
+  useEffect(() => { loadRecommendations(); }, []);
+
+  return <section className="teacher-recommendations-view">
+    <div className="analytics-intro"><h2>Đề xuất ôn tập</h2><button className="teacher-create" type="button" onClick={loadRecommendations} disabled={loading}>{loading ? 'Đang phân tích...' : '↻ Phân tích lại'}</button></div>
+    {loading ? <section className="teacher-placeholder teacher-card"><span>✦</span><h2>AI đang phân tích dữ liệu lớp...</h2><p>Đang xem kết quả học tập và bài tập đã giao.</p></section>
+      : error ? <section className="teacher-placeholder teacher-card"><span>!</span><h2>Chưa tạo được đề xuất</h2><p>{error}</p><button className="teacher-create" type="button" onClick={loadRecommendations}>Thử lại</button></section>
+        : <><section className="recommendation-summary teacher-card"><div><span className="panel-kicker">TÓM TẮT PHÂN TÍCH</span><p>{data.summary}</p></div><small>{data.model ? `Model ${data.model} · ${data.promptVersion}` : data.promptVersion}</small></section>
+          {data.recommendations.length ? <div className="recommendation-list">{data.recommendations.map((recommendation, index) => {
+            const evidence = data.evidence.recommendationSignals.find((metric) => metric.topic === recommendation.topic);
+            return <article className="recommendation-card teacher-card" key={`${recommendation.topic}-${index}`}>
+              <div className="recommendation-card-heading"><span className={`recommendation-priority ${recommendation.priority}`}>{recommendation.priority === 'high' ? 'Ưu tiên cao' : recommendation.priority === 'medium' ? 'Ưu tiên vừa' : 'Gợi ý'}</span><small>Chủ đề: {recommendation.topic}</small></div>
+              <h3>{recommendation.title}</h3>
+              <p>{recommendation.reason}</p>
+              {evidence && <small className="recommendation-evidence">{evidence.kind === 'completion'
+                ? `Dữ liệu: đã nộp ${evidence.submitted}/${evidence.expected} lượt (${evidence.accuracy}%)`
+                : `Dữ liệu: đúng ${evidence.accuracy}% · ${evidence.attempts} lượt · ${evidence.answeredQuestions} câu trả lời`}</small>}
+              <div className="recommendation-action"><strong>Bước đề xuất</strong><p>{recommendation.action}</p></div>
+              <button className="teacher-create" type="button" onClick={() => onCreateAssignment(recommendation)}>Mở khu vực bài tập</button>
+            </article>;
+          })}</div> : <section className="teacher-placeholder teacher-card"><span>✓</span><h2>Chưa có đề xuất cụ thể</h2><p>{data.summary}</p></section>}
+          <section className="recommendation-data-footnote teacher-card"><strong>Dữ liệu đã phân tích</strong><span>{data.evidence.quizAttemptCount} lượt làm quiz · {data.evidence.submissionCount} bài nộp{data.evidence.completion ? ` · ${data.evidence.completion.rate}% lượt nộp bài tập` : ''}</span></section>
+        </>}
+  </section>;
 }
 
 export function TeacherAnalytics({ analytics, onRetry }) {

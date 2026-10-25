@@ -12,6 +12,7 @@ const submissionRoutes = require('./routes/submissionRoutes');
 const catalogRoutes = require('./routes/catalogRoutes');
 const questionBankRoutes = require('./routes/questionBankRoutes');
 const adminRoutes = require('./routes/adminRoutes');
+const leaderboardRoutes = require('./routes/leaderboardRoutes');
 const requireAuth = require('./middleware/requireAuth');
 const {
   AI_CHAT_PROMPT_VERSION,
@@ -217,6 +218,7 @@ app.use('/api/assignments', assignmentRoutes);
 app.use('/api/submissions', submissionRoutes);
 app.use('/api/catalog', catalogRoutes);
 app.use('/api/questions', questionBankRoutes);
+app.use('/api/leaderboard', leaderboardRoutes);
 
 app.get('/health', (req, res) => {
   res.json({ ok: true, status: 'healthy', ollama: OLLAMA_BASE_URL, model: OLLAMA_MODEL });
