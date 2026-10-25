@@ -2,6 +2,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const {
   buildTeacherLearningSummary,
+  buildFallbackRecommendations,
   selectRecommendationModel,
   validateTeacherRecommendations
 } = require('../services/teacherRecommendations');
@@ -97,6 +98,20 @@ test('accepts only structured recommendations grounded in allowed topics', () =>
       activity: 'follow_up_submissions'
     }]
   }, signals));
+});
+
+test('builds evidence-based fallback recommendations for invalid model output', () => {
+  const result = buildFallbackRecommendations([
+    { topic: 'Phân số', kind: 'accuracy', accuracy: 35, attempts: 2, answeredQuestions: 20 },
+    { topic: 'Hình học', kind: 'accuracy', accuracy: 60, attempts: 1, answeredQuestions: 5 },
+    { topic: 'Tỷ lệ nộp bài', kind: 'completion', accuracy: 33, submitted: 1, expected: 3, attempts: 3 }
+  ]);
+
+  assert.deepEqual(result.map(({ topic, title }) => [topic, title]), [
+    ['Phân số', 'Ôn tập có hướng dẫn: Phân số'],
+    ['Hình học', 'Luyện tập ngắn: Hình học'],
+    ['Tỷ lệ nộp bài', 'Theo dõi bài tập chưa nộp']
+  ]);
 });
 
 test('does not flag a 100 percent submission rate as an AI recommendation signal', () => {

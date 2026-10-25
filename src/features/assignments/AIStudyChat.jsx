@@ -1,6 +1,22 @@
 import React, { useState } from 'react';
 
-const starterPrompts = ['Bài học này nói về nội dung gì?', 'Giải thích khái niệm quan trọng nhất.', 'Cho mình một ví dụ trong bài.'];
+const starterPrompts = ['Nay nên học bài gì?', 'Hôm nay con có bài tập gì không?', 'Hôm nay con nên luyện tập gì?', 'Bài học này nói về nội dung gì?'];
+
+function describeStudyPlan(plan) {
+  if (plan.type === 'assignments') {
+    if (!plan.assignments.length) return `${plan.title}\n${plan.reason}`;
+    return `${plan.title}\n${plan.assignments.map((assignment, index) => {
+      const deadline = assignment.dueAt
+        ? ` · ${assignment.isOverdue ? 'Đã quá hạn' : 'Hạn'}: ${new Date(assignment.dueAt).toLocaleString('vi-VN')}`
+        : ' · Chưa có hạn nộp';
+      return `${index + 1}. ${assignment.title}${deadline}`;
+    }).join('\n')}`;
+  }
+  if (plan.type === 'assignment') return `${plan.title}\n${plan.reason}${plan.deadline ? ` Hạn: ${new Date(plan.deadline).toLocaleString('vi-VN')}.` : ''}\nDành khoảng 15 phút để hoàn thành nhé!`;
+  if (plan.type === 'review') return `${plan.title}\n${plan.reason}\nMình dành khoảng 8 phút ôn bài, sau đó thử luyện tập thêm nhé!`;
+  if (plan.type === 'lesson') return `${plan.title}\n${plan.reason}\nMình dành khoảng 8 phút học bài, rồi thử luyện tập nếu bài có câu hỏi nhé!`;
+  return `${plan.title}\n${plan.reason}`;
+}
 
 function readReply(payload) {
   if (typeof payload?.message === 'string') return payload;
@@ -12,9 +28,9 @@ function readReply(payload) {
   }
 }
 
-export default function AIStudyChat({ api }) {
+export default function AIStudyChat({ api, onOpenLesson, onOpenAssignment }) {
   const [open, setOpen] = useState(false);
-  const [messages, setMessages] = useState([{ role: 'assistant', text: 'Chào con! Mình sẽ giúp con tìm hiểu nội dung trong tài liệu học tập. Nếu tài liệu chưa có câu trả lời, mình sẽ nói rõ nhé.' }]);
+  const [messages, setMessages] = useState([{ role: 'assistant', text: 'Chào con! Mình có thể giúp con tìm hiểu tài liệu hoặc gợi ý bài học dựa trên kết quả và bài tập của con nhé.' }]);
   const [input, setInput] = useState('');
   const [busy, setBusy] = useState(false);
   const [showRetrievedChunks, setShowRetrievedChunks] = useState(false);
@@ -26,6 +42,23 @@ export default function AIStudyChat({ api }) {
     setMessages((current) => [...current, { role: 'user', text }]);
     setBusy(true);
     try {
+      const classification = await api('/api/attempts/study-plan', {
+        method: 'POST',
+        body: JSON.stringify({
+          question: text,
+          completedLessonIds: JSON.parse(localStorage.getItem('mathjoy-completed-lessons') || '[]')
+        })
+      });
+      if (classification.intent !== 'other') {
+        const { plan } = classification;
+        if (!plan) throw new Error('Không thể tạo gợi ý học tập lúc này.');
+        setMessages((current) => [...current, {
+          role: 'assistant',
+          text: describeStudyPlan(plan),
+          plan
+        }]);
+        return;
+      }
       const payload = await api('/api/ai-chat', {
         method: 'POST',
         body: JSON.stringify({
@@ -48,8 +81,8 @@ export default function AIStudyChat({ api }) {
   };
   return <div className={`study-chat ${open ? 'is-open' : ''}`}>
     {open && <section className="study-chat-panel" aria-label="Trợ lý học tập AI">
-      <header><div><span>✨</span><div><strong>Trợ lý MathJoy</strong><small>Chỉ trả lời theo tài liệu học tập</small></div></div><button type="button" onClick={() => setOpen(false)} aria-label="Đóng chat">×</button></header>
-      <div className="study-chat-messages">{messages.map((message, index) => <div className={`study-chat-message ${message.role}`} key={`${message.role}-${index}`}><p>{message.text}</p>{message.sources?.length > 0 && <div className="study-chat-sources"><strong>Nguồn:</strong>{message.sources.map((source) => <details key={source.id}><summary>{source.label}</summary><p>{source.excerpt}</p></details>)}</div>}{showRetrievedChunks && message.chunks?.length > 0 && <details className="study-chat-retrieved"><summary>Các đoạn đã truy xuất ({message.chunks.length})</summary>{message.chunks.map((chunk) => <div className="study-chat-retrieved-chunk" key={chunk.id}><strong>{chunk.label}</strong><span>Độ tương đồng: {Number(chunk.similarity).toFixed(3)}</span><p>{chunk.excerpt}</p></div>)}</details>}</div>)}{busy && <div className="study-chat-message assistant"><p className="study-chat-typing">Đang tìm trong tài liệu...</p></div>}</div>
+      <header><div><span>✨</span><div><strong>Trợ lý MathJoy</strong><small>Hỏi bài và nhận gợi ý học tập cá nhân</small></div></div><button type="button" onClick={() => setOpen(false)} aria-label="Đóng chat">×</button></header>
+      <div className="study-chat-messages">{messages.map((message, index) => <div className={`study-chat-message ${message.role}`} key={`${message.role}-${index}`}><p>{message.text}</p>{message.plan?.assignments?.map((assignment) => <button className="study-chat-action" type="button" key={assignment.id} onClick={() => onOpenAssignment(assignment.id)}>📝 Mở {assignment.title}</button>)}{message.plan?.lesson && <button className="study-chat-action" type="button" onClick={() => onOpenLesson(message.plan.lesson.id)}>📘 Mở bài học</button>}{message.plan?.assignment && <button className="study-chat-action" type="button" onClick={() => onOpenAssignment(message.plan.assignment.id)}>📝 Mở bài tập</button>}{message.sources?.length > 0 && <div className="study-chat-sources"><strong>Nguồn:</strong>{message.sources.map((source) => <details key={source.id}><summary>{source.label}</summary><p>{source.excerpt}</p></details>)}</div>}{showRetrievedChunks && message.chunks?.length > 0 && <details className="study-chat-retrieved"><summary>Các đoạn đã truy xuất ({message.chunks.length})</summary>{message.chunks.map((chunk) => <div className="study-chat-retrieved-chunk" key={chunk.id}><strong>{chunk.label}</strong><span>Độ tương đồng: {Number(chunk.similarity).toFixed(3)}</span><p>{chunk.excerpt}</p></div>)}</details>}</div>)}{busy && <div className="study-chat-message assistant"><p className="study-chat-typing">Đang đọc câu hỏi và dữ liệu học tập...</p></div>}</div>
       <div className="study-chat-starters">{starterPrompts.map((prompt) => <button type="button" key={prompt} onClick={() => ask(prompt)}>{prompt}</button>)}</div>
       <button className="study-chat-debug-toggle" type="button" aria-pressed={showRetrievedChunks} onClick={() => setShowRetrievedChunks((value) => !value)}>{showRetrievedChunks ? 'Ẩn các đoạn truy xuất' : 'Xem các đoạn truy xuất'}</button>
       <form onSubmit={(event) => { event.preventDefault(); ask(input); }}><input value={input} onChange={(event) => setInput(event.target.value)} placeholder="Hỏi trợ lý học tập..." aria-label="Tin nhắn" /><button type="submit" disabled={busy || !input.trim()} aria-label="Gửi tin nhắn">→</button></form>

@@ -225,7 +225,7 @@ app.post('/api/generate-quiz', requireAuth, async (req, res) => {
   if (!['teacher', 'admin'].includes(req.profile?.role)) {
     return res.status(403).json({ error: 'Chỉ giáo viên mới có quyền tạo câu hỏi bằng AI.' });
   }
-  const { systemPrompt, userPrompt } = req.body || {};
+  const { systemPrompt, userPrompt, questionCount } = req.body || {};
   const questionTypes = new Set(['multiple-choice', 'true-false', 'fill-blank', 'matching', 'short-answer']);
   const expectedType = typeof req.body?.questionType === 'string' ? req.body.questionType : '';
   if (expectedType && !questionTypes.has(expectedType)) {
@@ -244,7 +244,10 @@ app.post('/api/generate-quiz', requireAuth, async (req, res) => {
     const activeModel = expectedType ? await resolveQuizModelName() : await resolveModelName();
     telemetry.model = activeModel;
     const qCountMatch = userPrompt.match(/Tạo\s+(?:đúng\s+)?(\d+)\s+câu hỏi/i);
-    const requestedCount = Math.min(qCountMatch ? parseInt(qCountMatch[1]) : 5, 10);
+    const requestedCount = questionCount ?? Math.min(qCountMatch ? parseInt(qCountMatch[1], 10) : 5, 10);
+    if (!Number.isInteger(requestedCount) || requestedCount < 1 || requestedCount > 10) {
+      return res.status(400).json({ error: 'Số câu hỏi phải từ 1 đến 10.' });
+    }
 
     if (!activeModel || activeModel === OLLAMA_MODEL) {
       const installedModels = await getInstalledModels();
@@ -258,14 +261,17 @@ app.post('/api/generate-quiz', requireAuth, async (req, res) => {
 
     let allQuestions = [];
     let attempts = 0;
-    const maxAttempts = 3;
+    const maxAttempts = requestedCount;
 
     while (allQuestions.length < requestedCount && attempts < maxAttempts) {
       attempts++;
       const remainingCount = requestedCount - allQuestions.length;
+      const retryPrompt = userPrompt
+        .replace(/Tạo\s+(?:đúng\s+)?\d+\s+câu hỏi/gi, `Tạo đúng ${remainingCount} câu hỏi`)
+        .replace(/Trả về đủ đúng\s+\d+\s+câu hỏi/gi, `Trả về đủ đúng ${remainingCount} câu hỏi`);
       const attemptPrompt = attempts === 1
         ? userPrompt
-        : `${userPrompt.replace(/Tạo\s+(?:đúng\s+)?\d+\s+câu hỏi/i, `Tạo đúng ${remainingCount} câu hỏi`)}\n\nĐây là lượt bổ sung: chỉ tạo thêm ${remainingCount} câu hỏi mới, không lặp lại các câu sau:\n${JSON.stringify(allQuestions.map((question) => question.question))}`;
+        : `${retryPrompt}\n\nĐây là lượt bổ sung: chỉ tạo thêm ${remainingCount} câu hỏi mới, không lặp lại các câu sau:\n${JSON.stringify(allQuestions.map((question) => question.question))}`;
 
       const response = await fetch(`${OLLAMA_BASE_URL}/api/generate`, {
         method: 'POST',
@@ -282,7 +288,7 @@ app.post('/api/generate-quiz', requireAuth, async (req, res) => {
             temperature: 0.2 + (attempts * 0.1),
             top_p: 0.9,
             num_ctx: 4096,
-            num_predict: 2048
+            num_predict: Math.min(8192, Math.max(2048, remainingCount * 1024))
           }
         })
       });
@@ -360,7 +366,7 @@ app.post('/api/generate-quiz', requireAuth, async (req, res) => {
       }
     }
 
-    // Return at least the requested count or what we got
+    // Return as many valid unique questions as the local model produced.
     const finalQuestions = allQuestions.slice(0, requestedCount);
     
     if (finalQuestions.length === 0) {

@@ -6,6 +6,7 @@ const router = express.Router();
 
 router.use(requireAuth);
 router.post('/', quizAttemptController.create);
+router.post('/study-plan', quizAttemptController.studyPlan);
 router.get('/mine', quizAttemptController.listMine);
 router.get('/teacher', quizAttemptController.teacherOnly, quizAttemptController.listForTeacher);
 router.get('/teacher/students/:studentId', quizAttemptController.teacherOnly, quizAttemptController.competencyProfileForTeacher);

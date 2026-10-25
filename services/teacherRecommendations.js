@@ -160,11 +160,24 @@ function validateTeacherRecommendations(value, signals) {
   return recommendations;
 }
 
+function buildFallbackRecommendations(signals) {
+  const recommendations = signals.slice(0, 3).map((signal) => ({
+    topic: signal.topic,
+    activity: signal.kind === 'completion'
+      ? 'follow_up_submissions'
+      : signal.accuracy < 50
+        ? 'guided_review'
+        : 'short_practice'
+  }));
+  return validateTeacherRecommendations({ recommendations }, signals);
+}
+
 module.exports = {
   PROMPT_VERSION,
   prompt,
   selectRecommendationModel,
   buildTeacherLearningSummary,
   ACTIVITY_LABELS,
-  validateTeacherRecommendations
+  validateTeacherRecommendations,
+  buildFallbackRecommendations
 };

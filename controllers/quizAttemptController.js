@@ -1,15 +1,19 @@
 const quizAttemptModel = require('../models/quizAttemptModel');
 const assignmentModel = require('../models/assignmentModel');
 const submissionModel = require('../models/submissionModel');
+const lessonModel = require('../models/lessonModel');
 const catalogModel = require('../models/catalogModel');
 const riskAlertModel = require('../models/riskAlertModel');
+const { buildStudyPlan } = require('../services/studyPlan');
+const { classifyStudyIntent } = require('../services/studyIntent');
 const { assessStudentRisk } = require('../services/riskAssessment');
 const {
   PROMPT_VERSION,
   prompt: recommendationPrompt,
   selectRecommendationModel,
   buildTeacherLearningSummary,
-  validateTeacherRecommendations
+  validateTeacherRecommendations,
+  buildFallbackRecommendations
 } = require('../services/teacherRecommendations');
 
 function normalizeAttempt(body = {}) {
@@ -64,6 +68,58 @@ async function listMine(req, res) {
   } catch (error) {
     console.error('Could not list student quiz attempts:', error);
     return res.status(500).json({ error: 'Không thể tải lịch sử làm bài.' });
+  }
+}
+
+async function studyPlan(req, res) {
+  if (req.profile?.role !== 'student') {
+    return res.status(403).json({ error: 'Gợi ý học tập chỉ dành cho học sinh.' });
+  }
+  const completedLessonIds = req.body?.completedLessonIds;
+  const question = typeof req.body?.question === 'string' ? req.body.question.trim() : '';
+  const requestedIntent = req.body?.intent;
+  if (question.length > 1000) {
+    return res.status(413).json({ error: 'Câu hỏi quá dài.' });
+  }
+  if (requestedIntent !== undefined && !['recommendation', 'assignments'].includes(requestedIntent)) {
+    return res.status(400).json({ error: 'Loại gợi ý học tập không hợp lệ.' });
+  }
+  if (!question && !requestedIntent) {
+    return res.status(400).json({ error: 'Hãy nhập câu hỏi để trợ lý phân loại.' });
+  }
+  if (completedLessonIds !== undefined
+    && (!Array.isArray(completedLessonIds) || completedLessonIds.length > 200
+      || completedLessonIds.some((id) => typeof id !== 'string'))) {
+    return res.status(400).json({ error: 'Danh sách bài học đã hoàn thành không hợp lệ.' });
+  }
+  try {
+    const classification = requestedIntent
+      ? { intent: requestedIntent, source: 'explicit' }
+      : await classifyStudyIntent(question);
+    if (classification.intent === 'other') {
+      return res.json({ intent: 'other', classificationSource: classification.source });
+    }
+    const [lessons, assignments, submissions, attempts] = await Promise.all([
+      lessonModel.listPublished(req.accessToken),
+      assignmentModel.listForStudent(req.accessToken),
+      submissionModel.listForStudent(req.accessToken, req.user.id),
+      quizAttemptModel.listForStudent(req.accessToken, req.user.id)
+    ]);
+    return res.json({
+      intent: classification.intent,
+      classificationSource: classification.source,
+      plan: buildStudyPlan({
+        lessons,
+        assignments,
+        submissions,
+        attempts,
+        completedLessonIds: completedLessonIds || [],
+        intent: classification.intent
+      })
+    });
+  } catch (error) {
+    console.error('Could not build student study plan:', error);
+    return res.status(500).json({ error: 'Không thể tạo gợi ý học tập lúc này.' });
   }
 }
 
@@ -315,6 +371,7 @@ async function recommendationsForTeacher(req, res) {
     }
 
     let generated;
+    let usedFallback = false;
     try {
       const result = await response.json();
       const content = result?.message?.content?.trim();
@@ -323,13 +380,15 @@ async function recommendationsForTeacher(req, res) {
       }
       generated = validateTeacherRecommendations(JSON.parse(content), learningSummary.recommendationSignals);
     } catch (error) {
-      console.error('Invalid teacher recommendation output:', error);
-      return res.status(502).json({ error: 'AI trả về đề xuất không đúng định dạng. Vui lòng thử lại.' });
+      console.warn(`Invalid teacher recommendation output from ${model}; using evidence-based fallback:`, error.message);
+      generated = buildFallbackRecommendations(learningSummary.recommendationSignals);
+      usedFallback = true;
     }
 
     return res.json({
       promptVersion: PROMPT_VERSION,
       model,
+      recommendationSource: usedFallback ? 'evidence_fallback' : 'ai',
       summary: `Có ${learningSummary.recommendationSignals.length} chỉ số cần được giáo viên xem xét dựa trên dữ liệu hiện có.`,
       recommendations: generated,
       evidence: {
@@ -354,6 +413,7 @@ async function recommendationsForTeacher(req, res) {
 module.exports = {
   create,
   listMine,
+  studyPlan,
   listForTeacher,
   competencyProfileForTeacher,
   analyticsForTeacher,

@@ -108,6 +108,7 @@ export function AssignmentStudio({ onMessage, api }) {
   const [lessons, setLessons] = useState([]);
   const [selectedLessonId, setSelectedLessonId] = useState('');
   const [questionType, setQuestionType] = useState('multiple-choice');
+  const [questionCount, setQuestionCount] = useState(5);
   const [classId, setClassId] = useState('');
   const [busy, setBusy] = useState(false);
   const [published, setPublished] = useState(false);
@@ -177,8 +178,8 @@ export function AssignmentStudio({ onMessage, api }) {
         matching: 'Mỗi câu dạng {"type":"matching","question":"...","pairs":[{"left":"...","right":"..."},{"left":"...","right":"..."}],"correctMatches":[1,0],"explanation":"..."}; correctMatches ánh xạ từng vế trái sang chỉ số vế phải.'
       };
       const systemPrompt = `Bạn là giáo viên tiểu học chuyên soạn câu hỏi luyện tập mới dựa trên kiến thức trong tài liệu. Chỉ trả về JSON array hợp lệ, không markdown. ${typeSchemas[questionType]} Đảm bảo đáp án chính xác và phù hợp học sinh tiểu học.`;
-      const userPrompt = `Dùng tài liệu sau làm nguồn kiến thức, không dùng nó như danh sách câu hỏi để chép lại:\n"""${material}"""\nTạo đúng 5 câu hỏi tiếng Việt thuộc dạng "${questionTypes.find(([value]) => value === questionType)?.[1]}". ${typeSchemas[questionType]}\nYêu cầu quan trọng:\n- Tạo câu hỏi mới để kiểm tra cùng khái niệm/kỹ năng; tuyệt đối không chép nguyên câu hỏi, ví dụ, tình huống hoặc đáp án mẫu trong tài liệu.\n- Với bài toán có số liệu, thay bằng số liệu mới và tự tính/kiểm tra lại đáp án; giữ mức độ và dạng phép tính tương đương.\n- Với câu hỏi gắn tình huống, đổi nhân vật/đồ vật/bối cảnh nhưng vẫn kiểm tra cùng kiến thức.\n- Có thể đổi cách diễn đạt; không hỏi lại nguyên văn định nghĩa hay ví dụ. Không thêm kiến thức ngoài tài liệu và chương trình tiểu học.\n- Các câu trong cùng một bộ cũng cần đa dạng, không lặp lại cùng một tình huống hoặc mẫu số liệu.`;
-      const payload = await api('/api/generate-quiz', { method: 'POST', body: JSON.stringify({ systemPrompt, userPrompt, questionType }) });
+      const userPrompt = `Dùng tài liệu sau làm nguồn kiến thức, không dùng nó như danh sách câu hỏi để chép lại:\n"""${material}"""\nTạo đúng ${questionCount} câu hỏi tiếng Việt thuộc dạng "${questionTypes.find(([value]) => value === questionType)?.[1]}". ${typeSchemas[questionType]}\nYêu cầu quan trọng:\n- Trả về đủ đúng ${questionCount} câu hỏi trong một JSON array; không trả về một câu đơn lẻ nếu được yêu cầu nhiều câu.\n- Tạo câu hỏi mới để kiểm tra cùng khái niệm/kỹ năng; tuyệt đối không chép nguyên câu hỏi, ví dụ, tình huống hoặc đáp án mẫu trong tài liệu.\n- Với bài toán có số liệu, thay bằng số liệu mới và tự tính/kiểm tra lại đáp án; giữ mức độ và dạng phép tính tương đương.\n- Với câu hỏi gắn tình huống, đổi nhân vật/đồ vật/bối cảnh nhưng vẫn kiểm tra cùng kiến thức.\n- Có thể đổi cách diễn đạt; không hỏi lại nguyên văn định nghĩa hay ví dụ. Không thêm kiến thức ngoài tài liệu và chương trình tiểu học.\n- Các câu trong cùng một bộ cũng cần đa dạng, không lặp lại cùng một tình huống hoặc mẫu số liệu.`;
+      const payload = await api('/api/generate-quiz', { method: 'POST', body: JSON.stringify({ systemPrompt, userPrompt, questionType, questionCount }) });
       const text = (payload.content || []).filter((item) => item.type === 'text').map((item) => item.text).join('').trim();
       let parsed = JSON.parse(text.replace(/^```json\s*/i, '').replace(/```\s*$/, '').trim());
       if (!Array.isArray(parsed)) parsed = parsed.questions || [parsed];
@@ -200,12 +201,12 @@ export function AssignmentStudio({ onMessage, api }) {
         const answer = typeof item.answer === 'string' || typeof item.answer === 'number' ? String(item.answer).trim() : '';
         if (!answer) return null;
         return { ...item, type: questionType, options: [], answer };
-      }).filter(Boolean);
+      }).filter(Boolean).slice(0, questionCount);
       if (!generated.length) throw new Error('AI không trả về câu hỏi hợp lệ.');
       setQuestions(generated);
       setPublished(false);
       setSavedQuestionIndexes([]);
-      onMessage(`AI đã tạo ${generated.length}/5 câu ${questionTypes.find(([value]) => value === questionType)?.[1].toLowerCase()}. Hãy kiểm tra và chỉnh sửa trước khi xuất bản.`);
+      onMessage(`AI local đã tạo ${generated.length}/${questionCount} câu ${questionTypes.find(([value]) => value === questionType)?.[1].toLowerCase()}.${generated.length < questionCount ? ' Một số câu chưa đạt chuẩn, con có thể thêm câu hoặc thử tạo lại.' : ''} Hãy kiểm tra và chỉnh sửa trước khi xuất bản.`);
     } catch (error) {
       onMessage(`AI local chưa tạo được câu hỏi: ${error.message || 'Lỗi không xác định.'} Bạn có thể dùng nút "Dùng dữ liệu mẫu" để thử giao diện.`);
     } finally { setBusy(false); }
@@ -464,6 +465,11 @@ export function AssignmentStudio({ onMessage, api }) {
           <select value={questionType} onChange={(event) => { setQuestionType(event.target.value); setQuestions([]); setPublished(false); setSavedQuestionIndexes([]); }}>
             {questionTypes.map(([value, label]) => <option value={value} key={value}>{label}</option>)}
           </select>
+        </label>
+        <label className="lesson-question-source question-count-control">
+          <span className="question-count-heading"><span>Số câu hỏi</span><output>{questionCount} câu</output></span>
+          <input type="range" min="1" max="10" step="1" value={questionCount} onChange={(event) => setQuestionCount(Number(event.target.value))} disabled={busy} aria-label="Số câu hỏi muốn tạo" />
+          <span className="question-count-range" aria-hidden="true"><span>1</span><span>10</span></span>
         </label>
         <label className="material-upload">
           <span>📄</span>
@@ -765,7 +771,7 @@ export function TeacherRecommendations({ api, onCreateAssignment }) {
     <div className="analytics-intro"><h2>Đề xuất ôn tập</h2><button className="teacher-create" type="button" onClick={loadRecommendations} disabled={loading}>{loading ? 'Đang phân tích...' : '↻ Phân tích lại'}</button></div>
     {loading ? <section className="teacher-placeholder teacher-card"><span>✦</span><h2>AI đang phân tích dữ liệu lớp...</h2><p>Đang xem kết quả học tập và bài tập đã giao.</p></section>
       : error ? <section className="teacher-placeholder teacher-card"><span>!</span><h2>Chưa tạo được đề xuất</h2><p>{error}</p><button className="teacher-create" type="button" onClick={loadRecommendations}>Thử lại</button></section>
-        : <><section className="recommendation-summary teacher-card"><div><span className="panel-kicker">TÓM TẮT PHÂN TÍCH</span><p>{data.summary}</p></div><small>{data.model ? `Model ${data.model} · ${data.promptVersion}` : data.promptVersion}</small></section>
+        : <><section className="recommendation-summary teacher-card"><div><span className="panel-kicker">TÓM TẮT PHÂN TÍCH</span><p>{data.summary}</p></div><small>{data.recommendationSource === 'evidence_fallback' ? `Gợi ý dựa trên dữ liệu học tập · ${data.promptVersion}` : data.model ? `Model ${data.model} · ${data.promptVersion}` : data.promptVersion}</small></section>
           {data.recommendations.length ? <div className="recommendation-list">{data.recommendations.map((recommendation, index) => {
             const evidence = data.evidence.recommendationSignals.find((metric) => metric.topic === recommendation.topic);
             return <article className="recommendation-card teacher-card" key={`${recommendation.topic}-${index}`}>

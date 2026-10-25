@@ -10,7 +10,6 @@ import Brand from './components/Brand.jsx';
 import Header from './components/Header.jsx';
 import AccessDenied from './components/AccessDenied.jsx';
 import AssignedWorkView from './features/assignments/AssignedWorkView.jsx';
-import AIStudyChat from './features/assignments/AIStudyChat.jsx';
 import TeacherSubmissions from './features/assignments/TeacherSubmissions.jsx';
 import { AssignmentStudio, TeacherClassManagement, TeacherStudents, TeacherOverview, TeacherAnalytics, TeacherRecommendations, TeacherQuestionBank } from './features/assignments/AssignmentStudio.jsx';
 import LessonView from './features/lessons/LessonView.jsx';
@@ -82,7 +81,7 @@ function App() {
     if (role !== 'student') return <AccessDenied destination={role === 'teacher' || role === 'admin' ? '/teacher' : '/learn'} go={go} />;
     return <StudentLeaderboardPage api={api} readSession={readSession} Header={Header} Brand={Brand} go={go} logout={logout} />;
   }
-  return <><AIStudyChat api={api} lessons={[]} assignments={[]} progress={{ xp: 0, lessons: 0, answered: 0 }} /><StudentHomePage api={api} readSession={readSession} Header={Header} Brand={Brand} LessonView={LessonView} AssignedWorkView={AssignedWorkView} go={go} logout={logout} /></>;
+  return <StudentHomePage api={api} readSession={readSession} Header={Header} Brand={Brand} LessonView={LessonView} AssignedWorkView={AssignedWorkView} go={go} logout={logout} />;
 }
 
 export default App;

@@ -617,3 +617,7 @@
     .lesson-grid .lesson h3 { font-size: 15px; }
     .lesson-grid .lesson p { font-size: 11px; }
   }
+
+.home.lesson-focus-mode { max-width: 1200px; }
+.home.lesson-focus-mode .home-grid { grid-template-columns: minmax(0, 1fr); }
+.home.lesson-focus-mode .home-grid > aside { display: none; }

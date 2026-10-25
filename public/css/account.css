@@ -14,6 +14,7 @@ body:before{display:none!important;content:none!important}
 .history-list{display:grid;gap:16px;max-height:none;overflow:visible}.history-list>p,.attempt-empty{color:#7890ad;font-weight:700}
 .history-item{padding:0;background:#fff9e8;border:2px solid #e2aa45;border-radius:16px;overflow:hidden}
 .history-item[open]{box-shadow:0 8px 20px rgba(180,111,36,.12)}
+.history-list .history-result.ai-card{max-width:none;margin:0;padding:20px;background:#fff;border:0;border-top:1px solid #f0dfbd;border-radius:0;box-shadow:none}
 .history-item summary{display:flex;justify-content:space-between;align-items:center;gap:16px;padding:17px 20px;cursor:pointer;list-style:none}.history-item summary::-webkit-details-marker{display:none}
 .history-item summary:hover{background:#fff1c9}
 .history-item strong,.history-item small{display:block}.history-item strong{font-size:16px;color:#7e3b1e}.history-item small{margin-top:4px;font-size:12px;color:#8c683e}.history-item>b{color:#d14a1e;font:800 22px 'Baloo 2',sans-serif;white-space:nowrap}

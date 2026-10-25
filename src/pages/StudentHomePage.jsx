@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import LessonView from '../features/lessons/LessonView.jsx';
+import AIStudyChat from '../features/assignments/AIStudyChat.jsx';
 import { deduplicateLessonsBySourceNumber, getLessonChapterName, getLessonDescription, getLessonDisplayTitle, getLessonSourceCode } from '../services/learningMaterials.js';
 import fireGif from '../assets/Fire.gif';
 import winterScene from '../assets/mathjoy-winter.gif';
@@ -416,6 +417,12 @@ export default function StudentHomePage({ api, readSession, Header, Brand, Lesso
     }
   };
 
+  const openRecommendedLesson = (lessonId) => {
+    const lesson = lessons.find((item) => item.id === lessonId);
+    if (lesson) setSelectedLesson({ ...lesson, title: getLessonDisplayTitle(lesson) });
+    else setError('Không tìm thấy bài học được đề xuất.');
+  };
+
   const chapters = groupLessonsByChapter(lessons);
   const selectedChapter = chapters.find((chapter) => chapter.id === selectedChapterId);
   const todayStudySeconds = dailyStudyTime.date === getLocalDateKey(new Date()) ? dailyStudyTime.seconds : 0;
@@ -490,7 +497,7 @@ export default function StudentHomePage({ api, readSession, Header, Brand, Lesso
       </a>
       {session?.profile?.role === 'teacher' && <a className="nav-chip" href="/teacher" onClick={(event) => { event.preventDefault(); go('/teacher'); }}>Bảng giáo viên</a>}
     </Header>
-    <main className="home">
+    <main className={`home ${selectedLesson ? 'lesson-focus-mode' : ''}`}>
       <section className="stats">
         <div className="stat stat-score" style={{ backgroundImage: `url("${statsPanel}")` }}><img className="stat-icon" src={pointsIcon} alt="" /><div className="stat-content"><strong>{progress.xp}</strong><span>Tổng điểm học tập</span></div></div>
         <div className="stat stat-lessons" style={{ backgroundImage: `url("${statsPanel}")` }}><img className="stat-icon" src={lessonsIcon} alt="" /><div className="stat-content"><strong>{progress.lessons}</strong><span>Bài đã hoàn thành</span></div></div>
@@ -527,6 +534,15 @@ export default function StudentHomePage({ api, readSession, Header, Brand, Lesso
         </aside>
       </div>
     </main>
+    <AIStudyChat
+      api={api}
+      onOpenLesson={openRecommendedLesson}
+      onOpenAssignment={(assignmentId) => {
+        const assignment = assignments.find((item) => item.id === assignmentId);
+        if (assignment) openAssignment(assignment);
+        else setError('Không tìm thấy bài tập được đề xuất.');
+      }}
+    />
     {onAskAI && <button className="ai-fab" type="button" onClick={onAskAI}><span aria-hidden="true">✨</span> Hỏi AI học gì?</button>}
   </>;
 }
