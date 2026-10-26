@@ -1,7 +1,7 @@
-const { VERSION, GENERATOR, REVIEWER } = require('../prompts/quiz');
+const { VERSION, getQuizPrompts } = require('../prompts/quiz');
 const { randomInt } = require('node:crypto');
 const { verifyArithmetic } = require('./quizArithmetic');
-const TYPES = new Set(['multiple-choice', 'true-false', 'fill-blank', 'short-answer', 'matching']);
+const TYPES = new Set(['multiple-choice']);
 const text = (s) => typeof s === 'string' ? s.trim() : '';
 const key = (s) => text(s).normalize('NFKC').toLocaleLowerCase('vi').replace(/[\p{P}\p{Z}\s]+/gu, ' ').trim();
 const stringSchema = { type: 'string', minLength: 1 };
@@ -15,11 +15,6 @@ function optionKey(value) {
   return `${n/a}/${denominator/a} ${key(match[3])}`;
 }
 function shuffleChoices(question, pick = randomInt) {
-  if (question.type === 'matching') {
-    const order=question.pairs.map((_,i)=>i);
-    for(let i=order.length-1;i>0;i--){const j=pick(i+1);[order[i],order[j]]=[order[j],order[i]];}
-    return {...question,pairs:question.pairs.map((pair,i)=>({...pair,right:question.pairs[order[i]].right})),correctMatches:question.correctMatches.map(i=>order.indexOf(i))};
-  }
   if (question.type !== 'multiple-choice') return question;
   const order = question.options.map((_, index) => index);
   for (let i=order.length-1;i>0;i--) {const j=pick(i+1);[order[i],order[j]]=[order[j],order[i]];}
@@ -27,53 +22,24 @@ function shuffleChoices(question, pick = randomInt) {
   return {...question, options:order.map(i=>question.options[i]),correctIndex,answer:correctIndex};
 }
 function questionSchema(type, count) {
+  if (type !== 'multiple-choice') throw new Error('Dạng câu hỏi không được hỗ trợ.');
   const properties = { type: { type: 'string', enum: [type] }, question: stringSchema, explanation: stringSchema };
-  if (['multiple-choice', 'true-false'].includes(type)) Object.assign(properties, {
-    options: { type: 'array', items: stringSchema, minItems: type === 'true-false' ? 2 : 4, maxItems: type === 'true-false' ? 2 : 4 },
-    correctIndex: { type: 'integer', minimum: 0, maximum: type === 'true-false' ? 1 : 3 }
+  Object.assign(properties, {
+    options: { type: 'array', items: stringSchema, minItems: 4, maxItems: 4 },
+    correctIndex: { type: 'integer', minimum: 0, maximum: 3 }
   });
-  else if (type === 'matching') Object.assign(properties, {
-    pairs: { type: 'array', minItems: 3, maxItems: 5, items: { type: 'object', properties: { left: stringSchema, right: stringSchema }, required: ['left', 'right'], additionalProperties: false } },
-    correctMatches: { type: 'array', minItems: 3, maxItems: 5, items: { type: 'integer', minimum: 0, maximum: 4 } }
-  });
-  else properties.answer = stringSchema;
   return { type: 'object', properties: { questions: { type: 'array', minItems: count, maxItems: count, items: { type: 'object', properties, required: Object.keys(properties), additionalProperties: false } } }, required: ['questions'], additionalProperties: false };
 }
 function normalizeQuestion(q, type) {
-  if (!q || Array.isArray(q) || typeof q !== 'object' || (q.type && q.type !== type)) return null;
+  if (type !== 'multiple-choice' || !q || Array.isArray(q) || typeof q !== 'object' || (q.type && q.type !== type)) return null;
   const result = { type, question: text(q.question), explanation: text(q.explanation) };
   if (result.question.length < 10 || result.question.length > 1800 || result.explanation.length < 12) return null;
   if (/\b(?:hình bên|hình dưới|hình trên|bảng bên|bảng dưới|biểu đồ sau)\b/iu.test(result.question)) return null;
-  if (type === 'multiple-choice' || type === 'true-false') {
-    const n = type === 'true-false' ? 2 : 4;
-    if (!Array.isArray(q.options) || q.options.length !== n || !q.options.every(x => typeof x === 'string' && x.trim())) return null;
-    result.options = q.options.map(text);
-    if (new Set(result.options.map(optionKey)).size !== n || !Number.isInteger(q.correctIndex) || q.correctIndex < 0 || q.correctIndex >= n) return null;
-    if (type === 'true-false') {
-      if (!result.options.some(x=>key(x)==='đúng') || !result.options.some(x=>key(x)==='sai')) return null;
-      result.correctIndex = key(result.options[q.correctIndex]) === 'đúng' ? 0 : 1;
-      result.options = ['Đúng', 'Sai'];
-    } else result.correctIndex = q.correctIndex;
-    result.answer = result.correctIndex;
-  } else if (type === 'matching') {
-    if (!Array.isArray(q.pairs) || q.pairs.length < 3 || q.pairs.length > 5) return null;
-    const n = q.pairs.length;
-    if (!q.pairs.every(p => p && text(p.left) && text(p.right))) return null;
-    if (new Set(q.pairs.map(p => key(p.left))).size !== n || new Set(q.pairs.map(p => optionKey(p.right))).size !== n) return null;
-    if (!Array.isArray(q.correctMatches) || q.correctMatches.length !== n || new Set(q.correctMatches).size !== n
-      || !q.correctMatches.every(x => Number.isInteger(x) && x >= 0 && x < n)) return null;
-    result.pairs = q.pairs.map(p => ({ left: text(p.left), right: text(p.right) }));result.correctMatches = [...q.correctMatches];
-  } else {
-    result.answer = typeof q.answer === 'number' && Number.isFinite(q.answer) ? String(q.answer) : text(q.answer);
-    if (!result.answer || result.answer.length > 160) return null;
-    const fraction=result.answer.match(/^([+-]?\d{1,12})\s*\/\s*(\d{1,12})$/);
-    if (fraction) {
-      let n=BigInt(fraction[1]);let den=BigInt(fraction[2]);if(!den)return null;
-      let a=n<0n?-n:n;let b=den;while(b){[a,b]=[b,a%b];}
-      n/=a;den/=a;result.answer=den===1n?String(n):`${n}/${den}`;
-    }
-    if (type === 'fill-blank' && (result.question.match(/_{3,}/g) || []).length !== 1) return null;
-  }
+  if (!Array.isArray(q.options) || q.options.length !== 4 || !q.options.every(x => typeof x === 'string' && x.trim())) return null;
+  result.options = q.options.map(text);
+  if (new Set(result.options.map(optionKey)).size !== 4 || !Number.isInteger(q.correctIndex) || q.correctIndex < 0 || q.correctIndex >= 4) return null;
+  result.correctIndex = q.correctIndex;
+  result.answer = result.correctIndex;
   return verifyArithmetic(result);
 }
 function chooseModel(installed, configured = process.env.OLLAMA_QUIZ_MODEL) {
@@ -83,9 +49,9 @@ function chooseModel(installed, configured = process.env.OLLAMA_QUIZ_MODEL) {
     if (!match) throw new Error(`Model tạo bài tập ${configured} chưa được tải. Kiểm tra OLLAMA_QUIZ_MODEL.`);
     return match;
   }
-  const order = ['qwen2.5:7b', process.env.OLLAMA_MODEL, 'deepseek-r1:8b', 'qwen2.5:3b', 'llama3.2:3b'].filter(Boolean);
+  const order = ['qwen3:8b', 'qwen2.5:7b', process.env.OLLAMA_MODEL, 'deepseek-r1:8b', 'qwen2.5:3b', 'llama3.2:3b'].filter(Boolean);
   const model = order.find(x => available.includes(x)) || available[0];
-  if (!model) throw new Error('Chưa có model sinh văn bản. Hãy tải qwen2.5:7b hoặc cấu hình OLLAMA_QUIZ_MODEL.');
+  if (!model) throw new Error('Chưa có model sinh văn bản. Hãy tải qwen3:8b hoặc cấu hình OLLAMA_QUIZ_MODEL.');
   return model;
 }
 function validateInput(body = {}) {
@@ -106,28 +72,48 @@ function validateInput(body = {}) {
   return { material, type, count, grade, difficulty, instructions: text(body.instructions), lessonTitle: text(body.lessonTitle).slice(0, 200) };
 }
 const reviewSchema = { type:'object', properties:{reviews:{type:'array',items:{type:'object',properties:{index:{type:'integer'},approved:{type:'boolean'},reason:stringSchema},required:['index','approved','reason'],additionalProperties:false}}},required:['reviews'],additionalProperties:false };
-async function generateQuiz(input, { fetchImpl = fetch, baseUrl = process.env.OLLAMA_BASE_URL || 'http://localhost:11434', timeoutMs = 180000, configuredModel, onUsage = () => {} } = {}) {
-  const url = baseUrl.replace(/\/$/, '');const controller = new AbortController();const timeout = setTimeout(() => controller.abort(), timeoutMs);
+async function generateQuiz(input, { fetchImpl = fetch, baseUrl = process.env.OLLAMA_BASE_URL || 'http://localhost:11434', timeoutMs = Number(process.env.OLLAMA_QUIZ_TIMEOUT_MS) || 300000, configuredModel, onUsage = () => {} } = {}) {
+  const { generator, reviewer } = getQuizPrompts(input.type);
+  if (!Number.isFinite(timeoutMs) || timeoutMs <= 0) throw new Error('Thời gian chờ AI phải là số dương.');
+  const url = baseUrl.replace(/\/$/, '');
+  let model;
+  const questions=[];let attempts=0;
+  const completed = () => ({questions,model,attempts,requestedCount:input.count,partial:questions.length<input.count,promptVersion:VERSION});
+  async function requestJson(path, options, stage, limit = timeoutMs) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), limit);
+    try {
+      const response = await fetchImpl(url+path, {...options,signal:controller.signal});
+      if (!response.ok) throw new Error(`Ollama trả lỗi ${response.status} ở bước ${stage}. Kiểm tra model rồi thử lại.`);
+      return await response.json();
+    } catch (error) {
+      if (controller.signal.aborted) {
+        const failure = new Error(`AI quá thời gian chờ ở bước ${stage}${model ? ` (model ${model})` : ''} sau ${limit/1000} giây. Hãy giảm số câu hoặc tăng OLLAMA_QUIZ_TIMEOUT_MS.`);
+        failure.code = 'QUIZ_TIMEOUT';
+        throw failure;
+      }
+      throw error;
+    } finally {clearTimeout(timeout);}
+  }
   try {
-    const tags = await fetchImpl(url+'/api/tags', {signal:controller.signal});
-    if (!tags.ok) throw new Error('Không đọc được danh sách model Ollama.');
-    const data = await tags.json();const model = chooseModel((data.models || []).map(x=>x.name||x.model), configuredModel);
+    const data = await requestJson('/api/tags', {}, 'đọc danh sách model', Math.min(timeoutMs, 10000));
+    model = chooseModel((data.models || []).map(x=>x.name||x.model), configuredModel);
     onUsage({model,promptTokens:0,completionTokens:0});
-    async function ask(system, prompt, schema) {
-      const response = await fetchImpl(url+'/api/chat', {method:'POST',headers:{'Content-Type':'application/json'},signal:controller.signal,body:JSON.stringify({model, messages:[{role:'system',content:system},{role:'user',content:prompt}],format:schema,stream:false,keep_alive:'10m',options:{temperature:0.15,num_ctx:16384,num_predict:6000}})});
-      if (!response.ok) throw new Error(`Ollama trả lỗi ${response.status}. Kiểm tra model rồi thử lại.`);
-      const result=await response.json();onUsage({model,promptTokens:result.prompt_eval_count||0,completionTokens:result.eval_count||0});
+    async function ask(system, prompt, schema, stage, count) {
+      const result = await requestJson('/api/chat', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model, messages:[{role:'system',content:system},{role:'user',content:prompt}],format:schema,stream:false,keep_alive:'10m',...(/^qwen3:/.test(model) ? {think:false} : {}),options:{temperature:0.15,num_ctx:16384,num_predict:stage==='tạo câu hỏi' ? 600+count*700 : 300+count*300}})}, stage);
+      onUsage({model,promptTokens:result.prompt_eval_count||0,completionTokens:result.eval_count||0});
+      if (result.done_reason === 'length') throw new SyntaxError('Model hết giới hạn đầu ra trước khi hoàn thành JSON.');
       const content = result.message?.content;
       if (typeof content !== 'string' || !content.trim()) throw new Error('Model không trả nội dung câu hỏi.');
       return JSON.parse(content.replace(/<think>[\s\S]*?<\/think>/gi,'').replace(/^```(?:json)?\s*|\s*```$/g,'').trim());
     }
-    const questions=[];const rejected=[];const seen=new Set();let attempts=0;
+    const rejected=[];const seen=new Set();
     const level={basic:'Nhận biết và vận dụng trực tiếp một bước.',balanced:'Kết hợp hiểu kiến thức và vận dụng, độ khó tăng nhẹ.',application:'Vận dụng vào tình huống mới cùng kiến thức, không vượt chương trình.'}[input.difficulty];
     const context=JSON.stringify({lesson:input.lessonTitle,grade:input.grade||'Tiểu học, theo độ khó của học liệu',difficulty:level,teacherRequest:input.instructions,material:input.material});
-    while (questions.length < input.count && attempts < 3) {
-      attempts++;const remaining=input.count-questions.length;let candidates;
+    while (questions.length < input.count && attempts < Math.ceil(input.count/3)*3) {
+      attempts++;const remaining=Math.min(3,input.count-questions.length);let candidates;
       try {
-        const result=await ask(GENERATOR,`NGỮ CẢNH (JSON dữ liệu):\n${context}\nTạo đúng ${remaining} câu dạng ${input.type}. Không lặp: ${JSON.stringify(questions.map(x=>x.question))}.\nLỗi lượt trước cần tránh: ${JSON.stringify(rejected.slice(-8))}`,questionSchema(input.type,remaining));
+        const result=await ask(generator,`NGỮ CẢNH (JSON dữ liệu):\n${context}\nTạo đúng ${remaining} câu dạng ${input.type}. Không lặp: ${JSON.stringify(questions.map(x=>x.question))}.\nLỗi lượt trước cần tránh: ${JSON.stringify(rejected.slice(-8))}`,questionSchema(input.type,remaining),'tạo câu hỏi',remaining);
         if (!Array.isArray(result.questions)) {rejected.push('Thiếu mảng questions');continue;}
         const batchSeen=new Set();
         candidates=result.questions.map(q=>normalizeQuestion(q,input.type)).filter(q=>{
@@ -145,7 +131,7 @@ async function generateQuiz(input, { fetchImpl = fetch, baseUrl = process.env.OL
         schema.properties.reviews.minItems=candidates.length;
         schema.properties.reviews.maxItems=candidates.length;
         schema.properties.reviews.items.properties.index={type:'integer',minimum:0,maximum:candidates.length-1};
-        review=await ask(REVIEWER,`NGỮ CẢNH:\n${context}\nCó đúng ${candidates.length} CÂU HỎI. Trả đúng ${candidates.length} review, một review cho mỗi questionIndex. Một câu matching có nhiều pairs vẫn CHỈ LÀ MỘT CÂU HỎI, kiểm tra toàn bộ pairs trước khi quyết định approved.\n${JSON.stringify(candidates.map((question,questionIndex)=>({questionIndex,question})))}`,schema);
+        review=await ask(reviewer,`NGỮ CẢNH:\n${context}\nCó đúng ${candidates.length} CÂU HỎI. Trả đúng ${candidates.length} review, một review cho mỗi questionIndex.\n${JSON.stringify(candidates.map((question,questionIndex)=>({questionIndex,question})))}`,schema,'kiểm tra đáp án',candidates.length);
       }
       catch(error) {if(error instanceof SyntaxError){rejected.push('Phản biện trả JSON không hợp lệ');continue;}throw error;}
       const reviews=Array.isArray(review.reviews) && review.reviews.length===candidates.length
@@ -158,10 +144,10 @@ async function generateQuiz(input, { fetchImpl = fetch, baseUrl = process.env.OL
       });
     }
     if (!questions.length) throw new Error('AI chưa tạo được câu hỏi vượt qua bước kiểm tra đáp án. Hãy chọn học liệu rõ hơn hoặc giảm số câu rồi thử lại.');
-    return {questions,model,attempts,requestedCount:input.count,partial:questions.length<input.count,promptVersion:VERSION};
+    return completed();
   } catch(error) {
-    if (controller.signal.aborted) throw new Error('AI tạo và kiểm tra bài tập quá thời gian chờ. Hãy giảm số câu hoặc chọn bài ngắn hơn.');
+    if (error.code === 'QUIZ_TIMEOUT' && questions.length) return completed();
     throw error;
-  } finally {clearTimeout(timeout);}
+  }
 }
 module.exports={VERSION,validateInput,chooseModel,questionSchema,normalizeQuestion,generateQuiz,shuffleChoices};

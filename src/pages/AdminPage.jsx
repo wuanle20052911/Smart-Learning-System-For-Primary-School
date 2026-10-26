@@ -9,6 +9,11 @@ export default function AdminPage({ Brand, api, logout, go }) {
   const [message, setMessage] = useState('');
   const [toast, setToast] = useState('');
   const [editingClass, setEditingClass] = useState(null);
+  const [rosterClassId, setRosterClassId] = useState('');
+  const [classStudents, setClassStudents] = useState([]);
+  const [rosterLoading, setRosterLoading] = useState(false);
+  const [rosterError, setRosterError] = useState('');
+  const [removingStudentId, setRemovingStudentId] = useState('');
   const [aiUsage, setAIUsage] = useState(null);
   const [aiUsageError, setAIUsageError] = useState('');
   const [aiUsageConnected, setAIUsageConnected] = useState(false);
@@ -29,6 +34,38 @@ export default function AdminPage({ Brand, api, logout, go }) {
   useEffect(() => {
     load();
   }, []);
+
+  useEffect(() => {
+    if (!data.classes.length) {
+      setRosterClassId('');
+      setClassStudents([]);
+      return;
+    }
+    if (!data.classes.some((item) => item.id === rosterClassId)) {
+      setRosterClassId(data.classes[0].id);
+    }
+  }, [data.classes, rosterClassId]);
+
+  useEffect(() => {
+    if (!rosterClassId) {
+      setClassStudents([]);
+      return undefined;
+    }
+    let active = true;
+    setRosterLoading(true);
+    setRosterError('');
+    api(`/api/catalog/management/classes/${rosterClassId}/students`)
+      .then((result) => {
+        if (active) setClassStudents(result.students || []);
+      })
+      .catch((error) => {
+        if (active) setRosterError(error.message || 'Không thể tải danh sách học sinh trong lớp.');
+      })
+      .finally(() => {
+        if (active) setRosterLoading(false);
+      });
+    return () => { active = false; };
+  }, [api, rosterClassId]);
 
   useEffect(() => {
     let cancelled = false;
@@ -169,8 +206,29 @@ export default function AdminPage({ Brand, api, logout, go }) {
       formElement.reset();
       setMessage('');
       setToast('Đã thêm học sinh vào lớp.');
+      if (form.get('class_id') === rosterClassId) {
+        const result = await api(`/api/catalog/management/classes/${rosterClassId}/students`);
+        setClassStudents(result.students || []);
+      }
     } catch (error) {
       setMessage(error.message);
+    }
+  };
+
+  const removeStudent = async (student) => {
+    const classItem = data.classes.find((item) => item.id === rosterClassId);
+    const studentName = student.full_name || student.email || 'học sinh này';
+    if (!window.confirm(`Gỡ ${studentName} khỏi lớp ${classItem?.name || ''}? Tài khoản học sinh sẽ không bị xóa.`)) return;
+    setRemovingStudentId(student.id);
+    setRosterError('');
+    try {
+      await api(`/api/catalog/management/classes/${rosterClassId}/students/${student.id}`, { method: 'DELETE' });
+      setClassStudents((items) => items.filter((item) => item.id !== student.id));
+      setToast(`Đã gỡ ${studentName} khỏi lớp.`);
+    } catch (error) {
+      setRosterError(error.message || 'Không thể gỡ học sinh khỏi lớp.');
+    } finally {
+      setRemovingStudentId('');
     }
   };
 
@@ -255,6 +313,22 @@ export default function AdminPage({ Brand, api, logout, go }) {
             <div><strong>{item.name} · {item.grade}</strong><small>Giáo viên: {item.assigned_teacher_name || 'Chưa chỉ định'}</small></div>
             <button className="secondary-action" type="button" onClick={() => setEditingClass(item)}>Chỉnh sửa</button>
           </article>) : !managementLoading && !managementError && <p>Chưa có lớp học.</p>}
+          {!managementLoading && !managementError && data.classes.length > 0 && <section className="managed-class-members">
+            <div className="card-heading"><div><h2>Học sinh trong lớp</h2><small>Gỡ học sinh khỏi lớp sẽ không xóa tài khoản của các em.</small></div>
+              <select aria-label="Chọn lớp để xem học sinh" value={rosterClassId} onChange={(event) => setRosterClassId(event.target.value)}>
+                {data.classes.map((item) => <option value={item.id} key={item.id}>{item.name} · {item.grade}</option>)}
+              </select>
+            </div>
+            {rosterError && <p className="message error" role="alert">{rosterError}</p>}
+            {rosterLoading ? <p>Đang tải danh sách học sinh...</p> : classStudents.length
+              ? classStudents.map((student) => <article className="managed-class-row" key={student.id}>
+                <div><strong>{student.full_name || 'Chưa cập nhật tên'}</strong><small>{student.email}</small></div>
+                <button className="remove-class-member" type="button" disabled={removingStudentId === student.id} onClick={() => removeStudent(student)}>
+                  {removingStudentId === student.id ? 'Đang gỡ...' : 'Gỡ khỏi lớp'}
+                </button>
+              </article>)
+              : !rosterError && <p>Lớp này chưa có học sinh.</p>}
+          </section>}
         </div>
         {editingClass && <div className="edit-class-panel">
           <div className="card-heading"><h2>Chỉnh sửa lớp học</h2><button className="secondary-action" type="button" onClick={() => setEditingClass(null)}>Đóng</button></div>

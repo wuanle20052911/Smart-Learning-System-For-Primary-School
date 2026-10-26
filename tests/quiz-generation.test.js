@@ -3,6 +3,7 @@ const {validateInput,chooseModel,normalizeQuestion,generateQuiz}=require('../ser
 const material='Cộng hai phân số cùng mẫu số: cộng tử số, giữ nguyên mẫu số; ví dụ 1/5 + 2/5 = 3/5. Rút gọn khi cần.';
 const q=(name='Tính kết quả của phép cộng 1/5 + 3/5.')=>({type:'multiple-choice',question:name,options:['1/5','2/5','3/5','4/5'],correctIndex:3,explanation:'Cộng tử số 1 + 3 = 4, giữ mẫu số 5 nên kết quả là 4/5.'});
 test('quiz model selection prefers quiz-capable model and never embedding',()=>{
+ assert.equal(chooseModel(['nomic-embed-text:latest','llama3.2:3b','qwen2.5:7b','qwen3:8b']),'qwen3:8b');
  assert.equal(chooseModel(['nomic-embed-text:latest','llama3.2:3b','qwen2.5:7b']),'qwen2.5:7b');
  assert.throws(()=>chooseModel(['nomic-embed-text:latest']));
  assert.throws(()=>chooseModel(['llama3.2:3b'],'missing'));
@@ -10,7 +11,8 @@ test('quiz model selection prefers quiz-capable model and never embedding',()=>{
 });
 test('quiz input requires source, validates bounds and supports legacy source extraction',()=>{
  assert.throws(()=>validateInput({material:'ngắn'}));assert.throws(()=>validateInput({material,questionCount:11}));
- assert.throws(()=>validateInput({material,questionType:'essay'}));assert.throws(()=>validateInput({material,grade:9}));
+ for(const questionType of ['essay','true-false','fill-blank','short-answer','matching']) assert.throws(()=>validateInput({material,questionType}));
+ assert.throws(()=>validateInput({material,grade:9}));
  assert.equal(validateInput({userPrompt:`Nguồn """${material}"""`}).material,material);
 });
 test('question gate rejects duplicate/empty options, fabricated index and wrong requested type',()=>{
@@ -19,13 +21,10 @@ test('question gate rejects duplicate/empty options, fabricated index and wrong 
  assert.equal(normalizeQuestion({...q(),options:['','2','3','4']},'multiple-choice'),null);
  assert.equal(normalizeQuestion({...q(),correctIndex:undefined,answer:null},'multiple-choice'),null);
  assert.equal(normalizeQuestion(q(),'true-false'),null);
+ assert.equal(normalizeQuestion({type:'matching'},'matching'),null);
+ assert.equal(normalizeQuestion({type:'fill-blank'},'fill-blank'),null);
+ assert.equal(normalizeQuestion({type:'short-answer'},'short-answer'),null);
  assert.equal(normalizeQuestion({...q(),explanation:''},'multiple-choice'),null);
-});
-test('matching must be a bijection and blanks must contain exactly one blank',()=>{
- const matching={type:'matching',question:'Nối các phép tính với kết quả tương ứng.',pairs:[{left:'1+1',right:'3'},{left:'1+2',right:'4'},{left:'2+2',right:'2'}],correctMatches:[2,0,1],explanation:'1+1=2; 1+2=3; 2+2=4.'};
- assert.ok(normalizeQuestion(matching,'matching'));assert.equal(normalizeQuestion({...matching,correctMatches:[0,0,1]},'matching'),null);
- const blank={type:'fill-blank',question:'Điền kết quả vào chỗ trống: 2 + 3 = ___.',answer:'5',explanation:'Cộng hai số 2 và 3 được tổng bằng 5.'};
- assert.ok(normalizeQuestion(blank,'fill-blank'));assert.equal(normalizeQuestion({...blank,question:'Tính tổng của hai số 2 và 3.'},'fill-blank'),null);
 });
 function mock(responses){let calls=0;return {fetch:async(url,opts)=>{
  if(url.endsWith('/api/tags'))return {ok:true,json:async()=>({models:[{name:'qwen2.5:7b'}]})};
@@ -61,23 +60,8 @@ test('shuffling preserves the correct answer and its editor index',()=>{
  assert.equal(shuffled.answer,shuffled.correctIndex);assert.notDeepEqual(shuffled.options,item.options);
 });
 
-test('reversed true-false labels preserve their meaning when normalized',()=>{
- const result=normalizeQuestion({type:'true-false',question:'Phép cộng hai với ba bằng sáu.',options:['Sai','Đúng'],correctIndex:0,explanation:'Hai cộng ba bằng năm, không phải sáu nên mệnh đề sai.'},'true-false');
- assert.deepEqual(result.options,['Đúng','Sai']);assert.equal(result.correctIndex,1);assert.equal(result.answer,1);
-});
-
-test('short numerical fraction answers use canonical simplest form',()=>{
- const item={type:'short-answer',question:'Tính tổng của hai phân số 4/7 và 3/7.',answer:'7/7',explanation:'Cộng tử số 4+3=7, giữ mẫu 7, được 7/7=1.'};
- assert.equal(normalizeQuestion(item,'short-answer').answer,'1');
- assert.equal(normalizeQuestion({...item,answer:'5/0'},'short-answer'),null);
-});
-
-test('arithmetic validation rejects wrong numeric keys and recalculates matching keys exactly',()=>{
+test('arithmetic validation rejects wrong numeric keys for generated multiple-choice',()=>{
  const wrong={...q(),correctIndex:0};assert.equal(normalizeQuestion(wrong,'multiple-choice'),null);
- const matching={type:'matching',question:'Nối phép tính với kết quả đúng.',pairs:[{left:'2/9 + 5/9',right:'7/9'},{left:'3/11 + 4/11',right:'7/11'},{left:'6/13 + 2/13',right:'8/13'}],correctMatches:[1,2,0],explanation:'Kết quả được tính theo quy tắc cộng phân số.'};
- const result=normalizeQuestion(matching,'matching');assert.deepEqual(result.correctMatches,[0,1,2]);
- const {shuffleChoices}=require('../services/quizGeneration');const shuffled=shuffleChoices(result,()=>0);
- shuffled.pairs.forEach((pair,i)=>assert.equal(shuffled.pairs[shuffled.correctMatches[i]].right,result.pairs[i].right));
 });
 
 test('exact arithmetic handles fractions and skips unsupported formulas safely',()=>{
@@ -87,8 +71,88 @@ test('exact arithmetic handles fractions and skips unsupported formulas safely',
  assert.equal(calculate('1 : 0'),null);assert.equal(calculate('process.exit()'),null);
 });
 
-test('natural Vietnamese sums and equivalent matching results are checked',()=>{
+test('natural Vietnamese sums are checked by arithmetic helper',()=>{
  const {calculate,format}=require('../services/quizArithmetic');assert.equal(format(calculate('Cộng 2/9 và 4/9')),'2/3');
- const item={type:'matching',question:'Nối các tổng với kết quả đúng.',pairs:[{left:'Cộng 2/9 và 4/9',right:'2/3'},{left:'Cộng 1/2 và 1/2',right:'1'},{left:'Cộng 3/4 và 1/4',right:'4/4'}],correctMatches:[0,1,2],explanation:'Cộng các tử số và giữ nguyên mẫu số.'};
- assert.equal(normalizeQuestion(item,'matching'),null);
+});
+
+test('only multiple-choice prompts can generate and review questions', async () => {
+ const {getQuizPrompts, VERSION}=require('../prompts/quiz');
+ const systems=[];
+ const fetchImpl=async(url,opts)=>{
+  if(url.endsWith('/api/tags'))return {ok:true,json:async()=>({models:[{name:'qwen2.5:7b'}]})};
+  const body=JSON.parse(opts.body);systems.push(body.messages[0].content);
+  const content=systems.length===1?{questions:[q()]}:{reviews:[{index:0,approved:true,reason:'Đã kiểm tra đáp án và giải thích.'}]};
+  return {ok:true,json:async()=>({message:{content:JSON.stringify(content)}})};
+ };
+ const result=await generateQuiz(validateInput({material,questionType:'multiple-choice',questionCount:1}),{fetchImpl});
+ const expected=getQuizPrompts('multiple-choice');
+ assert.deepEqual(systems,[expected.generator,expected.reviewer]);
+ assert.ok(systems.every(prompt=>prompt.includes('DẠNG: multiple-choice')));
+ assert.equal(result.questions[0].type,'multiple-choice');assert.equal(result.promptVersion,VERSION);
+ for(const type of ['true-false','fill-blank','short-answer','matching','essay']) assert.throws(()=>getQuizPrompts(type),/không được hỗ trợ/);
+ assert.throws(()=>getQuizPrompts('constructor'),/không được hỗ trợ/);
+});
+
+test('large quizzes use batches of at most three and retain reviewer checks', async()=>{
+ const sizes=[];let batch=[];let serial=0;
+ const fetchImpl=async(url,opts)=>{
+  if(url.endsWith('/api/tags'))return {ok:true,json:async()=>({models:[{name:'qwen3:8b'}]})};
+  const body=JSON.parse(opts.body);assert.equal(body.think,false);
+  let value;
+  if(body.format.properties.questions){
+   const count=body.format.properties.questions.maxItems;sizes.push(count);
+   batch=Array.from({length:count},()=>q(`Tính kết quả của phép cộng 1/5 + 3/5. Bài số ${++serial}.`));
+   value={questions:batch};
+  }else value={reviews:batch.map((_,index)=>({index,approved:true,reason:'Đáp án đúng theo phép tính.'}))};
+  return {ok:true,json:async()=>({message:{content:JSON.stringify(value)}})};
+ };
+ const result=await generateQuiz(validateInput({material,questionCount:7}),{fetchImpl});
+ assert.deepEqual(sizes,[3,3,1]);assert.equal(result.questions.length,7);assert.equal(result.partial,false);
+});
+function waitForAbort(signal){return new Promise((resolve,reject)=>{
+ const abort=()=>reject(new Error('aborted'));
+ if(signal.aborted)abort();else signal.addEventListener('abort',abort,{once:true});
+});}
+test('timeout identifies review stage and actual model without approving unchecked questions', async()=>{
+ let calls=0;
+ const fetchImpl=async(url,opts)=>{
+  if(url.endsWith('/api/tags'))return {ok:true,json:async()=>({models:[{name:'qwen2.5:7b'}]})};
+  if(++calls===1)return {ok:true,json:async()=>({message:{content:JSON.stringify({questions:[q()]})}})};
+  return waitForAbort(opts.signal);
+ };
+ await assert.rejects(generateQuiz(validateInput({material,questionCount:1}),{fetchImpl,timeoutMs:20}),/kiểm tra đáp án.*qwen2.5:7b/);
+ assert.equal(calls,2);
+});
+test('later timeout returns only previously reviewed questions as partial result', async()=>{
+ let calls=0;
+ const fetchImpl=async(url,opts)=>{
+  if(url.endsWith('/api/tags'))return {ok:true,json:async()=>({models:[{name:'qwen2.5:7b'}]})};
+  calls++;
+  if(calls>2)return waitForAbort(opts.signal);
+  const value=calls===1?{questions:[q()]}:{reviews:[{index:0,approved:true,reason:'Đáp án đúng theo phép tính.'}]};
+  return {ok:true,json:async()=>({message:{content:JSON.stringify(value)}})};
+ };
+ const result=await generateQuiz(validateInput({material,questionCount:2}),{fetchImpl,timeoutMs:20});
+ assert.equal(result.partial,true);assert.equal(result.questions.length,1);assert.equal(calls,3);
+});
+test('generation and review have separate timeout signals',async()=>{
+ const signals=[];
+ const fetchImpl=async(url,opts)=>{
+  signals.push(opts.signal);
+  const value=url.endsWith('/api/tags')?{models:[{name:'qwen2.5:7b'}]}:signals.length===2?{message:{content:JSON.stringify({questions:[q()]})}}:{message:{content:JSON.stringify({reviews:[{index:0,approved:true,reason:'Đáp án đúng theo phép tính.'}]})}};
+  return {ok:true,json:async()=>value};
+ };
+ await generateQuiz(validateInput({material,questionCount:1}),{fetchImpl});
+ assert.equal(new Set(signals).size,3);
+});
+
+test('truncated model output is retried and never reviewed as a complete batch',async()=>{
+ let calls=0;
+ const fetchImpl=async(url)=>{
+  if(url.endsWith('/api/tags'))return {ok:true,json:async()=>({models:[{name:'qwen2.5:7b'}]})};
+  calls++;
+  return {ok:true,json:async()=>({done_reason:'length',message:{content:JSON.stringify({questions:[q()]})}})};
+ };
+ await assert.rejects(generateQuiz(validateInput({material,questionCount:1}),{fetchImpl}),/chưa tạo được/);
+ assert.equal(calls,3);
 });

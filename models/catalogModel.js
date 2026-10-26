@@ -70,6 +70,14 @@ function listLocalClassStudents(classId) {
   return localClassStore.studentsByClass.get(classId) || [];
 }
 
+function removeLocalClassMember(classId, studentId) {
+  const students = localClassStore.studentsByClass.get(classId);
+  if (!students) throw new Error('Không tìm thấy lớp học.');
+  const studentIndex = students.findIndex((student) => student.id === studentId);
+  if (studentIndex < 0) throw new Error('Học sinh này không thuộc lớp.');
+  return students.splice(studentIndex, 1)[0];
+}
+
 async function list(client, table, fields = '*') {
   try {
     const { data, error } = await client.from(table).select(fields).order('name');
@@ -203,6 +211,33 @@ async function managerAddClassMember(client, classId, email) {
   }
 }
 
+async function managerListClassStudents(client, classId) {
+  try {
+    const { data, error } = await client.rpc('manager_list_class_students', {
+      target_class_id: classId
+    });
+    if (error) throw error;
+    return data || [];
+  } catch (error) {
+    if (process.env.SUPABASE_URL && process.env.SUPABASE_ANON_KEY) throw error;
+    return listLocalClassStudents(classId);
+  }
+}
+
+async function managerRemoveClassMember(client, classId, studentId) {
+  try {
+    const { data, error } = await client.rpc('manager_remove_student_from_class', {
+      target_class_id: classId,
+      target_student_id: studentId
+    });
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    if (process.env.SUPABASE_URL && process.env.SUPABASE_ANON_KEY) throw error;
+    return removeLocalClassMember(classId, studentId);
+  }
+}
+
 async function managerUpdateClass(client, classId, name, grade, teacherId) {
   try {
     const { data, error } = await client.rpc('manager_update_class', {
@@ -231,9 +266,12 @@ module.exports = {
   managerCreateClass,
   managerUpdateClass,
   managerAddClassMember,
+  managerListClassStudents,
+  managerRemoveClassMember,
   createLocalSchoolClass,
   addLocalStudentToClass,
   listLocalClasses,
   listLocalClassStudents,
+  removeLocalClassMember,
   resetLocalClassStore
 };

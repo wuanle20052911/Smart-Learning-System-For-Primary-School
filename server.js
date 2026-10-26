@@ -359,6 +359,10 @@ app.get('/learn', (req, res) => {
   res.sendFile(path.join(__dirname, 'dist', 'index.html'));
 });
 
+app.get('/meteor-game', (req, res) => {
+  res.sendFile(path.join(__dirname, 'dist', 'index.html'));
+});
+
 app.get(['/profile', '/history'], (req, res) => {
   res.sendFile(path.join(__dirname, 'dist', 'index.html'));
 });

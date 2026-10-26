@@ -10,6 +10,8 @@ router.get('/skills', controller.listSkills);
 router.get('/classes', controller.listClasses);
 router.get('/classes/:id/students', controller.listClassStudents);
 router.get('/management/options', controller.adminOnly, controller.listManagementOptions);
+router.get('/management/classes/:id/students', controller.adminOnly, controller.listManagerClassStudents);
+router.delete('/management/classes/:classId/students/:studentId', controller.adminOnly, controller.removeManagerClassMember);
 router.post('/subjects', controller.teacherOnly, controller.createSubject);
 router.post('/topics', controller.teacherOnly, controller.createTopic);
 router.post('/skills', controller.teacherOnly, controller.createSkill);

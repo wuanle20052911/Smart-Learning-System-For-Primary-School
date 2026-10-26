@@ -5,6 +5,7 @@ import AccountPage from './pages/AccountPage.jsx';
 import StudentHomePage from './pages/StudentHomePage.jsx';
 import StudentLeaderboardPage from './pages/StudentLeaderboardPage.jsx';
 import StudentCompetencyPage from './pages/StudentCompetencyPage.jsx';
+import MeteorGamePage from './pages/MeteorGamePage.jsx';
 import TeacherPage from './pages/TeacherPage.jsx';
 import Brand from './components/Brand.jsx';
 import Header from './components/Header.jsx';
@@ -84,6 +85,10 @@ function App() {
   if (path === '/leaderboard') {
     if (role !== 'student') return <AccessDenied destination={role === 'teacher' || role === 'admin' ? '/teacher' : '/learn'} go={go} />;
     return <StudentLeaderboardPage api={api} readSession={readSession} Header={Header} Brand={Brand} go={go} logout={logout} />;
+  }
+  if (path === '/meteor-game') {
+    if (role !== 'student') return <AccessDenied destination={role === 'teacher' || role === 'admin' ? '/teacher' : '/learn'} go={go} />;
+    return <MeteorGamePage api={api} Header={Header} Brand={Brand} readSession={readSession} go={go} logout={logout} />;
   }
   return <StudentHomePage api={api} readSession={readSession} Header={Header} Brand={Brand} LessonView={LessonView} AssignedWorkView={AssignedWorkView} go={go} logout={logout} />;
 }

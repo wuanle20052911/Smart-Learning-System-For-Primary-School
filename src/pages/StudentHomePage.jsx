@@ -41,6 +41,13 @@ function getStreakCount(streakKey) {
   return lastStudyDate === getLocalDateKey(today) || lastStudyDate === getLocalDateKey(yesterday) ? count : 0;
 }
 
+function getRecentLessons(storageKey) {
+  const recentLessons = JSON.parse(localStorage.getItem(storageKey) || '[]');
+  return Array.isArray(recentLessons)
+    ? recentLessons.filter((item) => item && typeof item.id === 'string' && Number.isFinite(item.studiedAt))
+    : [];
+}
+
 function groupLessonsByChapter(lessons) {
   const chapters = new Map();
   lessons.forEach((lesson) => {
@@ -72,6 +79,7 @@ export default function StudentHomePage({ api, readSession, Header, Brand, Lesso
   const studentId = session?.user?.id || session?.profile?.id;
   const streakKey = `mathjoy-study-streak-${session?.profile?.id || session?.user?.id || session?.profile?.email || 'student'}`;
   const studyTimeKey = `mathjoy-daily-study-time-${session?.profile?.id || session?.user?.id || session?.profile?.email || 'student'}`;
+  const recentLessonsKey = `mathjoy-recent-lessons-${studentId || session?.profile?.email || 'student'}`;
   const dailyStudyGoalSeconds = 15 * 60;
   const [lessons, setLessons] = useState([]);
   const [assignments, setAssignments] = useState([]);
@@ -84,6 +92,9 @@ export default function StudentHomePage({ api, readSession, Header, Brand, Lesso
   const [dailyStudyTime, setDailyStudyTime] = useState(() => getDailyStudyTime(studyTimeKey));
   const [progress, setProgress] = useState(() => JSON.parse(localStorage.getItem('mathjoy-progress') || '{"xp":0,"lessons":0,"answered":0}'));
   const [completedLessons, setCompletedLessons] = useState(() => JSON.parse(localStorage.getItem('mathjoy-completed-lessons') || '[]'));
+  const [recentLessons, setRecentLessons] = useState(() => getRecentLessons(recentLessonsKey));
+  const [catalogView, setCatalogView] = useState('chapter');
+  const [lessonFilter, setLessonFilter] = useState('all');
   const [leaderboardLoading, setLeaderboardLoading] = useState(true);
   const [leaderboardError, setLeaderboardError] = useState('');
   const [leaderboardPosition, setLeaderboardPosition] = useState(null);
@@ -200,8 +211,19 @@ export default function StudentHomePage({ api, readSession, Header, Brand, Lesso
 
   const openRecommendedLesson = (lessonId) => {
     const lesson = lessons.find((item) => item.id === lessonId);
-    if (lesson) setSelectedLesson({ ...lesson, title: getLessonDisplayTitle(lesson) });
+    if (lesson) openLesson(lesson);
     else setError('Không tìm thấy bài học được đề xuất.');
+  };
+
+  const openLesson = (lesson) => {
+    const studiedAt = Date.now();
+    const nextRecentLessons = [
+      { id: lesson.id, studiedAt },
+      ...recentLessons.filter((item) => item.id !== lesson.id)
+    ].slice(0, 50);
+    setRecentLessons(nextRecentLessons);
+    localStorage.setItem(recentLessonsKey, JSON.stringify(nextRecentLessons));
+    setSelectedLesson({ ...lesson, title: getLessonDisplayTitle(lesson) });
   };
 
   const chapters = groupLessonsByChapter(lessons);
@@ -295,20 +317,33 @@ export default function StudentHomePage({ api, readSession, Header, Brand, Lesso
                 loading={loadingChapters}
                 error={error}
                 completedLessons={completedLessons}
+                recentLessons={recentLessons}
+                lessonFilter={lessonFilter}
+                catalogView={catalogView}
+                onLessonFilterChange={setLessonFilter}
+                onCatalogViewChange={(view) => {
+                  setSelectedChapterId('');
+                  setCatalogView(view);
+                }}
                 onSelectChapter={setSelectedChapterId}
-                onSelectLesson={setSelectedLesson}
+                onSelectLesson={openLesson}
                 onBackToChapters={() => setSelectedChapterId('')}
               />
               </>}
         </section>
         <aside>
           <section className="daily-card christmas-frame"><h2>Mục tiêu hôm nay</h2><p>Học 15 phút mỗi ngày để duy trì thói quen học tập nhé!</p><div className="daily-progress" role="progressbar" aria-label="Thời gian học hôm nay" aria-valuemin="0" aria-valuemax={dailyStudyGoalSeconds} aria-valuenow={Math.min(dailyStudyGoalSeconds, todayStudySeconds)}><span style={{ width: `${studyProgress}%` }} /></div><small>{Math.min(15, studiedMinutes)}/15 phút</small><Cane position="br" /></section>
+          <section className="meteor-game-card christmas-frame">
+            <button className="meteor-game-artwork" type="button" onClick={() => go('/meteor-game')} aria-label="Chơi game Bắn Thiên Thạch">
+              <img src="/public/img/B%E1%BA%AFn%20Thi%C3%AAn%20Th%E1%BA%A1ch_%20Neon%20Space%20Battle.png" alt="Bắn Thiên Thạch" />
+            </button>
+          </section>
           <section className="assigned-work-card christmas-frame"><Cane position="tr" /><div className="assigned-work-heading"><div><span>📚</span><h2>Bài tập cần làm</h2></div><b>{assignments.length}</b></div><p className="assigned-work-subtitle">Bài tập cô giao cho em</p>{assignments.length ? <div className="assigned-work-list">{assignments.map((item) => {
             const isClosed = item.due_at && new Date(item.due_at).getTime() <= Date.now();
             const canReview = Boolean(item.submission);
             return <button className={`assigned-work-item ${item.submission ? 'is-done' : ''} ${isClosed && !canReview ? 'is-closed' : ''}`} key={item.id} onClick={() => openAssignment(item)} disabled={isClosed && !canReview}>
               <span className="assigned-work-icon">{item.submission ? '✅' : isClosed ? '🔒' : '📝'}</span>
-              <span className="assigned-work-content"><strong>{item.title}</strong><small>{item.submission ? `Đã làm · ${item.submission.score}/100 · Bấm để xem lại` : isClosed ? 'Đã hết hạn nộp' : `${item.question_count || 0} câu · ${item.difficulty === 'hard' ? 'Khó' : item.difficulty === 'medium' ? 'Vừa' : 'Dễ'}`}{item.due_at ? ` · Hạn: ${new Date(item.due_at).toLocaleString('vi-VN')}` : ''}</small></span>
+              <span className="assigned-work-content"><strong>{item.title}</strong><small>{item.submission ? `Đã làm · ${item.submission.score}/100${item.submission.feedback?.length ? ' · Cô đã nhận xét' : ''} · Bấm để xem lại` : isClosed ? 'Đã hết hạn nộp' : `${item.question_count || 0} câu · ${item.difficulty === 'hard' ? 'Khó' : item.difficulty === 'medium' ? 'Vừa' : 'Dễ'}`}{item.due_at ? ` · Hạn: ${new Date(item.due_at).toLocaleString('vi-VN')}` : ''}</small></span>
               <span className="assigned-work-arrow">{isClosed && !canReview ? 'Đã đóng' : '›'}</span>
             </button>;
           })}</div> : <div className="assigned-work-empty">Hiện chưa có bài tập cô giao. 🎉</div>}<Stocking className="stocking-bl" /></section>

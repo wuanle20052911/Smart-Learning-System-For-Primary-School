@@ -1,8 +1,6 @@
 const questionBankModel = require('../models/questionBankModel');
 const { getSupabaseClient } = require('../models/supabaseClient');
 
-const types = new Set(['multiple-choice', 'true-false', 'fill-blank', 'matching', 'short-answer']);
-
 function teacherOnly(req, res, next) {
   if (!['teacher', 'admin'].includes(req.profile?.role)) {
     return res.status(403).json({ error: 'Chỉ giáo viên mới có quyền quản lý ngân hàng câu hỏi.' });
@@ -18,16 +16,12 @@ function studentOnly(req, res, next) {
 }
 
 function normalize(body = {}) {
-  if (!types.has(body.type) || typeof body.question !== 'string' || !body.question.trim()) {
-    throw new Error('Câu hỏi không hợp lệ.');
-  }
-  if ((body.type === 'multiple-choice' || body.type === 'true-false')
-    && (!Array.isArray(body.options) || body.options.length < 2 || !Number.isInteger(body.answer))) {
-    throw new Error('Câu hỏi trắc nghiệm cần đáp án và các lựa chọn hợp lệ.');
-  }
-  if ((body.type === 'fill-blank' || body.type === 'short-answer')
-    && (typeof body.answer !== 'string' || !body.answer.trim())) {
-    throw new Error('Câu hỏi trả lời ngắn cần có đáp án.');
+  if (body.type !== 'multiple-choice' || typeof body.question !== 'string' || !body.question.trim()
+    || !Array.isArray(body.options) || body.options.length !== 4
+    || !body.options.every((option) => typeof option === 'string' && option.trim())
+    || new Set(body.options.map((option) => option.trim().toLocaleLowerCase('vi-VN'))).size !== 4
+    || !Number.isInteger(body.answer) || body.answer < 0 || body.answer >= 4) {
+    throw new Error('Chỉ hỗ trợ tạo câu trắc nghiệm có 4 lựa chọn và đáp án hợp lệ.');
   }
   return {
     question_key: typeof body.question_key === 'string' && body.question_key.trim()
@@ -103,4 +97,4 @@ async function remove(req, res) {
   }
 }
 
-module.exports = { teacherOnly, studentOnly, list, listForLesson, create, remove };
+module.exports = { teacherOnly, studentOnly, normalize, list, listForLesson, create, remove };

@@ -4,7 +4,6 @@ export default function TeacherStudents({ classes, onMessage, api }) {
   const [classId, setClassId] = useState(classes[0]?.id || '');
   const [students, setStudents] = useState([]);
   const [busy, setBusy] = useState(false);
-  const [email, setEmail] = useState('');
   const [profileStudentId, setProfileStudentId] = useState('');
   const [competencyProfile, setCompetencyProfile] = useState(null);
   const [profileBusy, setProfileBusy] = useState(false);
@@ -20,25 +19,6 @@ export default function TeacherStudents({ classes, onMessage, api }) {
       .finally(() => setBusy(false));
   }, [classId, onMessage]);
   const selectedClass = classes.find((item) => item.id === classId);
-  const addStudent = async (event) => {
-    event.preventDefault();
-    if (!classId || !email.trim()) {
-      onMessage('Vui lòng chọn lớp và nhập email học sinh.');
-      return;
-    }
-    try {
-      await api('/api/catalog/classes/members', {
-        method: 'POST',
-        body: JSON.stringify({ class_id: classId, email: email.trim() })
-      });
-      setEmail('');
-      onMessage('Đã thêm học sinh vào lớp.');
-      const data = await api(`/api/catalog/classes/${classId}/students`);
-      setStudents(data.students || []);
-    } catch (error) {
-      onMessage(error.message);
-    }
-  };
   const toggleCompetencyProfile = async (student) => {
     if (profileStudentId === student.id) {
       setProfileStudentId('');
@@ -78,10 +58,6 @@ export default function TeacherStudents({ classes, onMessage, api }) {
       <div><span className="panel-kicker">QUẢN LÝ LỚP HỌC</span><h2>Danh sách học sinh</h2><p>{selectedClass ? `${selectedClass.name} · Khối ${selectedClass.grade}` : 'Chọn lớp để xem học sinh'}</p></div>
       <select value={classId} onChange={(event) => setClassId(event.target.value)}><option value="">Chọn lớp</option>{classes.map((item) => <option value={item.id} key={item.id}>{item.name} · {item.grade}</option>)}</select>
     </div>
-    <form onSubmit={addStudent} className="profile-form" style={{ marginTop: 18 }}>
-      <label>Email học sinh<input type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="student@example.com" required /></label>
-      <button className="teacher-create" type="submit">＋ Thêm học sinh</button>
-    </form>
     {busy ? <p className="student-list-empty">Đang tải danh sách...</p> : !classId ? <p className="student-list-empty">Bạn chưa có lớp để xem.</p> : students.length ? <div className="student-list-table">
       <div className="student-list-summary"><b>{students.length}</b><span>học sinh trong lớp</span></div>
       {students.map((student, index) => <React.Fragment key={student.id}>

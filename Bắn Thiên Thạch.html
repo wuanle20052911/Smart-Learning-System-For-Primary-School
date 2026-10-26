@@ -1,0 +1,848 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Bắn Thiên Thạch</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;600;700&family=Chakra+Petch:wght@500;700&display=swap" rel="stylesheet">
+<style>
+/* Landscape playfield with the HUD and question strip above the canvas. */
+:root {
+  --bg: #080c1a;
+  --panel: #111833;
+  --line: #243056;
+  --fg: #e9edff;
+  --muted: #8e9bc7;
+  --beam: #5ee7ff;
+  --heat: #ffb347;
+  --bad: #ff5d73;
+  --good: #62f5a8;
+  --f-display: "Chakra Petch", "Segoe UI", system-ui, sans-serif;
+  --f-body: "Be Vietnam Pro", system-ui, -apple-system, "Segoe UI", sans-serif;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--f-body);
+  font-size: 15px;
+  line-height: 1.5;
+  padding-block: 4px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+button { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--beam); outline-offset: 2px; }
+
+.app { width: 100%; max-width: min(1240px, calc(100vw - 24px), calc((100vh - 205px) * 1.777)); margin: 0 auto; display: flex; flex-direction: column; gap: 5px; }
+
+.hud { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
+.stat { display: flex; flex-direction: column; line-height: 1.1; min-width: 0; }
+.k { font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+.v { font-family: var(--f-display); font-weight: 700; font-size: 22px; font-variant-numeric: tabular-nums; }
+.spacer { flex: 1; min-width: 0; }
+.lives { display: flex; gap: 6px; align-items: center; }
+.life { width: 20px; height: 22px; background: var(--beam); clip-path: polygon(50% 0, 100% 100%, 50% 78%, 0 100%); transition: background .25s; }
+.life.off { background: var(--line); }
+
+.btn {
+  font-family: var(--f-display); font-weight: 700; font-size: 14px; letter-spacing: .06em; text-transform: uppercase;
+  border: 1px solid var(--line); background: transparent; border-radius: 6px; padding: 9px 16px; cursor: pointer;
+}
+.btn:hover { border-color: var(--muted); }
+.btn.primary { background: var(--heat); border-color: var(--heat); color: #1a1205; }
+.btn.primary:hover { filter: brightness(1.08); }
+.btn.small { padding: 6px 10px; font-size: 12px; }
+
+.question { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px 0; overflow: hidden; }
+.qhead { display: flex; justify-content: space-between; gap: 12px; font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); font-variant-numeric: tabular-nums; }
+#qtext { margin: 4px 0 12px; font-weight: 600; font-size: clamp(16px, 4.4vw, 20px); line-height: 1.4; text-wrap: balance; min-height: 2.8em; overflow-wrap: anywhere; }
+.timer { height: 5px; background: var(--line); margin: 0 -14px; }
+.timer i { display: block; height: 100%; background: var(--beam); transform-origin: left center; transform: scaleX(1); }
+.timer.low i { background: var(--bad); }
+
+.stage { position: relative; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: #05070f; }
+canvas { display: block; width: 100%; height: auto; aspect-ratio: 16 / 9; touch-action: none; cursor: crosshair; user-select: none; -webkit-user-select: none; }
+.toast {
+  position: absolute; left: 12px; right: 12px; top: 10px; padding: 8px 12px; border-radius: 8px;
+  background: rgba(8, 12, 26, .94); border: 1px solid var(--line); font-weight: 600; text-align: center;
+  opacity: 0; transition: opacity .2s; pointer-events: none; overflow-wrap: anywhere;
+}
+.toast.show { opacity: 1; }
+.toast.bad { border-color: var(--bad); }
+.toast.good { border-color: var(--good); }
+
+.overlay { position: absolute; inset: 0; display: flex; overflow: auto; padding: 16px; background: rgba(5, 8, 18, .84); }
+.card { margin: auto; width: 100%; max-width: 380px; display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.card h1, .card h2 { margin: 0; font-family: var(--f-display); font-weight: 700; line-height: 1.05; text-wrap: balance; }
+.card h1 { font-size: clamp(30px, 9vw, 40px); letter-spacing: .01em; }
+.card h2 { font-size: 28px; }
+.card p { margin: 0; color: var(--muted); }
+.row { display: flex; gap: 10px; flex-wrap: wrap; }
+.seg { display: flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.seg label { flex: 1; position: relative; }
+.seg input { position: absolute; opacity: 0; inset: 0; cursor: pointer; }
+.seg span { display: block; text-align: center; padding: 8px 6px; font-family: var(--f-display); font-weight: 700; letter-spacing: .05em; text-transform: uppercase; font-size: 13px; color: var(--muted); }
+.seg input:checked + span { background: var(--beam); color: #06222a; }
+.seg input:focus-visible + span { outline: 2px solid var(--fg); outline-offset: -3px; }
+.check { display: flex; gap: 8px; align-items: center; color: var(--muted); font-size: 13px; }
+.check input { width: 16px; height: 16px; accent-color: var(--beam); }
+.note { font-size: 13px; }
+.bignums { display: flex; gap: 22px; flex-wrap: wrap; }
+.missed { margin: 0; padding: 0; list-style: none; max-height: 190px; overflow: auto; border: 1px solid var(--line); border-radius: 8px; }
+.missed li { padding: 8px 10px; font-size: 13px; border-bottom: 1px solid var(--line); overflow-wrap: anywhere; }
+.missed li:last-child { border-bottom: 0; }
+.missed b { color: var(--good); font-weight: 600; }
+textarea {
+  width: 100%; min-height: 230px; background: #0a1020; color: var(--fg); border: 1px solid var(--line); border-radius: 8px;
+  padding: 10px; font: 13px/1.5 ui-monospace, Menlo, Consolas, monospace; resize: vertical;
+}
+.status { min-height: 1.5em; font-size: 13px; color: var(--muted); }
+.status.err { color: var(--bad); }
+.status.ok { color: var(--good); }
+.help { margin: 2px 0 0; font-size: 12.5px; color: var(--muted); }
+@media (max-width: 420px) { .hud { gap: 12px; } .v { font-size: 20px; } }
+</style>
+
+<main class="app">
+  <header class="hud">
+    <div class="stat"><span class="k">Điểm</span><span class="v" id="score">0</span></div>
+    <div class="stat"><span class="k">Chuỗi</span><span class="v" id="streak">0</span></div>
+    <div class="stat"><span class="k">Thân tàu</span><div class="lives" id="lives" aria-label="Số mạng"></div></div>
+    <span class="spacer"></span>
+    <button class="btn small" id="btnMute" type="button">Âm: bật</button>
+    <button class="btn small" id="btnPause" type="button">Tạm dừng</button>
+  </header>
+
+  <section class="question" aria-live="polite">
+    <div class="qhead"><span id="qno">Sẵn sàng</span><span id="fuel">Nhiên liệu</span></div>
+    <p id="qtext">Bấm "Bắt đầu" để lái tàu vào bãi thiên thạch.</p>
+    <div class="timer" id="timer"><i id="timerFill"></i></div>
+  </section>
+
+  <div class="stage" id="stage">
+    <canvas id="cv" aria-label="Màn chơi: phi thuyền bắn thiên thạch chứa đáp án"></canvas>
+    <div class="toast" id="toast" role="status"></div>
+
+    <div class="overlay" id="ovStart">
+      <div class="card">
+        <h1>Bắn Thiên Thạch</h1>
+        <p>Mỗi hàng có 4 thiên thạch A–D, chỉ một chứa đáp án đúng. Giữ chùm tia trên đáp án bạn chọn cho tới khi nó nổ để mở đường. Bắn nhầm thiên thạch sai sẽ mất thân tàu.</p>
+        <div class="seg" role="radiogroup" aria-label="Độ khó">
+          <label><input type="radio" name="diff" value="easy"><span>Dễ</span></label>
+          <label><input type="radio" name="diff" value="normal" checked><span>Vừa</span></label>
+          <label><input type="radio" name="diff" value="hard"><span>Khó</span></label>
+        </div>
+        <p class="note" id="diffNote"></p>
+        <label class="check"><input type="checkbox" id="autoFire" checked> Tự động bắn (tắt để chỉ bắn khi giữ chuột, chạm hoặc Space)</label>
+        <div class="row">
+          <button class="btn primary" id="btnStart" type="button">Bắt đầu</button>
+          <button class="btn" id="btnBank" type="button">Sửa bộ câu hỏi</button>
+        </div>
+        <p class="note" id="bankInfo"></p>
+        <p class="note" id="bestInfo"></p>
+      </div>
+    </div>
+
+    <div class="overlay" id="ovPause" hidden>
+      <div class="card">
+        <h2>Tạm dừng</h2>
+        <div class="row">
+          <button class="btn primary" id="btnResume" type="button">Tiếp tục</button>
+          <button class="btn" id="btnQuit" type="button">Về màn đầu</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="overlay" id="ovEnd" hidden>
+      <div class="card">
+        <h2 id="endTitle"></h2>
+        <p id="endSub"></p>
+        <div class="bignums">
+          <div class="stat"><span class="k">Điểm</span><span class="v" id="endScore">0</span></div>
+          <div class="stat"><span class="k">Kỷ lục</span><span class="v" id="endBest">0</span></div>
+          <div class="stat"><span class="k">Đúng ngay lần đầu</span><span class="v" id="endAcc">0</span></div>
+        </div>
+        <div id="missedWrap">
+          <p class="note" style="margin-bottom:6px">Các câu cần ôn lại</p>
+          <ul class="missed" id="missedList"></ul>
+        </div>
+        <div class="row">
+          <button class="btn primary" id="btnAgain" type="button">Chơi lại</button>
+          <button class="btn" id="btnReview" type="button">Ôn lại câu sai</button>
+          <button class="btn" id="btnHome" type="button">Màn đầu</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="overlay" id="ovBank" hidden>
+      <div class="card" style="max-width:440px">
+        <h2>Bộ câu hỏi</h2>
+        <p class="note">Mỗi dòng một câu theo mẫu: <b>Câu hỏi | Đáp án đúng | Sai 1 | Sai 2 | Sai 3</b>. Game tự xáo thứ tự A–D. Dòng bắt đầu bằng # được bỏ qua. Nên giữ đáp án dưới 34 ký tự để vừa trên thiên thạch.</p>
+        <textarea id="bankText" spellcheck="false" aria-label="Danh sách câu hỏi"></textarea>
+        <div class="status" id="bankStatus" role="status"></div>
+        <div class="row">
+          <button class="btn primary" id="btnSaveBank" type="button">Lưu</button>
+          <button class="btn" id="btnResetBank" type="button">Dùng bộ mẫu</button>
+          <button class="btn" id="btnCloseBank" type="button">Đóng</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <p class="help">Lái: di chuột, kéo ngón tay, hoặc phím ← → / A D. Bắn: giữ chuột, chạm, hoặc Space. Phím 1–4 đưa tàu tới đáp án A–D. P hoặc Esc để tạm dừng. Câu hỏi và kỷ lục lưu trên trình duyệt này.</p>
+</main>
+
+<script>
+(function () {
+  'use strict';
+
+  var W = 960, H = 540, LANES = 4, LW = W / LANES;
+  var SHIP_Y = H - 66, ROW_Y = 172, R = 56, IN_DUR = 1.1, RUN_LEN = 15;
+  var FONT = '"Be Vietnam Pro", system-ui, sans-serif';
+  var DISPLAY = '"Chakra Petch", system-ui, sans-serif';
+  var COL = { beam: '#5ee7ff', heat: '#ffb347', bad: '#ff5d73', good: '#62f5a8' };
+  var RM = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  var DIFF = {
+    easy: { hit: 1.2, time: 40, note: 'Giữ chùm tia 1,2 giây để nổ. 40 giây nhiên liệu mỗi câu.' },
+    normal: { hit: 1.8, time: 30, note: 'Giữ chùm tia 1,8 giây để nổ. 30 giây nhiên liệu mỗi câu.' },
+    hard: { hit: 2.4, time: 22, note: 'Giữ chùm tia 2,4 giây để nổ. 22 giây nhiên liệu mỗi câu.' }
+  };
+  var BANK_KEY = 'ban-thien-thach:bank', BEST_KEY = 'ban-thien-thach:best';
+
+  var DEFAULT_BANK = [
+    '# Câu hỏi | Đáp án đúng | Sai 1 | Sai 2 | Sai 3',
+    'Thủ đô của Việt Nam là thành phố nào? | Hà Nội | Huế | Đà Nẵng | Hồ Chí Minh',
+    '7 × 8 bằng bao nhiêu? | 56 | 54 | 63 | 48',
+    'Hành tinh nào gần Mặt Trời nhất? | Sao Thủy | Sao Kim | Trái Đất | Sao Hỏa',
+    'Công thức hóa học của nước là gì? | H2O | CO2 | O2 | NaCl',
+    'Đỉnh núi cao nhất Việt Nam là? | Fansipan | Pù Luông | Bạch Mã | Langbiang',
+    'Từ "apple" trong tiếng Anh nghĩa là gì? | Quả táo | Quả cam | Quả chuối | Quả nho',
+    'Căn bậc hai của 144 là? | 12 | 14 | 16 | 11',
+    'Ai là tác giả của Truyện Kiều? | Nguyễn Du | Nguyễn Trãi | Hồ Xuân Hương | Nguyễn Đình Chiểu',
+    'Trái Đất quay quanh Mặt Trời hết khoảng bao lâu? | 365 ngày | 30 ngày | 24 giờ | 7 ngày',
+    'Kim loại nào ở thể lỏng ở nhiệt độ phòng? | Thủy ngân | Sắt | Đồng | Nhôm',
+    'Quá khứ của động từ "go" là? | went | goed | goes | going',
+    'Số nguyên tố nhỏ nhất là? | 2 | 1 | 3 | 0',
+    'Đại dương lớn nhất thế giới là? | Thái Bình Dương | Đại Tây Dương | Ấn Độ Dương | Bắc Băng Dương',
+    'Chiến thắng Điện Biên Phủ diễn ra vào năm nào? | 1954 | 1945 | 1975 | 1968',
+    'Khí nào chiếm nhiều nhất trong không khí? | Nitơ | Ôxy | Cacbonic | Hydro',
+    'Diện tích hình chữ nhật dài 6 cm, rộng 4 cm là? | 24 cm² | 20 cm² | 10 cm² | 48 cm²',
+    'Cơ quan nào bơm máu đi khắp cơ thể? | Tim | Phổi | Gan | Thận',
+    'Từ trái nghĩa với "hot" là? | cold | sunny | big | slow',
+    'Nước nào có diện tích lớn nhất thế giới? | Nga | Trung Quốc | Canada | Hoa Kỳ',
+    '15% của 200 bằng bao nhiêu? | 30 | 15 | 20 | 35',
+    'Chất lỏng nóng chảy do núi lửa phun ra gọi là gì? | Dung nham | Phù sa | Băng hà | Trầm tích',
+    'Ngày Quốc khánh nước Việt Nam là ngày nào? | 2 tháng 9 | 30 tháng 4 | 19 tháng 8 | 1 tháng 5',
+    'Đơn vị đo lực trong hệ SI là gì? | Niutơn | Jun | Oát | Pascal',
+    'Thủ đô của Nhật Bản là thành phố nào? | Tokyo | Osaka | Kyoto | Seoul'
+  ].join('\n');
+
+  function $(id) { return document.getElementById(id); }
+  function lsGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  function lsSet(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* ignore */ } }
+  function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
+  function shuffle(a) {
+    a = a.slice();
+    for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)); var t = a[i]; a[i] = a[j]; a[j] = t; }
+    return a;
+  }
+  function rng(a) {
+    return function () {
+      a |= 0; a = a + 0x6D2B79F5 | 0;
+      var t = Math.imul(a ^ a >>> 15, 1 | a);
+      t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+      return ((t ^ t >>> 14) >>> 0) / 4294967296;
+    };
+  }
+
+  /* ---------- question bank ---------- */
+  function parseBank(text) {
+    var items = [], errors = [], seen = {}, long = 0;
+    text.split(/\r?\n/).forEach(function (raw, i) {
+      var line = raw.trim();
+      if (!line || line.charAt(0) === '#') return;
+      var p = line.split('|').map(function (s) { return s.trim(); });
+      if (p.length !== 5 || p.some(function (s) { return !s; })) {
+        errors.push('Dòng ' + (i + 1) + ': cần đủ 5 phần, ngăn cách bằng dấu |'); return;
+      }
+      var uniq = {};
+      p.slice(1).forEach(function (s) { uniq[s.toLowerCase()] = 1; });
+      if (Object.keys(uniq).length !== 4) { errors.push('Dòng ' + (i + 1) + ': có đáp án bị trùng nhau'); return; }
+      var key = p[0].toLowerCase();
+      if (seen[key]) return;
+      seen[key] = 1;
+      p.slice(1).forEach(function (s) { if (s.length > 34) long++; });
+      items.push({ q: p[0], a: p[1], w: p.slice(2) });
+    });
+    return { items: items, errors: errors, long: long };
+  }
+  var bank = parseBank(lsGet(BANK_KEY) || DEFAULT_BANK).items;
+  if (!bank.length) bank = parseBank(DEFAULT_BANK).items;
+
+  /* ---------- canvas ---------- */
+  var cv = $('cv'), ctx = cv.getContext('2d');
+  var DPR = Math.min(2, Math.max(1.25, window.devicePixelRatio || 1));
+  cv.width = Math.round(W * DPR); cv.height = Math.round(H * DPR);
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+
+  var S = {
+    mode: 'start', diff: 'normal', score: 0, lives: 3, streak: 0, correct: 0, missed: [], qi: 0, queue: [],
+    row: null, prev: null, tx: W / 2, ship: { x: W / 2, tilt: 0 }, shipDead: false,
+    pointerDown: false, firing: false, target: null, timeLeft: 30, total: 30,
+    time: 0, shake: 0, flash: 0, endTimer: 0, win: false, best: parseInt(lsGet(BEST_KEY), 10) || 0
+  };
+  var K = { left: false, right: false, space: false };
+  var P = [], F = [], stars = [];
+  for (var si = 0; si < 90; si++) stars.push({ x: Math.random() * W, y: Math.random() * H, z: .2 + Math.random() * .8 });
+
+  /* ---------- audio ---------- */
+  var ac = null, hum = null, humG = null, muted = false;
+  function ensureAudio() {
+    if (!ac) {
+      try {
+        ac = new (window.AudioContext || window.webkitAudioContext)();
+        hum = ac.createOscillator(); humG = ac.createGain();
+        hum.type = 'sawtooth'; hum.frequency.value = 120; humG.gain.value = 0;
+        var lp = ac.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 600;
+        hum.connect(lp); lp.connect(humG); humG.connect(ac.destination); hum.start();
+      } catch (e) { ac = null; }
+    }
+    if (ac && ac.state === 'suspended') ac.resume();
+  }
+  function setHum(on, charge) {
+    if (!ac || !humG) return;
+    var t = ac.currentTime;
+    humG.gain.setTargetAtTime(on && !muted ? 0.03 + charge * 0.03 : 0, t, .05);
+    hum.frequency.setTargetAtTime(110 + charge * 260, t, .05);
+  }
+  function tone(f, d, type, v, f2) {
+    if (!ac || muted) return;
+    var t = ac.currentTime, o = ac.createOscillator(), g = ac.createGain();
+    o.type = type; o.frequency.setValueAtTime(f, t);
+    if (f2) o.frequency.exponentialRampToValueAtTime(f2, t + d);
+    g.gain.setValueAtTime(v, t); g.gain.exponentialRampToValueAtTime(0.0001, t + d);
+    o.connect(g); g.connect(ac.destination); o.start(t); o.stop(t + d + .02);
+  }
+  function noise(d, v) {
+    if (!ac || muted) return;
+    var n = Math.floor(ac.sampleRate * d), b = ac.createBuffer(1, n, ac.sampleRate), ch = b.getChannelData(0);
+    for (var i = 0; i < n; i++) ch[i] = (Math.random() * 2 - 1) * (1 - i / n);
+    var s = ac.createBufferSource(), g = ac.createGain();
+    s.buffer = b; g.gain.value = v; s.connect(g); g.connect(ac.destination); s.start();
+  }
+  function sfxGood() { tone(520, .12, 'triangle', .1, 780); setTimeout(function () { tone(780, .18, 'triangle', .1, 1040); }, 90); noise(.25, .1); }
+  function sfxBad() { tone(180, .35, 'sawtooth', .08, 70); noise(.3, .12); }
+
+  /* ---------- helpers: toast, hud, overlays ---------- */
+  var toastTimer = 0;
+  function toast(msg, kind) {
+    var t = $('toast');
+    t.textContent = msg; t.className = 'toast show ' + (kind || '');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { t.className = 'toast'; }, 2200);
+  }
+  var livesEl = $('lives');
+  for (var li = 0; li < 3; li++) { var sp = document.createElement('span'); sp.className = 'life'; livesEl.appendChild(sp); }
+  function hud() {
+    $('score').textContent = S.score;
+    $('streak').textContent = S.streak;
+    var ls = livesEl.children;
+    for (var i = 0; i < ls.length; i++) ls[i].className = 'life' + (i < S.lives ? '' : ' off');
+  }
+  function show(id) {
+    ['ovStart', 'ovPause', 'ovEnd', 'ovBank'].forEach(function (n) { $(n).hidden = (n !== id); });
+  }
+  function setQuestion() {
+    if (!S.row) return;
+    $('qtext').textContent = S.row.q.q;
+    $('qno').textContent = 'Câu ' + (S.qi + 1) + ' / ' + S.queue.length;
+  }
+  function updateStartInfo() {
+    $('bankInfo').textContent = 'Bộ câu hỏi hiện có ' + bank.length + ' câu. Mỗi lượt chơi lấy ngẫu nhiên tối đa ' + RUN_LEN + ' câu.';
+    $('bestInfo').textContent = S.best ? 'Kỷ lục của bạn: ' + S.best + ' điểm.' : '';
+    $('diffNote').textContent = DIFF[S.diff].note;
+  }
+
+  /* ---------- game flow ---------- */
+  function makeRow(q) {
+    var ans = shuffle([{ text: q.a, correct: true }].concat(q.w.map(function (t) { return { text: t, correct: false }; })));
+    var asts = ans.map(function (a, i) {
+      var seed = Math.random() * 1000, r = rng(seed * 7 + i), shape = [], cr = [], k;
+      for (k = 0; k < 12; k++) shape.push(.84 + r() * .22);
+      for (k = 0; k < 3; k++) cr.push({ a: r() * 6.283, d: r() * .5, s: .1 + r() * .14 });
+      return { i: i, x: LW * (i + .5), text: a.text, correct: a.correct, charge: 0, dead: false, rot: r() * 6.283, spin: (r() - .5) * .5, seed: seed, shape: shape, cr: cr };
+    });
+    return { q: q, asts: asts, y: -110, t: 0, state: 'in', wrong: false, missed: false };
+  }
+  function startGame(list) {
+    ensureAudio();
+    S.diff = (document.querySelector('input[name="diff"]:checked') || { value: 'normal' }).value;
+    S.total = DIFF[S.diff].time; S.timeLeft = S.total;
+    S.score = 0; S.lives = 3; S.streak = 0; S.correct = 0; S.missed = [];
+    S.qi = 0; S.queue = list; S.prev = null; S.shipDead = false; S.win = false;
+    S.pointerDown = false; S.tx = W / 2; S.ship.x = W / 2; S.ship.tilt = 0; S.shake = 0; S.flash = 0;
+    P.length = 0; F.length = 0;
+    S.row = makeRow(list[0]);
+    S.mode = 'play';
+    show(null); setQuestion(); hud();
+  }
+  function pickQueue() { return shuffle(bank).slice(0, RUN_LEN); }
+  function advance() {
+    S.qi++;
+    S.prev = S.row;
+    if (S.prev) S.prev.t = 0;
+    if (S.qi >= S.queue.length) { S.row = null; finish(true); return; }
+    S.row = makeRow(S.queue[S.qi]);
+    setQuestion();
+  }
+  function recordMiss(row) { if (!row.missed) { row.missed = true; S.missed.push(row.q); } }
+  function boom(x, y, color) {
+    var n = RM ? 14 : 34, i;
+    for (i = 0; i < n; i++) {
+      var a = Math.random() * 6.283, s = 40 + Math.random() * 190;
+      P.push({ k: 'd', x: x, y: y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, life: 0, max: .5 + Math.random() * .6, size: 2 + Math.random() * 4, c: Math.random() < .5 ? '#8a766c' : (Math.random() < .5 ? COL.heat : '#ffe2a8') });
+    }
+    P.push({ k: 'r', x: x, y: y, life: 0, max: .55, c: color });
+  }
+  function floater(x, y, text, c) { F.push({ x: x, y: y, text: text, c: c, life: 0 }); }
+  function loseLife() {
+    S.lives = Math.max(0, S.lives - 1);
+    S.shake = RM ? 0 : 14; S.flash = 1;
+  }
+  function destroy(a) {
+    var row = S.row;
+    a.dead = true; a.charge = 0;
+    boom(a.x, row.y, a.correct ? COL.good : COL.bad);
+    if (a.correct) {
+      var pts;
+      if (row.wrong) { pts = 40; }
+      else {
+        pts = 100 + Math.min(S.streak, 10) * 10 + Math.round(clamp(S.timeLeft / S.total, 0, 1) * 50);
+        S.streak++; S.correct++;
+      }
+      S.score += pts;
+      floater(a.x, row.y, '+' + pts, COL.good);
+      sfxGood();
+      advance();
+    } else {
+      row.wrong = true; S.streak = 0; recordMiss(row);
+      loseLife();
+      floater(a.x, row.y, 'Sai', COL.bad);
+      toast('Đáp án này sai. Thử thiên thạch khác.', 'bad');
+      sfxBad();
+      if (S.lives <= 0) finish(false);
+    }
+    hud();
+  }
+  function timeout() {
+    var row = S.row, c = null;
+    row.asts.forEach(function (a) { if (a.correct) c = a; });
+    S.streak = 0; recordMiss(row); loseLife();
+    c.dead = true; boom(c.x, row.y, COL.heat);
+    toast('Hết nhiên liệu. Đáp án đúng: ' + c.text, 'bad');
+    sfxBad(); hud();
+    if (S.lives <= 0) { finish(false); return; }
+    advance();
+  }
+  function finish(win) {
+    S.win = win; S.mode = 'ending'; S.endTimer = 1.1; S.firing = false; S.target = null;
+    if (!win) { S.shipDead = true; boom(S.ship.x, SHIP_Y, COL.heat); boom(S.ship.x, SHIP_Y, COL.bad); }
+    if (S.score > S.best) { S.best = S.score; lsSet(BEST_KEY, String(S.best)); }
+    hud();
+  }
+  function showEnd() {
+    S.mode = 'end';
+    var total = S.win ? S.queue.length : Math.min(S.qi + 1, S.queue.length);
+    $('endTitle').textContent = S.win ? 'Hạ cánh an toàn' : 'Tàu bị vỡ';
+    $('endSub').textContent = S.win ? 'Bạn đã mở đường qua mọi hàng thiên thạch.' : 'Hết thân tàu ở câu ' + total + ' / ' + S.queue.length + '.';
+    $('endScore').textContent = S.score;
+    $('endBest').textContent = S.best;
+    $('endAcc').textContent = S.correct + ' / ' + total;
+    var ul = $('missedList'); ul.textContent = '';
+    S.missed.forEach(function (q) {
+      var li = document.createElement('li');
+      li.appendChild(document.createTextNode(q.q + ' '));
+      var b = document.createElement('b'); b.textContent = '→ ' + q.a;
+      li.appendChild(b); ul.appendChild(li);
+    });
+    $('missedWrap').hidden = !S.missed.length;
+    $('btnReview').hidden = !S.missed.length;
+    show('ovEnd');
+  }
+  function pause() {
+    if (S.mode !== 'play') return;
+    S.mode = 'pause'; setHum(false, 0); show('ovPause');
+  }
+  function resume() { if (S.mode === 'pause') { S.mode = 'play'; show(null); } }
+
+  /* ---------- update ---------- */
+  function step(dt) {
+    S.time += dt;
+    var boost = S.row && S.row.state === 'in' ? 7 : 1;
+    stars.forEach(function (s) { s.y += (14 + s.z * 50) * boost * dt; if (s.y > H) { s.y -= H; s.x = Math.random() * W; } });
+    var i;
+    for (i = P.length - 1; i >= 0; i--) {
+      var p = P[i]; p.life += dt;
+      if (p.k === 'd') { p.x += p.vx * dt; p.y += p.vy * dt; p.vx *= .98; p.vy *= .98; }
+      if (p.life >= p.max) P.splice(i, 1);
+    }
+    for (i = F.length - 1; i >= 0; i--) { F[i].life += dt; F[i].y -= 40 * dt; if (F[i].life > 1.1) F.splice(i, 1); }
+    S.shake = Math.max(0, S.shake - dt * 36);
+    S.flash = Math.max(0, S.flash - dt * 2.5);
+
+    if (S.prev) {
+      S.prev.t += dt;
+      var k = Math.min(1, S.prev.t / 1.1), e = k * k;
+      S.prev.y = ROW_Y + 420 * e;
+      if (k >= 1) S.prev = null;
+    }
+    if (S.mode === 'ending') {
+      S.endTimer -= dt;
+      if (S.endTimer <= 0) showEnd();
+    }
+    if (S.mode === 'play') updatePlay(dt); else setHum(false, 0);
+  }
+  function updatePlay(dt) {
+    if (K.left) S.tx -= 420 * dt;
+    if (K.right) S.tx += 420 * dt;
+    S.tx = clamp(S.tx, 24, W - 24);
+    S.ship.x += (S.tx - S.ship.x) * Math.min(1, dt * 12);
+    S.ship.tilt = clamp((S.tx - S.ship.x) * .004, -.35, .35);
+
+    var row = S.row;
+    if (!row) return;
+    if (row.state === 'in') {
+      row.t += dt;
+      var k = Math.min(1, row.t / IN_DUR), e = 1 - Math.pow(1 - k, 3);
+      row.y = -110 + (ROW_Y + 110) * e;
+      if (k >= 1) { row.state = 'active'; row.y = ROW_Y; S.timeLeft = S.total; }
+    }
+    row.asts.forEach(function (a) { a.rot += a.spin * dt; });
+
+    var firing = S.pointerDown || K.space || $('autoFire').checked;
+    S.firing = firing && row.state === 'active';
+    S.target = null;
+    if (row.state !== 'active') { setHum(false, 0); return; }
+
+    var best = 1e9;
+    row.asts.forEach(function (a) {
+      if (a.dead) return;
+      var dx = Math.abs(S.ship.x - a.x);
+      if (dx < R * .8 && dx < best) { best = dx; S.target = a; }
+    });
+    var D = DIFF[S.diff], boomA = null;
+    row.asts.forEach(function (a) {
+      if (a.dead) return;
+      if (a === S.target && S.firing) {
+        a.charge += dt / D.hit;
+        if (a.charge >= 1) boomA = a;
+      } else {
+        a.charge = Math.max(0, a.charge - dt / D.hit * .9);
+      }
+    });
+    if (S.firing && S.target && Math.random() < .7) {
+      var ty = row.y + Math.sqrt(Math.max(0, R * R - Math.pow(S.ship.x - S.target.x, 2))) * .92;
+      P.push({ k: 'd', x: S.ship.x, y: ty, vx: (Math.random() - .5) * 140, vy: 40 + Math.random() * 90, life: 0, max: .3, size: 2, c: COL.heat });
+    }
+    setHum(S.firing && !!S.target, S.target ? S.target.charge : 0);
+    if (boomA) { destroy(boomA); return; }
+
+    S.timeLeft -= dt;
+    if (S.timeLeft <= 0) timeout();
+  }
+
+  /* ---------- drawing ---------- */
+  function wrapText(text, maxW, font) {
+    ctx.font = font;
+    var words = text.split(/\s+/), lines = [], cur = '';
+    words.forEach(function (w) {
+      while (ctx.measureText(w).width > maxW && w.length > 1) {
+        var i = w.length - 1;
+        while (i > 1 && ctx.measureText(w.slice(0, i)).width > maxW) i--;
+        if (cur) { lines.push(cur); cur = ''; }
+        lines.push(w.slice(0, i)); w = w.slice(i);
+      }
+      var t = cur ? cur + ' ' + w : w;
+      if (ctx.measureText(t).width <= maxW) cur = t;
+      else { if (cur) lines.push(cur); cur = w; }
+    });
+    if (cur) lines.push(cur);
+    return lines;
+  }
+  function fitText(text) {
+    var sizes = [17, 15, 13, 11.5], i, lines;
+    for (i = 0; i < sizes.length; i++) {
+      lines = wrapText(text, R * 1.6, '700 ' + sizes[i] + 'px ' + FONT);
+      if (lines.length <= 3) return { lines: lines, s: sizes[i] };
+    }
+    lines = lines.slice(0, 3);
+    lines[2] = lines[2].replace(/.{0,2}$/, '…');
+    return { lines: lines, s: sizes[sizes.length - 1] };
+  }
+  function drawLabel(a, cx, cy, fill, strike) {
+    var f = fitText(a.text), lh = f.s * 1.2, y0 = cy - (f.lines.length - 1) * lh / 2;
+    ctx.font = '700 ' + f.s + 'px ' + FONT;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.lineJoin = 'round'; ctx.lineWidth = 4; ctx.strokeStyle = 'rgba(10,8,20,.85)';
+    f.lines.forEach(function (ln, i) {
+      var y = y0 + i * lh;
+      ctx.strokeText(ln, cx, y); ctx.fillStyle = fill; ctx.fillText(ln, cx, y);
+      if (strike) {
+        var w = ctx.measureText(ln).width;
+        ctx.strokeStyle = fill; ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.moveTo(cx - w / 2, y); ctx.lineTo(cx + w / 2, y); ctx.stroke();
+        ctx.strokeStyle = 'rgba(10,8,20,.85)'; ctx.lineWidth = 4;
+      }
+    });
+  }
+  function drawBadge(a, cx, cy) {
+    var bx = cx, by = cy - R - 14;
+    ctx.beginPath(); ctx.arc(bx, by, 11, 0, 6.283);
+    ctx.fillStyle = 'rgba(8,12,26,.9)'; ctx.fill();
+    ctx.lineWidth = 1.5; ctx.strokeStyle = a.dead ? '#3a4670' : COL.heat; ctx.stroke();
+    ctx.font = '700 13px ' + DISPLAY; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillStyle = a.dead ? '#5b6894' : COL.heat;
+    ctx.fillText('ABCD'.charAt(a.i), bx, by + 1);
+  }
+  function drawAst(a, row, alpha) {
+    var t = S.time, hot = a.charge > .02 && !a.dead && !RM;
+    var jit = hot ? a.charge * 2.5 : 0;
+    var cx = a.x + (hot ? (Math.random() - .5) * jit * 2 : 0);
+    var cy = row.y + Math.sin(t * 1.2 + a.seed) * 3 + (hot ? (Math.random() - .5) * jit * 2 : 0);
+    ctx.save(); ctx.globalAlpha = alpha;
+    if (a.dead) {
+      var r = rng(a.seed), k;
+      ctx.fillStyle = '#4a3d3a';
+      for (k = 0; k < 6; k++) {
+        var ang = r() * 6.283, d = R * (.2 + r() * .55);
+        ctx.beginPath(); ctx.arc(cx + Math.cos(ang) * d, cy + Math.sin(ang) * d, 3 + r() * 5, 0, 6.283); ctx.fill();
+      }
+      drawBadge(a, cx, cy);
+      if (a.correct) drawLabel(a, cx, cy, 'rgba(98,245,168,.9)', false);
+      else drawLabel(a, cx, cy, 'rgba(255,140,155,.55)', true);
+      ctx.restore(); return;
+    }
+    ctx.save(); ctx.translate(cx, cy); ctx.rotate(a.rot);
+    var g = ctx.createRadialGradient(-R * .3, -R * .35, R * .1, 0, 0, R * 1.1);
+    g.addColorStop(0, '#9a8479'); g.addColorStop(.55, '#5d4c47'); g.addColorStop(1, '#2b2326');
+    ctx.beginPath();
+    for (var i = 0; i < a.shape.length; i++) {
+      var an = i / a.shape.length * 6.283, rr = R * a.shape[i];
+      if (i) ctx.lineTo(Math.cos(an) * rr, Math.sin(an) * rr); else ctx.moveTo(Math.cos(an) * rr, Math.sin(an) * rr);
+    }
+    ctx.closePath(); ctx.fillStyle = g; ctx.fill();
+    ctx.lineWidth = 2; ctx.strokeStyle = 'rgba(190,165,150,.45)'; ctx.stroke();
+    ctx.fillStyle = 'rgba(20,14,16,.35)';
+    a.cr.forEach(function (c) { ctx.beginPath(); ctx.arc(Math.cos(c.a) * c.d * R, Math.sin(c.a) * c.d * R, c.s * R, 0, 6.283); ctx.fill(); });
+    ctx.restore();
+    if (a.charge > 0) {
+      var hg = ctx.createRadialGradient(cx, cy, R * .1, cx, cy, R);
+      hg.addColorStop(0, 'rgba(255,200,120,' + (a.charge * .75) + ')'); hg.addColorStop(1, 'rgba(255,110,60,' + (a.charge * .35) + ')');
+      ctx.beginPath(); ctx.arc(cx, cy, R * .96, 0, 6.283); ctx.fillStyle = hg; ctx.fill();
+      ctx.beginPath(); ctx.arc(cx, cy, R + 7, -1.5708, -1.5708 + a.charge * 6.283);
+      ctx.lineWidth = 4; ctx.lineCap = 'round'; ctx.strokeStyle = COL.heat; ctx.stroke();
+    }
+    if (a.charge > .5) {
+      ctx.strokeStyle = 'rgba(255,230,180,.8)'; ctx.lineWidth = 1.5;
+      var q = rng(a.seed + 3), n;
+      for (n = 0; n < 3; n++) {
+        var aa = q() * 6.283;
+        ctx.beginPath(); ctx.moveTo(cx, cy);
+        ctx.lineTo(cx + Math.cos(aa) * R * a.charge * .9, cy + Math.sin(aa) * R * a.charge * .9); ctx.stroke();
+      }
+    }
+    drawBadge(a, cx, cy);
+    drawLabel(a, cx, cy, '#fff', false);
+    ctx.restore();
+  }
+  function drawBeam() {
+    if (!S.firing || S.shipDead || S.mode === 'pause') return;
+    var x = S.ship.x, y0 = SHIP_Y - 30, y1 = 30, hit = false;
+    if (S.target) {
+      var dx = x - S.target.x;
+      y1 = S.row.y + Math.sqrt(Math.max(0, R * R - dx * dx)) * .92; hit = true;
+    }
+    var pulse = .85 + Math.sin(S.time * 40) * .15;
+    var g = ctx.createLinearGradient(0, y0, 0, y1);
+    g.addColorStop(0, 'rgba(94,231,255,.95)');
+    g.addColorStop(1, hit ? 'rgba(94,231,255,.95)' : 'rgba(94,231,255,0)');
+    ctx.save(); ctx.lineCap = 'round';
+    [[14, .12], [7, .28], [3, .9]].forEach(function (l) {
+      ctx.globalAlpha = l[1]; ctx.lineWidth = l[0] * pulse; ctx.strokeStyle = g;
+      ctx.beginPath(); ctx.moveTo(x, y0); ctx.lineTo(x, y1); ctx.stroke();
+    });
+    ctx.globalAlpha = .9; ctx.lineWidth = 1.2; ctx.strokeStyle = '#fff';
+    ctx.beginPath(); ctx.moveTo(x, y0); ctx.lineTo(x, y1); ctx.stroke();
+    if (hit) {
+      var rad = 9 + S.target.charge * 14;
+      var rg = ctx.createRadialGradient(x, y1, 0, x, y1, rad);
+      rg.addColorStop(0, 'rgba(255,240,200,.95)'); rg.addColorStop(1, 'rgba(255,179,71,0)');
+      ctx.globalAlpha = 1; ctx.fillStyle = rg;
+      ctx.beginPath(); ctx.arc(x, y1, rad, 0, 6.283); ctx.fill();
+    }
+    ctx.restore();
+  }
+  function drawShip() {
+    var x = S.ship.x, boost = S.row && S.row.state === 'in';
+    ctx.save(); ctx.translate(x, SHIP_Y); ctx.rotate(S.ship.tilt);
+    var fl = 14 + Math.random() * 8 + (boost ? 16 : 0);
+    var fg = ctx.createLinearGradient(0, 14, 0, 14 + fl);
+    fg.addColorStop(0, 'rgba(255,240,200,.95)'); fg.addColorStop(1, 'rgba(255,120,60,0)');
+    ctx.fillStyle = fg;
+    ctx.beginPath(); ctx.moveTo(-6, 14); ctx.lineTo(6, 14); ctx.lineTo(0, 14 + fl); ctx.closePath(); ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(0, -30); ctx.lineTo(15, 14); ctx.lineTo(7, 10); ctx.lineTo(0, 16); ctx.lineTo(-7, 10); ctx.lineTo(-15, 14); ctx.closePath();
+    ctx.fillStyle = '#dfe6ff'; ctx.fill();
+    ctx.lineWidth = 1.5; ctx.strokeStyle = COL.beam; ctx.stroke();
+    ctx.fillStyle = COL.beam;
+    ctx.beginPath(); ctx.moveTo(15, 14); ctx.lineTo(10, 2); ctx.lineTo(7, 10); ctx.closePath(); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(-15, 14); ctx.lineTo(-10, 2); ctx.lineTo(-7, 10); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = '#26325f';
+    ctx.beginPath(); ctx.ellipse(0, -6, 4, 8, 0, 0, 6.283); ctx.fill();
+    ctx.restore();
+  }
+  function draw() {
+    ctx.save();
+    if (S.shake > .1) ctx.translate((Math.random() - .5) * S.shake, (Math.random() - .5) * S.shake);
+    var bg = ctx.createLinearGradient(0, 0, 0, H);
+    bg.addColorStop(0, '#070a18'); bg.addColorStop(1, '#101a3a');
+    ctx.fillStyle = bg; ctx.fillRect(-20, -20, W + 40, H + 40);
+    var neb = ctx.createRadialGradient(W * .8, H * .25, 10, W * .8, H * .25, 260);
+    neb.addColorStop(0, 'rgba(94,120,255,.14)'); neb.addColorStop(1, 'rgba(94,120,255,0)');
+    ctx.fillStyle = neb; ctx.fillRect(0, 0, W, H);
+    stars.forEach(function (s) {
+      ctx.globalAlpha = .25 + s.z * .6; ctx.fillStyle = '#dfe6ff';
+      var len = S.row && S.row.state === 'in' ? 2 + s.z * 12 : 0;
+      ctx.fillRect(s.x, s.y, 1 + s.z, 1 + s.z + len);
+    });
+    ctx.globalAlpha = 1;
+    ctx.strokeStyle = 'rgba(160,180,255,.07)'; ctx.lineWidth = 1;
+    for (var l = 1; l < LANES; l++) { ctx.beginPath(); ctx.moveTo(l * LW, 70); ctx.lineTo(l * LW, SHIP_Y - 40); ctx.stroke(); }
+
+    if (S.prev) S.prev.asts.forEach(function (a) { drawAst(a, S.prev, Math.max(0, 1 - S.prev.t / 1.1)); });
+    if (S.row) S.row.asts.forEach(function (a) { drawAst(a, S.row, 1); });
+    drawBeam();
+    if ((S.mode === 'play' || S.mode === 'pause' || S.mode === 'ending') && !S.shipDead) drawShip();
+
+    P.forEach(function (p) {
+      var k = p.life / p.max;
+      if (p.k === 'd') {
+        ctx.globalAlpha = 1 - k; ctx.fillStyle = p.c;
+        ctx.beginPath(); ctx.arc(p.x, p.y, p.size * (1 - k * .5), 0, 6.283); ctx.fill();
+      } else {
+        ctx.globalAlpha = (1 - k) * .8; ctx.strokeStyle = p.c; ctx.lineWidth = 3 * (1 - k) + 1;
+        ctx.beginPath(); ctx.arc(p.x, p.y, 10 + k * 90, 0, 6.283); ctx.stroke();
+      }
+    });
+    ctx.globalAlpha = 1;
+    F.forEach(function (f) {
+      ctx.globalAlpha = clamp(1.1 - f.life, 0, 1);
+      ctx.font = '700 22px ' + DISPLAY; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.lineWidth = 4; ctx.strokeStyle = 'rgba(8,12,26,.9)'; ctx.strokeText(f.text, f.x, f.y);
+      ctx.fillStyle = f.c; ctx.fillText(f.text, f.x, f.y);
+    });
+    ctx.globalAlpha = 1;
+    if (S.flash > 0) { ctx.fillStyle = 'rgba(255,93,115,' + (S.flash * .28) + ')'; ctx.fillRect(-20, -20, W + 40, H + 40); }
+    ctx.restore();
+
+    // fuel bar and clock
+    var row = S.row, ratio = 1;
+    if (S.mode !== 'start' && row && row.state === 'active') ratio = clamp(S.timeLeft / S.total, 0, 1);
+    $('timerFill').style.transform = 'scaleX(' + ratio + ')';
+    $('timer').className = 'timer' + (ratio < .25 && row && row.state === 'active' ? ' low' : '');
+    var showFuel = (S.mode === 'play' || S.mode === 'pause') && row;
+    $('fuel').textContent = showFuel ? 'Nhiên liệu ' + Math.ceil(ratio * S.total) + ' giây' : 'Nhiên liệu';
+  }
+
+  /* ---------- loop ---------- */
+  var last = 0;
+  function frame(ts) {
+    var dt = Math.min(.05, (ts - last) / 1000 || 0); last = ts;
+    if (S.mode !== 'pause') step(dt);
+    draw();
+    requestAnimationFrame(frame);
+  }
+
+  /* ---------- input ---------- */
+  function setTx(e) {
+    var r = cv.getBoundingClientRect();
+    S.tx = clamp((e.clientX - r.left) / r.width * W, 24, W - 24);
+  }
+  cv.addEventListener('pointerdown', function (e) {
+    ensureAudio(); S.pointerDown = true; setTx(e);
+    try { cv.setPointerCapture(e.pointerId); } catch (err) { /* ignore */ }
+  });
+  cv.addEventListener('pointermove', function (e) { if (e.pointerType === 'mouse' || S.pointerDown) setTx(e); });
+  ['pointerup', 'pointercancel'].forEach(function (n) { cv.addEventListener(n, function () { S.pointerDown = false; }); });
+
+  window.addEventListener('keydown', function (e) {
+    var tag = e.target && e.target.tagName;
+    if (tag === 'TEXTAREA') return;
+    var c = e.code;
+    if (c === 'KeyP' || c === 'Escape') {
+      if (S.mode === 'play') pause(); else if (S.mode === 'pause') resume();
+      return;
+    }
+    if (S.mode !== 'play') return;
+    if (c === 'ArrowLeft' || c === 'KeyA') { K.left = true; e.preventDefault(); }
+    else if (c === 'ArrowRight' || c === 'KeyD') { K.right = true; e.preventDefault(); }
+    else if (c === 'Space') { K.space = true; e.preventDefault(); }
+    else if (/^(Digit|Numpad)[1-4]$/.test(c)) { S.tx = LW * (parseInt(c.slice(-1), 10) - .5); }
+  });
+  window.addEventListener('keyup', function (e) {
+    var c = e.code;
+    if (c === 'ArrowLeft' || c === 'KeyA') K.left = false;
+    else if (c === 'ArrowRight' || c === 'KeyD') K.right = false;
+    else if (c === 'Space') K.space = false;
+  });
+  document.addEventListener('visibilitychange', function () { if (document.hidden) pause(); });
+  window.addEventListener('blur', function () { K.left = K.right = K.space = false; });
+
+  /* ---------- buttons ---------- */
+  $('btnStart').addEventListener('click', function () { startGame(pickQueue()); });
+  $('btnAgain').addEventListener('click', function () { startGame(pickQueue()); });
+  $('btnReview').addEventListener('click', function () { startGame(shuffle(S.missed)); });
+  function toStart() { S.mode = 'start'; S.row = null; S.prev = null; P.length = 0; F.length = 0; setHum(false, 0); show('ovStart'); updateStartInfo();
+    $('qno').textContent = 'Sẵn sàng'; $('qtext').textContent = 'Bấm "Bắt đầu" để lái tàu vào bãi thiên thạch.'; }
+  $('btnQuit').addEventListener('click', toStart);
+  $('btnHome').addEventListener('click', toStart);
+  $('btnResume').addEventListener('click', resume);
+  $('btnPause').addEventListener('click', function (e) { e.currentTarget.blur(); if (S.mode === 'play') pause(); else if (S.mode === 'pause') resume(); });
+  $('btnMute').addEventListener('click', function (e) {
+    e.currentTarget.blur(); muted = !muted; ensureAudio();
+    e.currentTarget.textContent = 'Âm: ' + (muted ? 'tắt' : 'bật');
+    if (muted) setHum(false, 0);
+  });
+  document.querySelectorAll('input[name="diff"]').forEach(function (r) {
+    r.addEventListener('change', function () { S.diff = r.value; updateStartInfo(); });
+  });
+
+  $('btnBank').addEventListener('click', function () {
+    $('bankText').value = lsGet(BANK_KEY) || DEFAULT_BANK;
+    $('bankStatus').textContent = ''; $('bankStatus').className = 'status';
+    show('ovBank');
+  });
+  $('btnSaveBank').addEventListener('click', function () {
+    var res = parseBank($('bankText').value), st = $('bankStatus');
+    if (res.errors.length || !res.items.length) {
+      st.className = 'status err';
+      st.textContent = res.errors.length ? res.errors.slice(0, 3).join('. ') + '.' : 'Cần ít nhất một câu hỏi hợp lệ.';
+      return;
+    }
+    lsSet(BANK_KEY, $('bankText').value); bank = res.items;
+    st.className = 'status ok';
+    st.textContent = 'Đã lưu ' + bank.length + ' câu hỏi.' + (res.long ? ' Có ' + res.long + ' đáp án dài hơn 34 ký tự, sẽ bị cắt bớt trên thiên thạch.' : '');
+  });
+  $('btnResetBank').addEventListener('click', function () {
+    $('bankText').value = DEFAULT_BANK; lsSet(BANK_KEY, DEFAULT_BANK); bank = parseBank(DEFAULT_BANK).items;
+    $('bankStatus').className = 'status ok'; $('bankStatus').textContent = 'Đã quay về bộ câu hỏi mẫu (' + bank.length + ' câu).';
+  });
+  $('btnCloseBank').addEventListener('click', function () { show('ovStart'); updateStartInfo(); });
+
+  updateStartInfo(); hud();
+  requestAnimationFrame(frame);
+})();
+</script>
+
+</body></html>

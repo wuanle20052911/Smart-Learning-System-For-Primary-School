@@ -2,8 +2,6 @@ const assignmentModel = require('../models/assignmentModel');
 const { getSupabaseClient } = require('../models/supabaseClient');
 const { normalizeDueAt } = require('../services/assignmentDeadline');
 
-const types = new Set(['multiple-choice', 'true-false', 'fill-blank', 'matching', 'short-answer']);
-
 function normalize(body = {}) {
   const questions = Array.isArray(body.questions) ? body.questions : [];
   if (typeof body.title !== 'string' || body.title.trim().length < 2 || !questions.length) {
@@ -26,25 +24,14 @@ function normalize(body = {}) {
       published: body.published === true
     },
     questions: questions.map((question, index) => {
-      if (!types.has(question.type) || typeof question.question !== 'string' || !question.question.trim()) {
-        throw new Error(`Câu hỏi ${index + 1} không hợp lệ.`);
+      if (question.type !== 'multiple-choice' || typeof question.question !== 'string' || !question.question.trim()) {
+        throw new Error(`Câu hỏi ${index + 1}: chỉ hỗ trợ câu trắc nghiệm.`);
       }
       const options = Array.isArray(question.options) ? question.options : [];
-      if ((question.type === 'multiple-choice' || question.type === 'true-false')
-        && (options.length < 2 || !Number.isInteger(question.answer) || question.answer < 0 || question.answer >= options.length
-          || (question.type === 'true-false' && options.length !== 2))) {
+      if (options.length !== 4 || !options.every((option) => typeof option === 'string' && option.trim())
+        || new Set(options.map((option) => option.trim().toLocaleLowerCase('vi-VN'))).size !== 4
+        || !Number.isInteger(question.answer) || question.answer < 0 || question.answer >= options.length) {
         throw new Error(`Câu hỏi ${index + 1} cần có lựa chọn và đáp án đúng hợp lệ.`);
-      }
-      if ((question.type === 'fill-blank' || question.type === 'short-answer')
-        && !(typeof question.answer === 'string' || typeof question.answer === 'number' ? String(question.answer).trim() : '')) {
-        throw new Error(`Câu hỏi ${index + 1} cần có đáp án.`);
-      }
-      if (question.type === 'matching'
-        && (options.length < 2
-          || !options.every((pair) => pair && typeof pair.left === 'string' && pair.left.trim() && typeof pair.right === 'string' && pair.right.trim())
-          || !Array.isArray(question.answer) || question.answer.length !== options.length
-          || !question.answer.every((answer) => Number.isInteger(answer) && answer >= 0 && answer < options.length))) {
-        throw new Error(`Câu hỏi nối cặp ${index + 1} cần có các cặp và đáp án hợp lệ.`);
       }
       return {
         skill_id: question.skill_id || null,
@@ -99,4 +86,4 @@ async function getOne(req, res) {
   catch (error) { console.error(error); return res.status(404).json({ error: 'Không tìm thấy bài tập.' }); }
 }
 
-module.exports = { create, listMine, listPublished, getOne, teacherOnly };
+module.exports = { normalize, create, listMine, listPublished, getOne, teacherOnly };

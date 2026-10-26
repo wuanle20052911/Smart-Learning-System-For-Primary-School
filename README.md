@@ -49,7 +49,7 @@ Tài liệu thiết kế, user stories, bảng truy vết, sơ đồ kiến trú
 
    `SUPABASE_SERVICE_ROLE_KEY` chỉ đặt ở backend `.env`, không bao giờ đưa vào React/frontend hoặc commit lên Git.
 
-   Ollama tạo câu hỏi theo luồng để tránh timeout khi model cần thời gian khởi động hoặc sinh nội dung dài. Nếu vẫn gặp timeout, kiểm tra Ollama tại `http://localhost:11434` và đảm bảo model trong `OLLAMA_MODEL` đã được tải.
+   AI tạo tối đa 3 câu mỗi lượt rồi kiểm tra đáp án. Mỗi lần gọi Ollama có thời gian chờ riêng, mặc định 300 giây (`OLLAMA_QUIZ_TIMEOUT_MS`); tổng thời gian tạo cả bộ có thể dài hơn. Nếu lượt sau quá thời gian, hệ thống trả những câu đã được kiểm tra kèm trạng thái chưa đủ số lượng. Lỗi timeout ghi rõ bước và model thực tế. Kiểm tra Ollama tại `http://localhost:11434` và đảm bảo model trong `OLLAMA_QUIZ_MODEL` đã được tải. Với `qwen3:…`, luồng tạo bài tắt thinking để giảm thời gian chờ, vẫn giữ bước phản biện.
 
 6. Tạo bảng profile người dùng trong Supabase:
 
@@ -154,6 +154,7 @@ Compose chạy app Express/React và Ollama trong hai container. Supabase Auth, 
 5. Tải các model vào volume của Ollama (có thể mất thời gian và cần nhiều dung lượng):
 
    ```bash
+   docker compose exec ollama ollama pull qwen3:8b
    docker compose exec ollama ollama pull deepseek-r1:8b
    docker compose exec ollama ollama pull llama3.2:3b
    docker compose exec ollama ollama pull nomic-embed-text
@@ -195,7 +196,7 @@ where id = '<AUTH_USER_UUID>';
 
 ### Biến môi trường
 
-README chỉ liệt kê **tên** biến; `.env.example` là mẫu rỗng để sao chép. Không điền giá trị thật trong README.
+README chỉ mô tả mục đích biến; `.env.example` là mẫu để sao chép. Không điền giá trị bí mật trong README.
 
 | Biến | Mục đích |
 |---|---|
@@ -204,8 +205,9 @@ README chỉ liệt kê **tên** biến; `.env.example` là mẫu rỗng để s
 | `SUPABASE_SERVICE_ROLE_KEY` | Khóa quản trị chỉ dùng ở backend |
 | `PORT` | Cổng HTTP của ứng dụng |
 | `OLLAMA_BASE_URL` | Địa chỉ Ollama; Compose tự trỏ app tới service `ollama` |
-| `OLLAMA_MODEL` | Model mặc định cho tạo câu hỏi |
-| `OLLAMA_QUIZ_MODEL` | Model riêng cho tạo và kiểm tra bài tập; ưu tiên qwen2.5:7b khi chưa cấu hình |
+| `OLLAMA_MODEL` | Model dự phòng cho chatbot và tạo câu hỏi |
+| `OLLAMA_QUIZ_MODEL` | Model riêng cho tạo và kiểm tra bài tập; mặc định ưu tiên qwen3:8b nếu đã tải |
+| `OLLAMA_QUIZ_TIMEOUT_MS` | Thời gian chờ mỗi lần tạo/kiểm tra, tính bằng mili giây; mặc định 300000 |
 | `OLLAMA_CHAT_MODEL` | Model ưu tiên cho chatbot |
 | `OLLAMA_EMBEDDING_MODEL` | Model tạo embedding cho truy xuất tài liệu |
 | `KB_TOP_K` | Số đoạn tài liệu lấy khi truy xuất |
@@ -305,7 +307,7 @@ Xuất bộ câu hỏi ra file HTML hoặc TXT.
 - Dự án dùng model local Ollama, không cần API key nhà cung cấp AI; tuy nhiên ứng dụng cần cấu hình Supabase để xác thực và lưu dữ liệu.
 - Nếu Ollama chưa chạy hoặc model chưa được pull, server sẽ trả lỗi rõ ràng.
 - Nếu máy bạn mạnh hơn, bạn có thể thay model ở `.env` thành `deepseek-r1:14b` hoặc các model khác phù hợp.
-- Bản mặc định hiện đang dùng: `deepseek-r1:8b`.
+- Model mặc định ưu tiên để tạo câu hỏi: `qwen3:8b` (có thể đổi bằng `OLLAMA_QUIZ_MODEL`).
 - Kết quả đánh giá policy, cách chạy bộ kiểm thử và giới hạn của benchmark được ghi trong [AI_USAGE.md](./AI_USAGE.md).
 
 ## Xử lý sự cố

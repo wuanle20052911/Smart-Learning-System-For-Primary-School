@@ -9,14 +9,6 @@ const readableFileTypes = {
   txt: 'text/plain',
   md: 'text/markdown'
 };
-const questionTypes = [
-  ['multiple-choice', 'Trắc nghiệm'],
-  ['true-false', 'Đúng / Sai'],
-  ['fill-blank', 'Điền chỗ trống'],
-  ['short-answer', 'Trả lời ngắn'],
-  ['matching', 'Nối cặp']
-];
-
 async function getLessonMaterialUrl(lesson, api) {
   const sourceCode = getLessonSourceCode(lesson);
   let sourcePathError = '';
@@ -93,21 +85,35 @@ async function getLessonText(lesson, api) {
   return content.slice(0, 18000);
 }
 
+function parseGeneratedQuestions(payload, limit) {
+  const responseText = (payload.content || []).filter((item) => item.type === 'text').map((item) => item.text).join('').trim();
+  let parsed = JSON.parse(responseText.replace(/^```json\s*/i, '').replace(/```\s*$/, '').trim());
+  if (!Array.isArray(parsed)) parsed = parsed.questions || [parsed];
+  return parsed.map((item) => {
+    if (!item || typeof item.question !== 'string' || !item.question.trim() || item.type && item.type !== 'multiple-choice') return null;
+    const answer = Number.isInteger(item.correctIndex) ? item.correctIndex : Number(item.answer);
+    if (!Array.isArray(item.options) || item.options.length !== 4
+      || !item.options.every((option) => typeof option === 'string' && option.trim())
+      || !Number.isInteger(answer) || answer < 0 || answer >= item.options.length) return null;
+    return { ...item, type: 'multiple-choice', answer };
+  }).filter(Boolean).slice(0, limit);
+}
+
 export function AssignmentStudio({ onMessage, api }) {
   const sampleQuestions = [
     { type: 'multiple-choice', question: 'Phân số nào bé hơn 1?', options: ['5/3', '3/5', '7/4', '9/2'], answer: 1, explanation: 'Tử số nhỏ hơn mẫu số nên 3/5 bé hơn 1.' },
-    { type: 'multiple-choice', question: 'Kết quả của 2/5 + 1/5 là gì?', options: ['1/5', '2/5', '3/5', '4/5'], answer: 2, explanation: 'Cộng hai tử số và giữ nguyên mẫu số: 2/5 + 1/5 = 3/5.' },
-    { type: 'true-false', question: 'Mọi phân số có tử số nhỏ hơn mẫu số đều bé hơn 1.', options: ['Đúng', 'Sai'], answer: 0, explanation: 'Đây là tính chất cơ bản của phân số.' }
+    { type: 'multiple-choice', question: 'Kết quả của 2/5 + 1/5 là gì?', options: ['1/5', '2/5', '3/5', '4/5'], answer: 2, explanation: 'Cộng hai tử số và giữ nguyên mẫu số: 2/5 + 1/5 = 3/5.' }
   ];
   const [material, setMaterial] = useState('');
   const [materialName, setMaterialName] = useState('');
   const [title, setTitle] = useState('Ôn tập Phân số - Phiếu 1');
   const [dueAt, setDueAt] = useState('');
   const [questions, setQuestions] = useState([]);
+  const [generatedCandidates, setGeneratedCandidates] = useState([]);
   const [classes, setClasses] = useState([]);
   const [lessons, setLessons] = useState([]);
   const [selectedLessonId, setSelectedLessonId] = useState('');
-  const [questionType, setQuestionType] = useState('multiple-choice');
+  const questionType = 'multiple-choice';
   const [questionCount, setQuestionCount] = useState(5);
   const [classId, setClassId] = useState('');
   const [busy, setBusy] = useState(false);
@@ -123,18 +129,8 @@ export function AssignmentStudio({ onMessage, api }) {
   }, []);
   const updateQuestion = (index, key, value) => setQuestions((items) => items.map((item, itemIndex) => itemIndex === index ? { ...item, [key]: value } : item));
   const updateOption = (qIndex, optionIndex, value) => setQuestions((items) => items.map((item, index) => index === qIndex ? { ...item, options: item.options.map((option, current) => current === optionIndex ? value : option) } : item));
-  const updateMatchingPair = (questionIndex, pairIndex, key, value) => setQuestions((items) => items.map((item, index) => index === questionIndex
-    ? { ...item, options: item.options.map((pair, current) => current === pairIndex ? { ...pair, [key]: value } : pair) }
-    : item));
-  const updateMatchingAnswer = (questionIndex, pairIndex, value) => setQuestions((items) => items.map((item, index) => index === questionIndex
-    ? { ...item, answer: item.answer.map((answer, current) => current === pairIndex ? Number(value) : answer) }
-    : item));
   const addQuestion = () => {
-    const newQuestion = questionType === 'matching'
-      ? { type: questionType, question: 'Nối các cặp phù hợp', options: [{ left: 'Vế trái 1', right: 'Vế phải 1' }, { left: 'Vế trái 2', right: 'Vế phải 2' }], answer: [0, 1], explanation: '' }
-      : questionType === 'fill-blank' || questionType === 'short-answer'
-        ? { type: questionType, question: 'Nhập câu hỏi mới', options: [], answer: '', explanation: '' }
-        : { ...sampleQuestions[0], type: questionType, options: questionType === 'true-false' ? ['Đúng', 'Sai'] : [...sampleQuestions[0].options], answer: 0, question: 'Nhập câu hỏi mới' };
+    const newQuestion = { ...sampleQuestions[0], options: [...sampleQuestions[0].options], answer: 0, question: 'Nhập câu hỏi mới' };
     setQuestions((items) => [...items, newQuestion]);
     setPublished(false);
   };
@@ -146,6 +142,7 @@ export function AssignmentStudio({ onMessage, api }) {
     setMaterial('');
     setMaterialName('');
     setQuestions([]);
+    setGeneratedCandidates([]);
     setPublished(false);
     setSavedQuestionIndexes([]);
     setBusy(true);
@@ -165,43 +162,49 @@ export function AssignmentStudio({ onMessage, api }) {
   const generate = async () => {
     if (!material.trim()) { onMessage('Hãy nhập nội dung hoặc đưa tài liệu trước khi tạo câu hỏi.'); return; }
     setBusy(true);
-    setPublished(false);
-    setSavedQuestionIndexes([]);
     try {
       const lesson = lessons.find((item) => item.id === selectedLessonId);
       const payload = await api('/api/generate-quiz', { method: 'POST', body: JSON.stringify({
         material, questionType, questionCount,
         lessonTitle: lesson ? getLessonDisplayTitle(lesson) : materialName
       }) });
-      const text = (payload.content || []).filter((item) => item.type === 'text').map((item) => item.text).join('').trim();
-      let parsed = JSON.parse(text.replace(/^```json\s*/i, '').replace(/```\s*$/, '').trim());
-      if (!Array.isArray(parsed)) parsed = parsed.questions || [parsed];
-      const generated = parsed.map((item) => {
-        if (!item || typeof item.question !== 'string' || !item.question.trim()) return null;
-        if (questionType === 'multiple-choice' || questionType === 'true-false') {
-          const answer = Number.isInteger(item.correctIndex) ? item.correctIndex : Number(item.answer);
-          if (!Array.isArray(item.options) || item.options.length < 2 || !Number.isInteger(answer) || answer < 0 || answer >= item.options.length) return null;
-          if (questionType === 'true-false' && item.options.length !== 2) return null;
-          return { ...item, type: questionType, answer };
-        }
-        if (questionType === 'matching') {
-          if (!Array.isArray(item.pairs) || item.pairs.length < 2 || !Array.isArray(item.correctMatches)
-            || item.correctMatches.length !== item.pairs.length
-            || !item.pairs.every((pair) => typeof pair.left === 'string' && pair.left.trim() && typeof pair.right === 'string' && pair.right.trim())
-            || !item.correctMatches.every((answer) => Number.isInteger(answer) && answer >= 0 && answer < item.pairs.length)) return null;
-          return { ...item, type: questionType, options: item.pairs, answer: item.correctMatches };
-        }
-        const answer = typeof item.answer === 'string' || typeof item.answer === 'number' ? String(item.answer).trim() : '';
-        if (!answer) return null;
-        return { ...item, type: questionType, options: [], answer };
-      }).filter(Boolean).slice(0, questionCount);
+      const generated = parseGeneratedQuestions(payload, questionCount);
       if (!generated.length) throw new Error('AI không trả về câu hỏi hợp lệ.');
-      setQuestions(generated);
-      setPublished(false);
-      setSavedQuestionIndexes([]);
-      onMessage(`AI đã tạo và kiểm tra ${generated.length}/${questionCount} câu ${questionTypes.find(([value]) => value === questionType)?.[1].toLowerCase()}.${generated.length < questionCount ? ' Một số câu chưa qua kiểm tra, thầy/cô có thể giảm số câu hoặc tạo lại.' : ''} Hãy kiểm tra và chỉnh sửa trước khi xuất bản.`);
+      setGeneratedCandidates((items) => [...items, ...generated]);
+      onMessage(`AI đã tạo ${generated.length} câu mới. Chọn câu ưng ý để đưa vào hàng chờ; câu trong hàng chờ sẽ được giữ lại khi tạo thêm.`);
     } catch (error) {
-      onMessage(`AI local chưa tạo được câu hỏi: ${error.message || 'Lỗi không xác định.'} Bản nháp trước đó vẫn được giữ; thầy/cô có thể chọn bài ngắn hơn hoặc giảm số câu.`);
+      onMessage(`AI local chưa tạo được câu hỏi: ${error.message || 'Lỗi không xác định.'} Các câu trong hàng chờ vẫn được giữ; thầy/cô có thể chọn bài ngắn hơn hoặc giảm số câu.`);
+    } finally { setBusy(false); }
+  };
+  const addCandidateToQueue = (index) => {
+    const candidate = generatedCandidates[index];
+    if (!candidate) return;
+    setQuestions((items) => [...items, candidate]);
+    setGeneratedCandidates((items) => items.filter((_, current) => current !== index));
+    setPublished(false);
+    onMessage('Đã đưa câu hỏi vào hàng chờ bài tập.');
+  };
+  const discardCandidate = (index) => {
+    setGeneratedCandidates((items) => items.filter((_, current) => current !== index));
+  };
+  const regenerateCandidate = async (index) => {
+    const candidate = generatedCandidates[index];
+    if (!candidate || !material.trim()) return;
+    setBusy(true);
+    try {
+      const lesson = lessons.find((item) => item.id === selectedLessonId);
+      const avoidQuestions = [candidate.question, ...questions.map((item) => item.question)].join('\n').slice(0, 650);
+      const payload = await api('/api/generate-quiz', { method: 'POST', body: JSON.stringify({
+        material, questionType, questionCount: 1,
+        lessonTitle: lesson ? getLessonDisplayTitle(lesson) : materialName,
+        instructions: `Tạo câu hỏi mới, không lặp lại nội dung sau: ${avoidQuestions}`
+      }) });
+      const [replacement] = parseGeneratedQuestions(payload, 1);
+      if (!replacement) throw new Error('AI không trả về câu hỏi thay thế hợp lệ.');
+      setGeneratedCandidates((items) => items.map((item, current) => current === index ? replacement : item));
+      onMessage('Đã tạo câu thay thế. Những câu khác và hàng chờ vẫn được giữ nguyên.');
+    } catch (error) {
+      onMessage(`Không thể tạo câu thay thế: ${error.message || 'Lỗi không xác định.'} Câu hỏi hiện tại vẫn được giữ.`);
     } finally { setBusy(false); }
   };
   const publish = async () => {
@@ -249,6 +252,7 @@ export function AssignmentStudio({ onMessage, api }) {
       const text = await extractLearningText(file);
       if (!text.trim()) throw new Error('File không có nội dung văn bản để AI đọc.');
       setQuestions([]);
+      setGeneratedCandidates([]);
       setPublished(false);
       setSavedQuestionIndexes([]);
       setMaterial(text.trim());
@@ -271,24 +275,17 @@ export function AssignmentStudio({ onMessage, api }) {
       <AssignmentSourcePanel
         lessons={lessons}
         selectedLessonId={selectedLessonId}
-        questionType={questionType}
         questionCount={questionCount}
         materialName={materialName}
         material={material}
         busy={busy}
-        questionTypes={questionTypes}
         getLessonTitle={getLessonDisplayTitle}
         onSelectLesson={selectLesson}
-        onQuestionTypeChange={(value) => {
-          setQuestionType(value);
-          setQuestions([]);
-          setPublished(false);
-          setSavedQuestionIndexes([]);
-        }}
         onQuestionCountChange={setQuestionCount}
         onFileChange={(event) => {
           setSelectedLessonId('');
           setQuestions([]);
+          setGeneratedCandidates([]);
           setPublished(false);
           setSavedQuestionIndexes([]);
           readFile(event);
@@ -297,6 +294,7 @@ export function AssignmentStudio({ onMessage, api }) {
           setSelectedLessonId('');
           setMaterialName('');
           setQuestions([]);
+          setGeneratedCandidates([]);
           setPublished(false);
           setSavedQuestionIndexes([]);
           setMaterial(value);
@@ -309,8 +307,8 @@ export function AssignmentStudio({ onMessage, api }) {
         classes={classes}
         dueAt={dueAt}
         questions={questions}
+        generatedCandidates={generatedCandidates}
         savedQuestionIndexes={savedQuestionIndexes}
-        questionTypes={questionTypes}
         busy={busy}
         published={published}
         onTitleChange={setTitle}
@@ -318,9 +316,10 @@ export function AssignmentStudio({ onMessage, api }) {
         onDueAtChange={setDueAt}
         onUpdateQuestion={updateQuestion}
         onUpdateOption={updateOption}
-        onUpdateMatchingPair={updateMatchingPair}
-        onUpdateMatchingAnswer={updateMatchingAnswer}
         onRemoveQuestion={(index) => setQuestions((items) => items.filter((_, current) => current !== index))}
+        onKeepCandidate={addCandidateToQueue}
+        onRegenerateCandidate={regenerateCandidate}
+        onDiscardCandidate={discardCandidate}
         onSaveQuestion={saveToQuestionBank}
         onAddQuestion={addQuestion}
         onPublish={publish}

@@ -42,7 +42,24 @@ async function listForStudent(accessToken, studentId) {
     .select('id,assignment_id,student_id,answers,score,correct_count,total_questions,attempt_number,started_at,submitted_at')
     .eq('student_id', studentId).order('submitted_at', { ascending: false });
   if (error) throw error;
-  return data;
+  const submissionIds = data.map((submission) => submission.id);
+  const { data: feedbackRows, error: feedbackError } = submissionIds.length
+    ? await client.from('feedback')
+      .select('id,submission_id,comment,created_at')
+      .in('submission_id', submissionIds)
+      .order('created_at', { ascending: false })
+    : { data: [], error: null };
+  if (feedbackError) throw feedbackError;
+  const feedbackBySubmission = new Map();
+  feedbackRows.forEach((item) => {
+    const feedback = feedbackBySubmission.get(item.submission_id) || [];
+    feedback.push(item);
+    feedbackBySubmission.set(item.submission_id, feedback);
+  });
+  return data.map((submission) => ({
+    ...submission,
+    feedback: feedbackBySubmission.get(submission.id) || []
+  }));
 }
 
 async function listForTeacher(accessToken, teacherId) {
