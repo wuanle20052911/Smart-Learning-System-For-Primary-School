@@ -12,10 +12,18 @@ function normalizeQuestion(question) {
 
 function fallbackStudyIntent(question) {
   const text = normalizeQuestion(question);
-  if (/\b(bai tap|bai duoc giao)\b/u.test(text)) return 'assignments';
+  const isContentQuestion = /\b(la gi|nghia la gi|giai thich|noi ve|la nhu the nao|dinh nghia|cach giai|cach lam|giai bai|huong dan giai|loi giai)\b/u.test(text);
+  if (!isContentQuestion && (
+    /\b(bai tap|bai duoc giao)\b/u.test(text)
+    || /\b(chua nop|da nop|can nop|phai nop|den han|sap den han|con thieu)\b/u.test(text)
+    || /\b(bai|viec)\b.*\b(nop|giao|thieu)\b/u.test(text)
+  )) return 'assignments';
+  if (isContentQuestion) return 'other';
   if (/\b(hom nay|nay|toi nay)\b.*\b(lam gi|nen lam gi)\b/u.test(text)) return 'recommendation';
   if (/\b(hoc|on tap|luyen tap|luyen|bai nao|nen lam gi|ke hoach hoc|goi y hoc)\b/u.test(text)
     && /\b(gi|nao|nen|hom nay|nay|toi nay|con|em)\b/u.test(text)) return 'recommendation';
+  if (/\b(chon|goi y|de xuat)\b.*\b(bai|chu de|phan)\b.*\b(on|hoc|luyen|tap)\b/u.test(text)
+    || /\b(bai|chu de|phan)\b.*\bde\b.*\b(on|hoc|luyen|tap)\b/u.test(text)) return 'recommendation';
   return 'other';
 }
 

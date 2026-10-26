@@ -2,6 +2,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const {
   cosineSimilarity,
+  extractDefinitionAnswer,
   extractProcedureSteps,
   hasLexicalEvidence,
   ingestKnowledgeBase,
@@ -58,6 +59,40 @@ test('rejects retrieved text without topical evidence from the question', () => 
   assert.equal(hasLexicalEvidence('Thủ đô nước Pháp là gì?', chunks), false);
   assert.equal(hasLexicalEvidence('Thước đo góc có bộ phận nào?', chunks), true);
   assert.equal(hasLexicalEvidence('Có gì?', chunks), false);
+});
+
+test('rejects chunks matching only a generic word in a multi-term question', () => {
+  const unrelatedChunk = {
+    text: 'Số chẵn là số có chữ số tận cùng là 0, 2, 4, 6 hoặc 8.'
+  };
+  const matchingChunk = {
+    text: 'Cách viết số tự nhiên theo hàng được thực hiện từ trái sang phải.'
+  };
+
+  assert.equal(hasLexicalEvidence('cách viết số', [unrelatedChunk]), false);
+  assert.equal(hasLexicalEvidence('cách viết số', [matchingChunk]), true);
+});
+
+test('answers definition questions directly from a matching retrieved sentence', () => {
+  const chunk = {
+    id: 'angle-definition',
+    text: 'Góc được định nghĩa là hình được tạo bởi hai tia chung một điểm gốc. Hai tia là cạnh của góc.',
+    source: { file: 'Math4mdfile/C2B8.md', sectionNumber: '1', sectionTitle: 'Góc', chunkNumber: 1 }
+  };
+  const result = extractDefinitionAnswer('góc là gì', [chunk]);
+
+  assert.equal(result.chunk.id, 'angle-definition');
+  assert.equal(result.message, 'Góc được định nghĩa là hình được tạo bởi hai tia chung một điểm gốc.');
+});
+
+test('does not invent a definition when retrieved evidence does not define the requested concept', () => {
+  const chunks = [{
+    text: 'Thước đo góc có tâm thước và các vạch chia độ.',
+    source: { sectionTitle: 'Thước đo góc' }
+  }];
+
+  assert.equal(extractDefinitionAnswer('góc là gì', chunks), null);
+  assert.equal(extractDefinitionAnswer('góc có bao nhiêu cạnh', chunks), null);
 });
 
 test('answers measuring-angle procedure questions by quoting retrieved steps', () => {

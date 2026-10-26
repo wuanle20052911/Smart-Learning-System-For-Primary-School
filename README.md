@@ -2,7 +2,7 @@
 
 Dự án web hỗ trợ học tập cho học sinh tiểu học, dùng Ollama chạy local cho tạo câu hỏi và chatbot tra cứu tài liệu. Ứng dụng dùng Supabase bên ngoài cho đăng nhập và dữ liệu; xem [AI_USAGE.md](./AI_USAGE.md) để biết kiến trúc AI, cách sử dụng, đánh giá và telemetry.
 
-Rubric đánh giá gắn từng tiêu chí với luồng và file code nằm trong [EVALUATION_CRITERIA.md](./EVALUATION_CRITERIA.md).
+Tài liệu thiết kế, user stories, bảng truy vết, sơ đồ kiến trúc và ADR nằm trong [docs/PROJECT_DESIGN.md](./docs/PROJECT_DESIGN.md). Ánh xạ rubric và checklist deliverables nằm trong [EVALUATION_CRITERIA.md](./EVALUATION_CRITERIA.md).
 
 ## Tính năng
 

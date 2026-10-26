@@ -1,9 +1,67 @@
 import React, { useEffect, useState } from 'react';
+import { authHeaders } from '../services/api.js';
 
 export default function AdminPage({ Brand, api, logout, go }) {
-  const [data, setData] = useState({ classes: [], teachers: [] }); const [message, setMessage] = useState(''); const [toast, setToast] = useState(''); const [editingClass, setEditingClass] = useState(null); const [aiUsage, setAIUsage] = useState(null); const [aiUsageError, setAIUsageError] = useState('');
+  const [data, setData] = useState({ classes: [], teachers: [] }); const [message, setMessage] = useState(''); const [toast, setToast] = useState(''); const [editingClass, setEditingClass] = useState(null); const [aiUsage, setAIUsage] = useState(null); const [aiUsageError, setAIUsageError] = useState(''); const [aiUsageConnected, setAIUsageConnected] = useState(false);
   const load = () => api('/api/catalog/management/options').then(setData).catch((e) => setMessage(e.message)); useEffect(load, []);
-  useEffect(() => { api('/api/admin/ai-usage').then((result) => setAIUsage(result.summary)).catch((error) => setAIUsageError(error.message)); }, []);
+  useEffect(() => {
+    let cancelled = false;
+    let retryTimer;
+    let controller;
+
+    const connect = async () => {
+      controller = new AbortController();
+      try {
+        const response = await fetch('/api/admin/ai-usage/stream', {
+          headers: authHeaders(),
+          signal: controller.signal
+        });
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.error || 'Không thể kết nối thống kê AI realtime.');
+        }
+        if (!response.body) throw new Error('Trình duyệt không hỗ trợ nhận luồng thống kê AI.');
+
+        setAIUsageConnected(true);
+        setAIUsageError('');
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+        try {
+          while (!cancelled) {
+            const { done, value } = await reader.read();
+            buffer += decoder.decode(value || new Uint8Array(), { stream: !done });
+            const events = buffer.split('\n\n');
+            buffer = events.pop() || '';
+            for (const eventText of events) {
+              const eventName = eventText.match(/^event:\s*(.+)$/m)?.[1];
+              const dataLine = eventText.match(/^data:\s*(.+)$/m)?.[1];
+              if (!dataLine) continue;
+              const payload = JSON.parse(dataLine);
+              if (eventName === 'usage') setAIUsage(payload.summary);
+              if (eventName === 'error') throw new Error(payload.error || 'Không thể cập nhật thống kê AI.');
+            }
+            if (done) break;
+          }
+        } finally {
+          reader.releaseLock();
+        }
+        if (!cancelled) throw new Error('Luồng thống kê AI đã ngắt kết nối.');
+      } catch (error) {
+        if (cancelled || error.name === 'AbortError') return;
+        setAIUsageConnected(false);
+        setAIUsageError(error.message || 'Không thể kết nối thống kê AI realtime.');
+        retryTimer = setTimeout(connect, 5000);
+      }
+    };
+
+    connect();
+    return () => {
+      cancelled = true;
+      clearTimeout(retryTimer);
+      controller?.abort();
+    };
+  }, []);
   const createTeacher = async (e) => { e.preventDefault(); const formElement = e.currentTarget; const form = new FormData(formElement); try { await api('/api/auth/teachers', { method: 'POST', body: JSON.stringify({ fullName: form.get('fullName'), email: form.get('email'), password: form.get('password') }) }); formElement.reset(); setMessage(''); setToast('Tài khoản giáo viên đã được tạo và có thể đăng nhập.'); load(); } catch (e) { setMessage(e.message); } };
   const createClass = async (e) => { e.preventDefault(); const formElement = e.currentTarget; const form = new FormData(formElement); try { await api('/api/catalog/classes', { method: 'POST', body: JSON.stringify({ name: form.get('name'), grade: form.get('grade'), teacher_id: form.get('teacher_id') || null }) }); formElement.reset(); setMessage('Đã tạo lớp.'); load(); } catch (e) { setMessage(e.message); } };
   const updateClass = async (e) => { e.preventDefault(); const formElement = e.currentTarget; const form = new FormData(formElement); try { await api(`/api/catalog/classes/${editingClass.id}`, { method: 'PUT', body: JSON.stringify({ name: form.get('name'), grade: form.get('grade'), teacher_id: form.get('teacher_id') || null }) }); setEditingClass(null); setMessage('Đã cập nhật lớp và giáo viên phụ trách.'); load(); } catch (e) { setMessage(e.message); } };
@@ -35,8 +93,9 @@ export default function AdminPage({ Brand, api, logout, go }) {
       <header className="dashboard-header"><div><span className="eyebrow">TỔNG QUAN HỆ THỐNG</span><h1>Dashboard quản lý</h1><p>Theo dõi hoạt động và hiệu quả toàn hệ thống</p></div><div className="dashboard-actions"><button type="button">▣  30 ngày qua⌄</button><button type="button">⌖  Toàn hệ thống⌄</button><button className="dashboard-primary" type="button" onClick={() => document.getElementById('quick-management')?.scrollIntoView({ behavior: 'smooth' })}>＋ Tạo tài khoản</button></div></header>
       <div className="dashboard-stats">{stats.map(([label, value, trend, icon, color]) => <article className="dashboard-stat" key={label}><span className={`stat-icon ${color}`}>{icon}</span><div><small>{label}</small><strong>{value}</strong><em>↑ {trend} so với 30 ngày trước</em></div></article>)}</div>
       <section className="dashboard-card ai-usage-card">
-        <div className="card-heading"><div><h2>Quan sát AI · 30 ngày gần nhất</h2><small>Dữ liệu ghi nhận từ các yêu cầu AI thực tế</small></div><span>{aiUsage ? `${aiUsage.requestCount} yêu cầu` : 'Đang tải...'}</span></div>
-        {aiUsageError ? <p className="ai-usage-error" role="alert">{aiUsageError}</p> : aiUsage && <>
+        <div className="card-heading"><div><h2>Quan sát AI · 30 ngày gần nhất</h2><small>Dữ liệu ghi nhận từ các yêu cầu AI thực tế · {aiUsageConnected ? 'Đang cập nhật realtime' : 'Đang kết nối lại...'}</small></div><span>{aiUsage ? `${aiUsage.requestCount} yêu cầu` : 'Đang tải...'}</span></div>
+        {aiUsageError && <p className="ai-usage-error" role="alert">{aiUsageError} Đang thử kết nối lại.</p>}
+        {aiUsage && <>
           <div className="ai-usage-metrics">
             <article><small>Yêu cầu thành công</small><strong>{aiUsage.successfulRequestCount}</strong><span>{aiUsage.failedRequestCount} lỗi</span></article>
             <article><small>Thời gian phản hồi trung bình</small><strong>{formatLatency(aiUsage.averageLatencyMs)}</strong><span>Trong 30 ngày</span></article>

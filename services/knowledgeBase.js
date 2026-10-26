@@ -370,7 +370,46 @@ function hasLexicalEvidence(query, chunks) {
     .filter((term) => term.length > 1 && !QUERY_STOP_WORDS.has(term));
   if (!queryTerms.length) return false;
   const evidenceTerms = new Set(chunks.flatMap((chunk) => chunk.text.toLocaleLowerCase('vi').match(/[\p{L}\p{N}]+/gu) || []));
-  return queryTerms.some((term) => evidenceTerms.has(term));
+  const matchingTerms = queryTerms.filter((term) => evidenceTerms.has(term)).length;
+  const requiredMatches = queryTerms.length === 1 ? 1 : Math.max(2, Math.ceil(queryTerms.length * 0.6));
+  return matchingTerms >= requiredMatches;
+}
+
+function normalizeDefinitionText(value) {
+  return value.toLocaleLowerCase('vi')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/đ/g, 'd')
+    .replace(/[^\p{L}\p{N}]+/gu, ' ')
+    .trim();
+}
+
+function extractDefinitionAnswer(question, chunks) {
+  const normalizedQuestion = normalizeDefinitionText(question);
+  if (!/\b(?:la gi|nghia la gi|duoc dinh nghia the nao)\b/u.test(normalizedQuestion)) return null;
+
+  const subject = normalizedQuestion
+    .replace(/\b(?:la gi|nghia la gi|duoc dinh nghia the nao)\b.*$/u, '')
+    .replace(/^(?:hay|cho biet|giai thich|dinh nghia|khai niem)\s+/u, '')
+    .replace(/\b(?:la|cua|mot|the nao|gi)\b/gu, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  const subjectTerms = subject.split(' ').filter((term) => term.length > 1 && !QUERY_STOP_WORDS.has(term));
+  if (!subjectTerms.length) return null;
+
+  for (const chunk of chunks) {
+    const sentences = chunk.text.match(/[^.!?\n]+[.!?]?/gu) || [];
+    const answer = sentences
+      .map((sentence) => sentence.trim())
+      .find((sentence) => {
+        const normalizedSentence = ` ${normalizeDefinitionText(sentence)} `;
+        const subjectMatches = subjectTerms.every((term) => normalizedSentence.includes(` ${term} `));
+        const isDefinition = /\b(?:la|duoc dinh nghia la|duoc goi la|duoc tao boi|gom)\b/u.test(normalizedSentence);
+        return subjectMatches && isDefinition;
+      });
+    if (answer) return { chunk, message: answer };
+  }
+  return null;
 }
 
 async function retrieveKnowledge(query, options = {}) {
@@ -429,6 +468,7 @@ function extractProcedureSteps(question, chunks) {
 module.exports = {
   cosineSimilarity,
   embedTexts,
+  extractDefinitionAnswer,
   extractProcedureSteps,
   getKnowledgeBaseBucket,
   getKnowledgeBaseSource,
