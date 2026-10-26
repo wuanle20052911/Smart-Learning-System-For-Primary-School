@@ -153,7 +153,7 @@ async function listTeachers(client) {
     if (process.env.SUPABASE_URL && process.env.SUPABASE_ANON_KEY) {
       throw error;
     }
-    return [{ id: 'teacher-001', full_name: 'Giáo viên mẫu', email: 'teacher@example.com' }];
+    return [];
   }
 }
 

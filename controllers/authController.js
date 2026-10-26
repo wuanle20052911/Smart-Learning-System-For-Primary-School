@@ -78,6 +78,34 @@ async function createTeacher(req, res) {
   }
 }
 
+async function listManagedUsers(req, res) {
+  if (req.profile?.role !== 'admin') {
+    return res.status(403).json({ error: 'Chỉ quản lý mới có quyền xem danh sách tài khoản.' });
+  }
+  try {
+    return res.json({ users: await userModel.listManagedUsers() });
+  } catch (error) {
+    console.error('Could not list managed user accounts:', error);
+    return res.status(500).json({ error: error.message || 'Không thể tải danh sách tài khoản.' });
+  }
+}
+
+async function setManagedUserDisabled(req, res) {
+  if (req.profile?.role !== 'admin') {
+    return res.status(403).json({ error: 'Chỉ quản lý mới có quyền khóa hoặc mở tài khoản.' });
+  }
+  if (typeof req.body?.disabled !== 'boolean') {
+    return res.status(400).json({ error: 'Trạng thái tài khoản không hợp lệ.' });
+  }
+  try {
+    const user = await userModel.setManagedUserDisabled(req.params.id, req.body.disabled);
+    return res.json({ user });
+  } catch (error) {
+    console.error('Could not update managed user account status:', error);
+    return res.status(400).json({ error: error.message || 'Không thể cập nhật trạng thái tài khoản.' });
+  }
+}
+
 async function updateProfile(req, res) {
   try {
     const profile = await userModel.updateProfile(req.accessToken, req.user.id, normalizeProfile(req.body));
@@ -106,4 +134,4 @@ function getOAuthConfig(req, res) {
   return res.json({ supabaseUrl: SUPABASE_URL, supabaseAnonKey: SUPABASE_ANON_KEY });
 }
 
-module.exports = { login, registerStudent, createTeacher, updateProfile, getProfile, getOAuthConfig };
+module.exports = { login, registerStudent, createTeacher, listManagedUsers, setManagedUserDisabled, updateProfile, getProfile, getOAuthConfig };
