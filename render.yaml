@@ -1,0 +1,27 @@
+services:
+  - type: web
+    name: smart-learning
+    runtime: node
+    plan: free
+    buildCommand: npm ci --include=dev && npm run build
+    startCommand: npm run serve
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_VERSION
+        value: 22
+      - key: NODE_ENV
+        value: production
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_ANON_KEY
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: OLLAMA_BASE_URL
+        sync: false
+      - key: OLLAMA_QUIZ_MODEL
+        value: qwen3:8b
+      - key: OLLAMA_CHAT_MODEL
+        value: llama3.2:3b
+      - key: OLLAMA_EMBEDDING_MODEL
+        value: nomic-embed-text
