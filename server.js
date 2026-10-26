@@ -17,11 +17,11 @@ const requireAuth = require('./middleware/requireAuth');
 const {
   AI_CHAT_PROMPT_VERSION,
   AI_CHAT_SYSTEM_PROMPT,
-  QUIZ_PROMPT_VERSION,
   getRefusalReason,
   validateAIChatInput
 } = require('./services/aiPolicy');
 const { recordAIUsage } = require('./services/aiUsage');
+const { VERSION: QUIZ_PROMPT_VERSION, validateInput: validateQuizInput, generateQuiz } = require('./services/quizGeneration');
 const {
   extractProcedureSteps,
   extractDefinitionAnswer,
@@ -59,142 +59,6 @@ async function getInstalledModels(signal) {
   }
 }
 
-async function resolveModelName() {
-  const installedModels = await getInstalledModels();
-
-  if (installedModels.includes(OLLAMA_MODEL)) {
-    return OLLAMA_MODEL;
-  }
-
-  if (installedModels.includes(DEFAULT_MODEL)) {
-    return DEFAULT_MODEL;
-  }
-
-  if (installedModels.length > 0) {
-    return installedModels[0];
-  }
-
-  return OLLAMA_MODEL;
-}
-
-async function resolveQuizModelName() {
-  const installedModels = await getInstalledModels();
-  const preferredModels = [OLLAMA_CHAT_MODEL, 'llama3.2:3b', 'qwen2.5:3b', 'qwen2.5:7b', OLLAMA_MODEL, DEFAULT_MODEL];
-  const preferredModel = preferredModels.find((model) => installedModels.includes(model));
-  if (preferredModel) return preferredModel;
-  return installedModels[0] || OLLAMA_MODEL;
-}
-
-function isValidQuestion(q) {
-  if (!q || typeof q.question !== 'string' || !q.question.trim()) return false;
-  const type = q.type || 'multiple-choice';
-
-  if (type === 'multiple-choice' || type === 'true-false') {
-    return Array.isArray(q.options)
-      && q.options.length >= 2
-      && Number.isInteger(q.correctIndex)
-      && q.correctIndex >= 0
-      && q.correctIndex < q.options.length
-      && (type !== 'true-false' || q.options.length === 2);
-  }
-
-  if (type === 'fill-blank' || type === 'short-answer') {
-    return typeof q.answer === 'string' && q.answer.trim().length > 0;
-  }
-
-  if (type === 'matching') {
-    return Array.isArray(q.pairs)
-      && q.pairs.length > 0
-      && q.pairs.every(pair => pair && typeof pair.left === 'string' && typeof pair.right === 'string')
-      && Array.isArray(q.correctMatches)
-      && q.correctMatches.length === q.pairs.length
-      && q.correctMatches.every(index => Number.isInteger(index) && index >= 0 && index < q.pairs.length);
-  }
-
-  return false;
-}
-
-function normalizeGeneratedQuestion(question, expectedType) {
-  if (!question || typeof question !== 'object') return null;
-  const normalized = { ...question };
-  const typeAliases = {
-    'multiple choice': 'multiple-choice',
-    'true false': 'true-false',
-    'fill in the blank': 'fill-blank',
-    'fill-in-the-blank': 'fill-blank',
-    'short answer': 'short-answer',
-    'matching pairs': 'matching'
-  };
-  const reportedType = typeof normalized.type === 'string'
-    ? normalized.type.trim().toLowerCase().replace(/_/g, '-')
-    : '';
-  normalized.type = expectedType || typeAliases[reportedType] || reportedType || 'multiple-choice';
-  const type = normalized.type;
-  if (type === 'multiple-choice' || type === 'true-false') {
-    const candidate = Number.isInteger(normalized.correctIndex)
-      ? normalized.correctIndex
-      : Number.isInteger(normalized.answer)
-        ? normalized.answer
-        : Number(normalized.answer);
-    if (Number.isInteger(candidate)) {
-      normalized.correctIndex = candidate;
-      normalized.answer = candidate;
-    }
-  } else if (type === 'fill-blank' || type === 'short-answer') {
-    const answer = normalized.answer ?? normalized.correctAnswer;
-    if (typeof answer === 'string' || typeof answer === 'number') normalized.answer = String(answer);
-  } else if (type === 'matching') {
-    normalized.pairs = normalized.pairs || normalized.options;
-    const matches = normalized.correctMatches || normalized.answer;
-    if (Array.isArray(matches)) {
-      normalized.correctMatches = matches.map((match, index) => {
-        if (Number.isInteger(match) || (typeof match === 'string' && /^\d+$/.test(match))) return Number(match);
-        if (typeof match === 'string' && Array.isArray(normalized.pairs)) {
-          return normalized.pairs.findIndex((pair) => typeof pair?.right === 'string'
-            && pair.right.trim().toLocaleLowerCase() === match.trim().toLocaleLowerCase());
-        }
-        return null;
-      });
-    }
-  }
-  return isValidQuestion(normalized) ? normalized : null;
-}
-
-async function readOllamaStream(response) {
-  if (!response.body) throw new Error('Ollama không trả về luồng nội dung.');
-  const reader = response.body.getReader();
-  const decoder = new TextDecoder();
-  let buffer = '';
-  let generatedText = '';
-  let promptTokens = 0;
-  let completionTokens = 0;
-
-  const readLine = (line) => {
-    if (!line.trim()) return;
-    const item = JSON.parse(line);
-    if (item.error) throw new Error(item.error);
-    if (typeof item.response === 'string') generatedText += item.response;
-    if (Number.isFinite(item.prompt_eval_count)) promptTokens = item.prompt_eval_count;
-    if (Number.isFinite(item.eval_count)) completionTokens = item.eval_count;
-  };
-
-  try {
-    while (true) {
-      const { done, value } = await reader.read();
-      buffer += decoder.decode(value || new Uint8Array(), { stream: !done });
-      const lines = buffer.split('\n');
-      buffer = lines.pop() || '';
-      lines.forEach(readLine);
-      if (done) break;
-    }
-    readLine(buffer);
-  } finally {
-    reader.releaseLock();
-  }
-
-  return { text: generatedText, promptTokens, completionTokens };
-}
-
 app.use(express.json({ limit: '10mb' }));
 app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
@@ -228,186 +92,34 @@ app.post('/api/generate-quiz', requireAuth, async (req, res) => {
   if (!['teacher', 'admin'].includes(req.profile?.role)) {
     return res.status(403).json({ error: 'Chỉ giáo viên mới có quyền tạo câu hỏi bằng AI.' });
   }
-  const { systemPrompt, userPrompt, questionCount } = req.body || {};
-  const questionTypes = new Set(['multiple-choice', 'true-false', 'fill-blank', 'matching', 'short-answer']);
-  const expectedType = typeof req.body?.questionType === 'string' ? req.body.questionType : '';
-  if (expectedType && !questionTypes.has(expectedType)) {
-    return res.status(400).json({ error: 'Dạng câu hỏi không được hỗ trợ.' });
-  }
-
-  if (!systemPrompt || !userPrompt) {
-    return res.status(400).json({
-      error: 'Missing required fields: systemPrompt and userPrompt.'
-    });
-  }
-
+  let input;
+  try { input = validateQuizInput(req.body); }
+  catch (error) { return res.status(400).json({ error: error.message }); }
   const startedAt = Date.now();
   const telemetry = { model: null, promptTokens: 0, completionTokens: 0 };
   try {
-    const activeModel = expectedType ? await resolveQuizModelName() : await resolveModelName();
-    telemetry.model = activeModel;
-    const qCountMatch = userPrompt.match(/Tạo\s+(?:đúng\s+)?(\d+)\s+câu hỏi/i);
-    const requestedCount = questionCount ?? Math.min(qCountMatch ? parseInt(qCountMatch[1], 10) : 5, 10);
-    if (!Number.isInteger(requestedCount) || requestedCount < 1 || requestedCount > 10) {
-      return res.status(400).json({ error: 'Số câu hỏi phải từ 1 đến 10.' });
-    }
-
-    if (!activeModel || activeModel === OLLAMA_MODEL) {
-      const installedModels = await getInstalledModels();
-      if (installedModels.length === 0) {
-        return res.status(500).json({
-          error: 'Ollama chưa có model nào được cài đặt. Hãy chạy: `ollama pull ' + DEFAULT_MODEL + '`',
-          details: 'Model hiện tại: ' + OLLAMA_MODEL
-        });
-      }
-    }
-
-    let allQuestions = [];
-    let attempts = 0;
-    const maxAttempts = requestedCount;
-
-    while (allQuestions.length < requestedCount && attempts < maxAttempts) {
-      attempts++;
-      const remainingCount = requestedCount - allQuestions.length;
-      const retryPrompt = userPrompt
-        .replace(/Tạo\s+(?:đúng\s+)?\d+\s+câu hỏi/gi, `Tạo đúng ${remainingCount} câu hỏi`)
-        .replace(/Trả về đủ đúng\s+\d+\s+câu hỏi/gi, `Trả về đủ đúng ${remainingCount} câu hỏi`);
-      const attemptPrompt = attempts === 1
-        ? userPrompt
-        : `${retryPrompt}\n\nĐây là lượt bổ sung: chỉ tạo thêm ${remainingCount} câu hỏi mới, không lặp lại các câu sau:\n${JSON.stringify(allQuestions.map((question) => question.question))}`;
-
-      const response = await fetch(`${OLLAMA_BASE_URL}/api/generate`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          model: activeModel,
-          prompt: `${systemPrompt}\n\n${attemptPrompt}`,
-          format: 'json',
-          stream: true,
-          keep_alive: '10m',
-          options: {
-            temperature: 0.2 + (attempts * 0.1),
-            top_p: 0.9,
-            num_ctx: 4096,
-            num_predict: Math.min(8192, Math.max(2048, remainingCount * 1024))
-          }
-        })
-      });
-
-      if (!response.ok) {
-        const text = await response.text();
-        return res.status(500).json({
-          error: 'Ollama request failed.',
-          details: text
-        });
-      }
-
-      let text;
-      try {
-        const generation = await readOllamaStream(response);
-        text = generation.text;
-        telemetry.promptTokens += generation.promptTokens;
-        telemetry.completionTokens += generation.completionTokens;
-      } catch (error) {
-        console.error(`Could not read Ollama quiz stream (attempt ${attempts}):`, error);
-        continue;
-      }
-      
-      // Try to parse the response to ensure it's valid JSON
-      let parsedJSON;
-      try {
-        parsedJSON = JSON.parse(text);
-        
-        // If it's a single object (not array), wrap it in array
-        if (parsedJSON && typeof parsedJSON === 'object' && !Array.isArray(parsedJSON)) {
-          // If it has a questions key with array, extract that
-          if (Array.isArray(parsedJSON.questions)) {
-            parsedJSON = parsedJSON.questions;
-          } 
-          // Otherwise wrap the single object in an array
-          else if (parsedJSON.question) {
-            parsedJSON = [parsedJSON];
-          }
-        }
-        
-        if (Array.isArray(parsedJSON)) {
-          const validQuestions = parsedJSON.map((question) => normalizeGeneratedQuestion(question, expectedType)).filter(Boolean);
-          const seenQuestions = new Set(allQuestions.map((question) => question.question.trim().toLocaleLowerCase()));
-          allQuestions.push(...validQuestions.filter((question) => {
-            const key = question.question.trim().toLocaleLowerCase();
-            if (seenQuestions.has(key)) return false;
-            seenQuestions.add(key);
-            return true;
-          }));
-        }
-      } catch (parseErr) {
-        // If JSON parsing fails, try to extract JSON from text
-        const jsonMatch = text.match(/\[[\s\S]*\]|\{[\s\S]*\}/);
-        if (jsonMatch) {
-          try {
-            parsedJSON = JSON.parse(jsonMatch[0]);
-            if (parsedJSON && !Array.isArray(parsedJSON) && parsedJSON.question) {
-              parsedJSON = [parsedJSON];
-            }
-            
-            if (Array.isArray(parsedJSON)) {
-              const validQuestions = parsedJSON.map((question) => normalizeGeneratedQuestion(question, expectedType)).filter(Boolean);
-              const seenQuestions = new Set(allQuestions.map((question) => question.question.trim().toLocaleLowerCase()));
-              allQuestions.push(...validQuestions.filter((question) => {
-                const key = question.question.trim().toLocaleLowerCase();
-                if (seenQuestions.has(key)) return false;
-                seenQuestions.add(key);
-                return true;
-              }));
-            }
-          } catch (innerErr) {
-            console.error('Failed to parse retry JSON:', innerErr);
-          }
-        }
-      }
-    }
-
-    // Return as many valid unique questions as the local model produced.
-    const finalQuestions = allQuestions.slice(0, requestedCount);
-    
-    if (finalQuestions.length === 0) {
-      return res.status(500).json({
-        error: expectedType
-          ? `AI chưa tạo được câu hỏi hợp lệ ở dạng "${expectedType}". Thử tạo lại hoặc chọn dạng khác.`
-          : 'AI chưa tạo được câu hỏi hợp lệ. Thử tạo lại.'
-      });
-    }
-
+    const result = await generateQuiz(input, { onUsage(event) {
+      telemetry.model = event.model;
+      telemetry.promptTokens += event.promptTokens;
+      telemetry.completionTokens += event.completionTokens;
+    } });
     return res.json({
-      content: [{ type: 'text', text: JSON.stringify(finalQuestions) }],
-      raw: { questionsGenerated: finalQuestions.length, requestedCount, model: activeModel }
+      content: [{ type: 'text', text: JSON.stringify(result.questions) }],
+      raw: { questionsGenerated: result.questions.length, requestedCount: result.requestedCount,
+        model: result.model, partial: result.partial, reviewed: true, promptVersion: result.promptVersion }
     });
   } catch (error) {
-    console.error('Ollama call failed:', error);
-    if (error.cause?.code === 'UND_ERR_HEADERS_TIMEOUT' || error.code === 'UND_ERR_HEADERS_TIMEOUT') {
-      return res.status(504).json({
-        error: 'Ollama đang mất quá nhiều thời gian để bắt đầu trả lời. Kiểm tra Ollama, đợi model tải xong rồi thử lại.',
-        details: error.cause?.code || error.code
-      });
-    }
-    return res.status(500).json({
-      error: 'Không thể kết nối tới Ollama. Hãy kiểm tra Ollama đang chạy và model đã được tải.',
-      details: error.message
+    console.error('Quiz generation/review failed:', error);
+    const timeout = /thời gian chờ/.test(error.message);
+    return res.status(timeout ? 504 : 502).json({
+      error: error.message === 'fetch failed'
+        ? 'Không thể kết nối tới Ollama. Kiểm tra dịch vụ và model, rồi thử lại.'
+        : error.message
     });
   } finally {
-    await recordAIUsage({
-      userId: req.user.id,
-      feature: 'quiz-generation',
-      promptVersion: QUIZ_PROMPT_VERSION,
-      model: telemetry.model,
-      promptTokens: telemetry.promptTokens,
-      completionTokens: telemetry.completionTokens,
-      latencyMs: Date.now() - startedAt,
-      tools: [],
-      statusCode: res.statusCode
-    });
+    await recordAIUsage({ userId: req.user.id, feature: 'quiz-generation', promptVersion: QUIZ_PROMPT_VERSION,
+      model: telemetry.model, promptTokens: telemetry.promptTokens, completionTokens: telemetry.completionTokens,
+      latencyMs: Date.now() - startedAt, tools: ['quiz-generation', 'quiz-review'], statusCode: res.statusCode });
   }
 });
 
@@ -667,4 +379,4 @@ app.listen(PORT, () => {
   console.log(`SmartLearning server running at http://localhost:${PORT}`);
   console.log(`Ollama endpoint: ${OLLAMA_BASE_URL}`);
   console.log(`Model: ${OLLAMA_MODEL}`);
-});
+});

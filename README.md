@@ -205,6 +205,7 @@ README chỉ liệt kê **tên** biến; `.env.example` là mẫu rỗng để s
 | `PORT` | Cổng HTTP của ứng dụng |
 | `OLLAMA_BASE_URL` | Địa chỉ Ollama; Compose tự trỏ app tới service `ollama` |
 | `OLLAMA_MODEL` | Model mặc định cho tạo câu hỏi |
+| `OLLAMA_QUIZ_MODEL` | Model riêng cho tạo và kiểm tra bài tập; ưu tiên qwen2.5:7b khi chưa cấu hình |
 | `OLLAMA_CHAT_MODEL` | Model ưu tiên cho chatbot |
 | `OLLAMA_EMBEDDING_MODEL` | Model tạo embedding cho truy xuất tài liệu |
 | `KB_TOP_K` | Số đoạn tài liệu lấy khi truy xuất |
@@ -330,3 +331,6 @@ npm start
 ### Chat trợ lý học tập
 
 Chat sử dụng model Ollama được cấu hình trong `OLLAMA_CHAT_MODEL`. Nội dung hội thoại không được lưu trên server hoặc gửi làm lịch sử cho model; các câu hỏi được trả lời dựa trên nội dung truy xuất từ kho tài liệu.
+
+### Chất lượng câu hỏi giáo viên
+Chọn lớp, mức độ và yêu cầu riêng trước khi tạo. Backend dùng JSON schema theo dạng câu hỏi, kiểm tra số học đơn giản bằng phân số chính xác, rồi gọi model phản biện đáp án. Câu không đạt được tạo bù tối đa ba lượt; có thể trả bộ ngắn hơn số yêu cầu để không chèn câu sai. Trắc nghiệm và vế phải nối cặp được đảo nhưng giữ đúng chỉ số đáp án. Giáo viên vẫn cần duyệt nội dung trước khi giao. Prompt nằm trong prompts/quiz.js, phiên bản quiz-generator-v2. Thời gian chờ toàn bộ tối đa 180 giây.

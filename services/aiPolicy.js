@@ -1,5 +1,5 @@
 const AI_CHAT_PROMPT_VERSION = 'ai-chat-v3';
-const QUIZ_PROMPT_VERSION = 'quiz-generator-v1';
+const { VERSION: QUIZ_PROMPT_VERSION } = require('../prompts/quiz');
 
 const AI_CHAT_SYSTEM_PROMPT = [
   'Bạn là trợ lý học tập cho học sinh tiểu học.',
