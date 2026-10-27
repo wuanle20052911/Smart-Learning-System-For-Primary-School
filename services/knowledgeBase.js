@@ -11,11 +11,11 @@ const DEFAULT_CHUNK_OVERLAP = 120;
 const DEFAULT_TOP_K = 4;
 const DEFAULT_MIN_SIMILARITY = 0.35;
 const EMBEDDING_DIMENSIONS = 768;
-const QUERY_STOP_WORDS = new Set([
-  'các', 'cái', 'của', 'cho', 'con', 'để', 'được', 'gì', 'hay', 'hãy', 'là',
-  'mà', 'một', 'nào', 'này', 'như', 'ở', 'sao', 'thế', 'thì', 'trong', 'từ',
-  'và', 'về', 'với', 'có', 'tại', 'theo', 'bao', 'nhiêu', 'em', 'tôi'
-]);
+  const QUERY_STOP_WORDS = new Set([
+    'các', 'cái', 'của', 'cho', 'con', 'để', 'được', 'gì', 'hay', 'hãy', 'là',
+    'mà', 'một', 'nào', 'này', 'như', 'ở', 'sao', 'thế', 'thì', 'trong', 'từ',
+    'và', 'về', 'với', 'có', 'tại', 'theo', 'bao', 'nhiêu', 'em', 'tôi'
+  ]);
 
 let refreshPromise;
 
