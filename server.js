@@ -21,6 +21,7 @@ const {
   validateAIChatInput
 } = require('./services/aiPolicy');
 const { recordAIUsage } = require('./services/aiUsage');
+const { getAIFeaturesEnabled } = require('./services/aiFeatureSettings');
 const { VERSION: QUIZ_PROMPT_VERSION, validateInput: validateQuizInput, generateQuiz } = require('./services/quizGeneration');
 const {
   extractProcedureSteps,
@@ -92,6 +93,14 @@ app.post('/api/generate-quiz', requireAuth, async (req, res) => {
   if (!['teacher', 'admin'].includes(req.profile?.role)) {
     return res.status(403).json({ error: 'Chỉ giáo viên mới có quyền tạo câu hỏi bằng AI.' });
   }
+  try {
+    if (!await getAIFeaturesEnabled()) {
+      return res.status(503).json({ error: 'Các chức năng AI hiện đang được quản trị viên tắt.' });
+    }
+  } catch (error) {
+    console.error('Could not check AI feature settings:', error);
+    return res.status(503).json({ error: 'Không thể xác nhận trạng thái AI. Vui lòng thử lại sau.' });
+  }
   let input;
   try { input = validateQuizInput(req.body); }
   catch (error) { return res.status(400).json({ error: error.message }); }
@@ -124,6 +133,14 @@ app.post('/api/generate-quiz', requireAuth, async (req, res) => {
 });
 
 app.post('/api/ai-chat', requireAuth, async (req, res) => {
+  try {
+    if (!await getAIFeaturesEnabled()) {
+      return res.status(503).json({ error: 'Các chức năng AI hiện đang được quản trị viên tắt.' });
+    }
+  } catch (error) {
+    console.error('Could not check AI feature settings:', error);
+    return res.status(503).json({ error: 'Không thể xác nhận trạng thái AI. Vui lòng thử lại sau.' });
+  }
   const { question, includeChunks = false } = req.body || {};
   const inputError = validateAIChatInput(question, includeChunks);
   if (inputError === 'missing_question') return res.status(400).json({ error: 'Thiếu câu hỏi.' });

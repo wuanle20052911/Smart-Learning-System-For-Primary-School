@@ -6,6 +6,7 @@ const catalogModel = require('../models/catalogModel');
 const riskAlertModel = require('../models/riskAlertModel');
 const { buildStudyPlan } = require('../services/studyPlan');
 const { classifyStudyIntent } = require('../services/studyIntent');
+const { getAIFeaturesEnabled } = require('../services/aiFeatureSettings');
 const { assessStudentRisk } = require('../services/riskAssessment');
 
 function normalizeAttempt(body = {}) {
@@ -87,7 +88,7 @@ async function studyPlan(req, res) {
   try {
     const classification = requestedIntent
       ? { intent: requestedIntent, source: 'explicit' }
-      : await classifyStudyIntent(question);
+      : await classifyStudyIntent(question, { allowModel: await getAIFeaturesEnabled() });
     if (classification.intent === 'other') {
       return res.json({ intent: 'other', classificationSource: classification.source });
     }

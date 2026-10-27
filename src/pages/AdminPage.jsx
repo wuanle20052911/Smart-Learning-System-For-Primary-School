@@ -17,6 +17,10 @@ export default function AdminPage({ Brand, api, logout, go }) {
   const [aiUsage, setAIUsage] = useState(null);
   const [aiUsageError, setAIUsageError] = useState('');
   const [aiUsageConnected, setAIUsageConnected] = useState(false);
+  const [aiEnabled, setAIEnabled] = useState(null);
+  const [aiSettingsLoading, setAISettingsLoading] = useState(true);
+  const [aiSettingsSaving, setAISettingsSaving] = useState(false);
+  const [aiSettingsMessage, setAISettingsMessage] = useState('');
 
   const load = async () => {
     setManagementLoading(true);
@@ -34,6 +38,15 @@ export default function AdminPage({ Brand, api, logout, go }) {
   useEffect(() => {
     load();
   }, []);
+
+  useEffect(() => {
+    let active = true;
+    api('/api/admin/ai-settings')
+      .then((settings) => { if (active) setAIEnabled(settings.enabled); })
+      .catch((error) => { if (active) setAISettingsMessage(error.message || 'Không thể tải cài đặt AI.'); })
+      .finally(() => { if (active) setAISettingsLoading(false); });
+    return () => { active = false; };
+  }, [api]);
 
   useEffect(() => {
     if (!data.classes.length) {
@@ -232,6 +245,24 @@ export default function AdminPage({ Brand, api, logout, go }) {
     }
   };
 
+  const updateAIEnabled = async (event) => {
+    const enabled = event.target.checked;
+    setAISettingsSaving(true);
+    setAISettingsMessage('');
+    try {
+      const result = await api('/api/admin/ai-settings', {
+        method: 'PUT',
+        body: JSON.stringify({ enabled })
+      });
+      setAIEnabled(result.enabled);
+      setAISettingsMessage(result.message);
+    } catch (error) {
+      setAISettingsMessage(error.message || 'Không thể cập nhật cài đặt AI.');
+    } finally {
+      setAISettingsSaving(false);
+    }
+  };
+
   const formatLatency = (value) => `${(Number(value || 0) / 1000).toFixed(2)} giây`;
   const scrollTo = (id) => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
 
@@ -261,6 +292,24 @@ export default function AdminPage({ Brand, api, logout, go }) {
           <div><h2>Quan sát AI · 30 ngày gần nhất</h2><small>Dữ liệu ghi nhận từ các yêu cầu AI thực tế · {aiUsageConnected ? 'Đang cập nhật realtime' : 'Đang kết nối lại...'}</small></div>
           <span>{aiUsage ? `${aiUsage.requestCount} yêu cầu` : 'Đang tải...'}</span>
         </div>
+        <div className="ai-feature-control">
+          <div>
+            <strong>Chức năng AI</strong>
+            <small>{aiEnabled === false ? 'Đang tắt chatbot, tạo câu hỏi AI và phân loại bằng mô hình.' : 'Bật chatbot học tập và tạo câu hỏi bằng AI.'}</small>
+          </div>
+          <label className="ai-feature-switch">
+            <span>{aiSettingsLoading ? 'Đang tải...' : aiEnabled ? 'Đang bật' : 'Đang tắt'}</span>
+            <input
+              type="checkbox"
+              role="switch"
+              aria-label="Bật hoặc tắt các chức năng AI toàn hệ thống"
+              checked={Boolean(aiEnabled)}
+              disabled={aiSettingsLoading || aiSettingsSaving || aiEnabled === null}
+              onChange={updateAIEnabled}
+            />
+          </label>
+        </div>
+        {aiSettingsMessage && <p className={aiSettingsMessage.startsWith('Không thể') ? 'ai-usage-error' : 'ai-settings-message'} role="status">{aiSettingsMessage}</p>}
         {aiUsageError && <p className="ai-usage-error" role="alert">{aiUsageError} Đang thử kết nối lại.</p>}
         {aiUsage && <>
           <div className="ai-usage-metrics">

@@ -39,12 +39,14 @@ async function classifyStudyIntent(question, {
   fetchImpl = fetch,
   baseUrl = (process.env.OLLAMA_BASE_URL || 'http://localhost:11434').replace(/\/$/, ''),
   chatModel = process.env.OLLAMA_CHAT_MODEL,
-  timeoutMs = 8000
+  timeoutMs = 8000,
+  allowModel = true
 } = {}) {
   const fallbackIntent = fallbackStudyIntent(question);
   if (fallbackIntent !== 'other') {
     return { intent: fallbackIntent, source: 'keyword' };
   }
+  if (!allowModel) return { intent: fallbackIntent, source: 'ai_disabled' };
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
   try {

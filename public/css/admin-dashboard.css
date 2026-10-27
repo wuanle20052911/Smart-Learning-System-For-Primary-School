@@ -798,6 +798,51 @@
   color: #4b91a8;
 }
 
+.ai-feature-control {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  margin: 18px 0;
+  padding: 16px 18px;
+  border: 1px solid #e6edf3;
+  border-radius: 14px;
+  background: #f8fbfd;
+}
+
+.ai-feature-control > div,
+.ai-feature-switch {
+  display: grid;
+  gap: 5px;
+}
+
+.ai-feature-control small {
+  color: #738093;
+}
+
+.ai-feature-switch {
+  justify-items: end;
+  color: #4b91a8;
+  font-weight: 700;
+}
+
+.ai-feature-switch input {
+  width: 42px;
+  height: 22px;
+  accent-color: #50a9c1;
+  cursor: pointer;
+}
+
+.ai-feature-switch input:disabled {
+  cursor: wait;
+}
+
+.ai-settings-message {
+  margin: 0 0 12px;
+  color: #3d8769;
+  font-size: 0.9rem;
+}
+
 .ai-usage-metrics article {
   border-color: #f0f1f5;
   background: #fcfcfe;
