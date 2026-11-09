@@ -94,7 +94,7 @@ async function studyPlan(req, res) {
     }
     const [lessons, assignments, submissions, attempts] = await Promise.all([
       lessonModel.listPublished(req.accessToken),
-      assignmentModel.listForStudent(req.accessToken),
+      assignmentModel.listForStudent(req.accessToken, req.user.id),
       submissionModel.listForStudent(req.accessToken, req.user.id),
       quizAttemptModel.listForStudent(req.accessToken, req.user.id)
     ]);

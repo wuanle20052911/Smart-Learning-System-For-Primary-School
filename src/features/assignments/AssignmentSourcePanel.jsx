@@ -7,6 +7,7 @@ export default function AssignmentSourcePanel({
   materialName,
   material,
   busy,
+  personalizedMode,
   getLessonTitle,
   onSelectLesson,
   onQuestionCountChange,
@@ -35,7 +36,7 @@ export default function AssignmentSourcePanel({
       <input type="file" accept=".pdf,.docx,.txt,.md,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain,text/markdown" onChange={onFileChange} />
     </label>
     <textarea value={material} onChange={(event) => onMaterialChange(event.target.value)} rows="9" placeholder="Nội dung lesson sẽ được nạp tại đây. Cũng có thể dán nội dung bài học." />
-    <button className="teacher-create" type="button" onClick={onGenerate} disabled={busy}>{busy ? 'Đang tạo và kiểm tra đáp án...' : '✦ Tạo câu hỏi bằng AI local'}</button>
-    <section className="studio-source-note">Chọn câu ưng ý để đưa vào hàng chờ; câu đã chọn vẫn được giữ khi tạo thêm câu khác. Giáo viên kiểm tra rồi mới xuất bản cho lớp.</section>
+    <button className="teacher-create" type="button" onClick={onGenerate} disabled={busy || personalizedMode}>{personalizedMode ? 'Dùng câu hỏi từ ngân hàng bên phải' : busy ? 'Đang tạo và kiểm tra đáp án...' : '✦ Tạo câu hỏi bằng AI local'}</button>
+    <section className="studio-source-note">{personalizedMode ? 'Bài ôn cá nhân sẽ lấy câu hỏi có sẵn từ các bài học học sinh còn yếu.' : 'Chọn câu ưng ý để đưa vào hàng chờ; câu đã chọn vẫn được giữ khi tạo thêm câu khác. Giáo viên kiểm tra rồi mới xuất bản cho lớp.'}</section>
   </section>;
 }

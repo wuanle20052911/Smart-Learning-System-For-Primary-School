@@ -449,6 +449,11 @@ button, input, select { font: inherit; }
 .studio-assignment-fields input, .studio-assignment-fields select { width: 100%; min-width: 0; max-width: none; height: 40px; box-sizing: border-box; padding: 8px 10px; border: 1px solid #dce7f2; border-radius: 9px; background: #fbfdff; color: #40536e; font: 600 12px 'Quicksand', sans-serif; }
 .studio-assignment-fields .assignment-deadline { grid-column: 1 / -1; grid-template-columns: minmax(180px, 240px) minmax(0, 1fr); align-items: center; gap: 6px 12px; }
 .studio-assignment-fields .assignment-deadline small { grid-column: 2; color: #8998aa; font-size: 10px; }
+.personalized-draft-controls { display: grid; grid-column: 1 / -1; gap: 8px; padding: 12px; border: 1px solid #dce7f2; border-radius: 9px; background: #f6faff; color: #52657d; font-size: 11px; }
+.personalized-draft-controls p { margin: 0; line-height: 1.5; }
+.personalized-draft-controls .teacher-create { justify-self: start; }
+.personalized-draft-controls ul { display: grid; gap: 5px; margin: 0; padding-left: 18px; }
+.personalized-draft-controls small { color: #8998aa; font-size: 10px; }
 @media (max-width: 760px) { .studio-assignment-fields { grid-template-columns: 1fr; }.studio-assignment-fields .assignment-deadline { grid-column: auto; grid-template-columns: 1fr; }.studio-assignment-fields .assignment-deadline small { grid-column: auto; } }
 .lesson-question-source { display: grid; gap: 6px; margin-bottom: 12px; color: #536d8e; font-size: 11px; font-weight: 800; }
 .lesson-question-source select { width: 100%; box-sizing: border-box; padding: 10px; border: 1px solid #dce7f2; border-radius: 8px; background: #fbfdff; color: #40536e; font: 600 12px 'Quicksand', sans-serif; }

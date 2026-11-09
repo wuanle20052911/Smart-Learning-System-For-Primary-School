@@ -1,6 +1,6 @@
 const { getSupabaseClient } = require('./supabaseClient');
 
-const assignmentFields = 'id,title,description,lesson_id,subject_id,topic_id,skill_id,class_id,created_by,difficulty,question_count,due_at,published,created_at,updated_at';
+const assignmentFields = 'id,title,description,lesson_id,subject_id,topic_id,skill_id,class_id,target_student_id,learning_goal,created_by,difficulty,question_count,due_at,published,created_at,updated_at';
 const questionFields = 'id,assignment_id,lesson_id,skill_id,position,type,question,options,answer,explanation,points';
 
 async function listForTeacher(accessToken, teacherId) {
@@ -10,9 +10,11 @@ async function listForTeacher(accessToken, teacherId) {
   return data;
 }
 
-async function listForStudent(accessToken) {
+async function listForStudent(accessToken, studentId) {
   const { data, error } = await getSupabaseClient(accessToken)
-    .from('assignments').select(assignmentFields).eq('published', true).order('due_at', { ascending: true, nullsFirst: false });
+    .from('assignments').select(assignmentFields).eq('published', true)
+    .or(`target_student_id.is.null,target_student_id.eq.${studentId}`)
+    .order('due_at', { ascending: true, nullsFirst: false });
   if (error) throw error;
   return data;
 }
@@ -36,7 +38,7 @@ async function create(accessToken, teacherId, assignment, questions) {
     .insert(questions.map((question, index) => ({
       ...question,
       assignment_id: data.id,
-      lesson_id: assignment.lesson_id || null,
+      lesson_id: question.lesson_id || assignment.lesson_id || null,
       position: index + 1
     })));
   if (questionError) throw questionError;

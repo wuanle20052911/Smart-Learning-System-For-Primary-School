@@ -1,6 +1,10 @@
 const assignmentModel = require('../models/assignmentModel');
+const catalogModel = require('../models/catalogModel');
+const questionBankModel = require('../models/questionBankModel');
+const quizAttemptModel = require('../models/quizAttemptModel');
 const { getSupabaseClient } = require('../models/supabaseClient');
 const { normalizeDueAt } = require('../services/assignmentDeadline');
+const { buildPersonalizedDraft } = require('../services/personalizedAssignment');
 
 function normalize(body = {}) {
   const questions = Array.isArray(body.questions) ? body.questions : [];
@@ -9,6 +13,11 @@ function normalize(body = {}) {
   }
   if (body.published === true && !body.class_id) {
     throw new Error('Bài tập đã xuất bản phải được giao cho một lớp.');
+  }
+  const targetStudentId = typeof body.target_student_id === 'string' && body.target_student_id ? body.target_student_id : null;
+  const learningGoal = typeof body.learning_goal === 'string' ? body.learning_goal.trim().slice(0, 500) : '';
+  if (targetStudentId && (!body.class_id || !learningGoal)) {
+    throw new Error('Bài tập cá nhân hóa cần lớp học và mục tiêu học tập.');
   }
   return {
     assignment: {
@@ -19,6 +28,8 @@ function normalize(body = {}) {
       topic_id: body.topic_id || null,
       skill_id: body.skill_id || null,
       class_id: body.class_id || null,
+      target_student_id: targetStudentId,
+      learning_goal: learningGoal,
       difficulty: ['easy', 'medium', 'hard'].includes(body.difficulty) ? body.difficulty : 'easy',
       due_at: normalizeDueAt(body.due_at, body.published === true),
       published: body.published === true
@@ -54,6 +65,17 @@ function teacherOnly(req, res, next) {
 async function create(req, res) {
   try {
     const payload = normalize(req.body);
+    if (payload.assignment.target_student_id) {
+      if (!payload.assignment.class_id) throw new Error('Bài tập cá nhân hóa phải được giao trong một lớp.');
+      if (!payload.assignment.learning_goal) throw new Error('Bài tập cá nhân hóa cần có mục tiêu học tập.');
+      const client = getSupabaseClient(req.accessToken);
+      const students = req.profile.role === 'admin'
+        ? await catalogModel.managerListClassStudents(client, payload.assignment.class_id)
+        : await catalogModel.listClassStudents(client, payload.assignment.class_id);
+      if (!students.some((student) => (student.id || student.student_id) === payload.assignment.target_student_id)) {
+        throw new Error('Học sinh được chọn không thuộc lớp này.');
+      }
+    }
     if (payload.assignment.lesson_id) {
       const { data: lesson, error } = await getSupabaseClient(req.accessToken)
         .from('lessons')
@@ -71,13 +93,38 @@ async function create(req, res) {
   }
 }
 
+async function createPersonalizedDraft(req, res) {
+  const classId = typeof req.body?.class_id === 'string' ? req.body.class_id : '';
+  const studentId = typeof req.body?.student_id === 'string' ? req.body.student_id : '';
+  if (!classId || !studentId) {
+    return res.status(400).json({ error: 'Hãy chọn lớp và học sinh cần ôn tập.' });
+  }
+  try {
+    const client = getSupabaseClient(req.accessToken);
+    const students = req.profile.role === 'admin'
+      ? await catalogModel.managerListClassStudents(client, classId)
+      : await catalogModel.listClassStudents(client, classId);
+    if (!students.some((student) => (student.id || student.student_id) === studentId)) {
+      return res.status(400).json({ error: 'Học sinh được chọn không thuộc lớp này.' });
+    }
+    const [attempts, bankQuestions] = await Promise.all([
+      quizAttemptModel.listForTeacherStudent(req.accessToken, req.user.id, studentId),
+      questionBankModel.list(req.accessToken, req.user.id)
+    ]);
+    return res.json(buildPersonalizedDraft(attempts, bankQuestions));
+  } catch (error) {
+    console.error('Could not build personalized assignment draft:', error);
+    return res.status(500).json({ error: 'Không thể phân tích kết quả và ngân hàng câu hỏi.' });
+  }
+}
+
 async function listMine(req, res) {
   try { return res.json({ assignments: await assignmentModel.listForTeacher(req.accessToken, req.user.id) }); }
   catch (error) { console.error(error); return res.status(500).json({ error: 'Không thể tải bài tập.' }); }
 }
 
 async function listPublished(req, res) {
-  try { return res.json({ assignments: await assignmentModel.listForStudent(req.accessToken) }); }
+  try { return res.json({ assignments: await assignmentModel.listForStudent(req.accessToken, req.user.id) }); }
   catch (error) { console.error(error); return res.status(500).json({ error: 'Không thể tải bài tập được giao.' }); }
 }
 
@@ -86,4 +133,4 @@ async function getOne(req, res) {
   catch (error) { console.error(error); return res.status(404).json({ error: 'Không tìm thấy bài tập.' }); }
 }
 
-module.exports = { normalize, create, listMine, listPublished, getOne, teacherOnly };
+module.exports = { normalize, create, createPersonalizedDraft, listMine, listPublished, getOne, teacherOnly };
