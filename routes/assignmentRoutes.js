@@ -6,6 +6,7 @@ const router = express.Router();
 router.use(requireAuth);
 router.get('/published', controller.listPublished);
 router.get('/mine', controller.teacherOnly, controller.listMine);
+router.post('/personalized-draft', controller.teacherOnly, controller.createPersonalizedDraft);
 router.get('/:id', controller.getOne);
 router.post('/', controller.teacherOnly, controller.create);
 module.exports = router;

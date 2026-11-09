@@ -46,6 +46,13 @@ export default function AssignmentQuestionReview({
   title,
   classId,
   classes,
+  targetStudentId,
+  classStudents,
+  studentsLoading,
+  learningGoal,
+  personalizedLessons,
+  generationDifficulty,
+  personalizedBusy,
   dueAt,
   questions,
   generatedCandidates,
@@ -54,6 +61,9 @@ export default function AssignmentQuestionReview({
   published,
   onTitleChange,
   onClassChange,
+  onTargetStudentChange,
+  onBuildPersonalizedDraft,
+  onDifficultyChange,
   onDueAtChange,
   onUpdateQuestion,
   onUpdateOption,
@@ -73,6 +83,14 @@ export default function AssignmentQuestionReview({
       <div className="studio-assignment-fields">
         <label>Tên bài tập<input value={title} onChange={(event) => onTitleChange(event.target.value)} placeholder="Nhập tên bài tập" /></label>
         <label>Lớp được giao<select value={classId} onChange={(event) => onClassChange(event.target.value)}><option value="">Chọn lớp</option>{classes.map((item) => <option value={item.id} key={item.id}>{item.name} · {item.grade}</option>)}</select></label>
+        <label>Người nhận<select value={targetStudentId} onChange={(event) => onTargetStudentChange(event.target.value)} disabled={!classId || studentsLoading}><option value="">{classId ? 'Cả lớp' : 'Chọn lớp trước'}</option>{classStudents.map((student) => <option value={student.id || student.student_id} key={student.id || student.student_id}>{student.full_name || student.email}</option>)}</select></label>
+        {targetStudentId && <section className="personalized-draft-controls">
+          <p>Hệ thống tìm các bài có độ chính xác dưới 70%, rồi chọn tối đa 10 câu tương ứng từ ngân hàng câu hỏi.</p>
+          <button type="button" className="teacher-create" onClick={onBuildPersonalizedDraft} disabled={personalizedBusy}>{personalizedBusy ? 'Đang phân tích kết quả...' : '✦ Phân tích & lấy câu từ ngân hàng'}</button>
+          {personalizedLessons.length > 0 && <ul>{personalizedLessons.map((lesson) => <li key={lesson.lesson_id}>{lesson.lesson_title} · đúng {lesson.accuracy}% · {lesson.bankQuestionCount} câu trong ngân hàng</li>)}</ul>}
+          {learningGoal && <small>Bài tập chỉ hiển thị với học sinh được chọn.</small>}
+        </section>}
+        {!targetStudentId && <label>Mức độ<select value={generationDifficulty} onChange={(event) => onDifficultyChange(event.target.value)}><option value="basic">Cơ bản</option><option value="balanced">Vừa sức</option><option value="application">Vận dụng</option></select></label>}
         <label className="assignment-deadline">Hạn nộp<input type="datetime-local" value={dueAt} onChange={(event) => onDueAtChange(event.target.value)} /><small>Để trống nếu không đặt hạn.</small></label>
       </div>
     </div>
@@ -107,7 +125,7 @@ export default function AssignmentQuestionReview({
     />) : <div className="studio-empty">Chọn “Đưa vào hàng chờ” ở câu hỏi phía trên để thêm vào bài tập.</div>}
     <div className="studio-actions">
       <button className="secondary-studio" type="button" onClick={onAddQuestion}>+ Thêm câu hỏi</button>
-      <button className="teacher-create" type="button" onClick={onPublish} disabled={busy || published}>{published ? '✓ Đã xuất bản' : 'Xuất bản cho cả lớp'}</button>
+      <button className="teacher-create" type="button" onClick={onPublish} disabled={busy || published}>{published ? '✓ Đã xuất bản' : targetStudentId ? 'Xuất bản bài tập cá nhân' : 'Xuất bản cho cả lớp'}</button>
     </div>
   </section>;
 }
