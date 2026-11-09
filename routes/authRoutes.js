@@ -1,11 +1,12 @@
 const express = require('express');
-const { login, registerStudent, createTeacher, listManagedUsers, setManagedUserDisabled, updateProfile, getProfile, getOAuthConfig } = require('../controllers/authController');
+const { login, registerStudent, registerParent, createTeacher, listManagedUsers, setManagedUserDisabled, updateProfile, getProfile, getOAuthConfig } = require('../controllers/authController');
 const requireAuth = require('../middleware/requireAuth');
 
 const router = express.Router();
 
 router.post('/login', login);
 router.post('/register', registerStudent);
+router.post('/register-parent', registerParent);
 router.get('/config', getOAuthConfig);
 router.post('/teachers', requireAuth, createTeacher);
 router.get('/users', requireAuth, listManagedUsers);

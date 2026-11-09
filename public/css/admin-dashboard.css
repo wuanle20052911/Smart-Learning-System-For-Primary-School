@@ -18,6 +18,41 @@
   box-shadow: 8px 0 28px #17243b0d;
 }
 
+.parent-link-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) auto;
+  align-items: end;
+  gap: 12px;
+  margin: 16px 0 8px;
+}
+
+.parent-link-form label {
+  display: block;
+  color: #536d8e;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.parent-link-form select {
+  display: block;
+  width: 100%;
+  margin-top: 5px;
+  padding: 10px;
+  border: 2px solid #e0eaf5;
+  border-radius: 9px;
+  background: #fff;
+  color: #243d61;
+}
+
+.parent-link-management > p {
+  color: #718096;
+  font-size: 12px;
+}
+
+@media (max-width: 760px) {
+  .parent-link-form { grid-template-columns: 1fr; }
+}
+
 .admin-sidebar .brand {
   padding: 0 13px;
   color: #fff;

@@ -13,6 +13,7 @@ const catalogRoutes = require('./routes/catalogRoutes');
 const questionBankRoutes = require('./routes/questionBankRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 const leaderboardRoutes = require('./routes/leaderboardRoutes');
+const parentRoutes = require('./routes/parentRoutes');
 const requireAuth = require('./middleware/requireAuth');
 const {
   AI_CHAT_PROMPT_VERSION,
@@ -62,6 +63,7 @@ async function getInstalledModels(signal) {
 
 app.use(express.json({ limit: '10mb' }));
 app.use('/api/auth', authRoutes);
+app.use('/api/parents', parentRoutes);
 app.use('/api/admin', adminRoutes);
 app.get('/api/profile-avatars', async (req, res) => {
   try {
