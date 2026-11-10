@@ -12,6 +12,7 @@ Tài liệu thiết kế, user stories, bảng truy vết, sơ đồ kiến trú
 - Tự động kiểm tra và lọc câu hỏi không hợp lệ
 - Xuất câu hỏi ra file HTML hoặc TXT
 - Chatbot hỏi đáp chỉ dựa trên Markdown trong Supabase Storage, tìm kiếm bằng Ollama embedding và hiển thị nguồn trích dẫn
+- Phụ huynh đăng ký tài khoản, xem tiến độ/điểm mạnh-yếu và khuyến nghị dựa trên học sinh được quản trị viên liên kết
 - Hội thoại chatbot chỉ tồn tại trong phiên giao diện hiện tại, không lưu vào Supabase
 - Model AI chạy local qua Ollama, không cần API key của nhà cung cấp AI
 - Có thể chạy ứng dụng và Ollama trong Docker Compose; Supabase vẫn là dịch vụ bên ngoài
@@ -82,6 +83,7 @@ Tài liệu thiết kế, user stories, bảng truy vết, sơ đồ kiến trú
    - Chạy `supabase/027_chatbot_supabase_storage.sql` để tạo vector store pgvector cho chatbot và các bảng lịch sử có RLS theo tài khoản.
    - Chạy `supabase/028_ai_usage_observability.sql` để lưu telemetry và cấp quyền tổng hợp thống kê AI cho backend.
    - Nếu đã áp dụng migration thống kê AI trước đây, chạy `supabase/032_remove_ai_usage_costs.sql` để bỏ dữ liệu chi phí ước tính khỏi database.
+   - Chạy lần lượt `supabase/035_parent_portal.sql`, `supabase/036_parent_phone_link_requests.sql`, `supabase/037_fix_parent_link_request_status_ambiguity.sql` và `supabase/038_fix_parent_link_request_student_id_ambiguity.sql` để bật vai trò phụ huynh, số điện thoại hồ sơ và yêu cầu liên kết. Phụ huynh đăng ký tại màn hình đăng nhập rồi lưu số di động trong **Thông tin cá nhân**; học sinh chỉ gửi được yêu cầu đến số trùng với tài khoản phụ huynh. Yêu cầu hiển thị trong dashboard để phụ huynh xác nhận/từ chối (không gửi SMS). Quản trị viên vẫn có thể tạo liên kết trong **Quản lý tài khoản**. Dashboard chỉ tổng hợp dữ liệu của học sinh đã liên kết.
    - Nếu trước đây đã tạo bảng `lesson_chunks`, chạy `supabase/026_remove_lesson_chunks.sql` để xóa bảng và hàm tìm kiếm cũ.
 
   - Chạy `supabase/017_lesson_chapters_storage.sql` để liên kết bài học với chương, tạo bucket riêng tư `lesson-materials` và policy đọc các bucket mẫu `Math4`/`Chapter1`.

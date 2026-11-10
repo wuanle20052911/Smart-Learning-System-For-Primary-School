@@ -17,11 +17,14 @@ async function requireAuth(req, res, next) {
 
     const { data: profile, error: profileError } = await client
       .from('users')
-      .select('id, email, full_name, gender, birth_date, avatar_url, role')
+      .select('id, email, full_name, gender, birth_date, avatar_url, phone_number, role')
       .eq('id', data.user.id)
       .single();
     if (profileError) {
       console.error('Profile lookup failed:', profileError);
+      if (['42703', 'PGRST204'].includes(profileError.code) && /phone_number/i.test(profileError.message || '')) {
+        return res.status(503).json({ error: 'Quản trị viên cần chạy migration supabase/036_parent_phone_link_requests.sql trước khi sử dụng ứng dụng.' });
+      }
       return res.status(403).json({ error: 'Không tìm thấy hồ sơ người dùng.' });
     }
 

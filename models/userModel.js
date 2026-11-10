@@ -8,7 +8,7 @@ async function signIn(email, password) {
 
   const { data: profile, error: profileError } = await getSupabaseClient(data.session.access_token)
     .from('users')
-    .select('id, email, full_name, gender, birth_date, avatar_url, role')
+    .select('id, email, full_name, gender, birth_date, avatar_url, phone_number, role')
     .eq('id', data.user.id)
     .single();
   if (profileError) throw profileError;
@@ -22,7 +22,7 @@ async function updateProfile(accessToken, userId, profile) {
     .from('users')
     .update(profile)
     .eq('id', userId)
-    .select('id, email, full_name, gender, birth_date, avatar_url, role')
+    .select('id, email, full_name, gender, birth_date, avatar_url, phone_number, role')
     .single();
   if (error) throw error;
   return data;
@@ -62,6 +62,30 @@ async function createTeacher(email, password, fullName) {
   return profile;
 }
 
+async function registerParent(email, password, fullName) {
+  const adminClient = getSupabaseAdminClient();
+  const { data, error } = await getSupabaseClient().auth.signUp({
+    email,
+    password,
+    options: { data: { full_name: fullName } }
+  });
+  if (error) throw error;
+  if (!data.user) throw new Error('Không tạo được tài khoản phụ huynh.');
+
+  const { data: profile, error: profileError } = await adminClient
+    .from('users')
+    .update({ role: 'parent' })
+    .eq('id', data.user.id)
+    .select('id, email, full_name, role')
+    .single();
+  if (profileError) {
+    const { error: rollbackError } = await adminClient.auth.admin.deleteUser(data.user.id);
+    if (rollbackError) console.error('Could not roll back parent account registration:', rollbackError);
+    throw profileError;
+  }
+  return { ...data, profile };
+}
+
 async function listManagedUsers() {
   const client = getSupabaseAdminClient();
   const perPage = 1000;
@@ -82,7 +106,7 @@ async function listManagedUsers() {
       .from('users')
       .select('id, email, full_name, role')
       .in('id', userIds)
-      .in('role', ['student', 'teacher'])
+      .in('role', ['student', 'parent', 'teacher'])
       .order('full_name');
     if (error) throw error;
     profiles.push(...(data || []));
@@ -108,8 +132,8 @@ async function setManagedUserDisabled(userId, disabled) {
     .eq('id', userId)
     .maybeSingle();
   if (profileError) throw profileError;
-  if (!profile || !['student', 'teacher'].includes(profile.role)) {
-    throw new Error('Không tìm thấy tài khoản học sinh hoặc giáo viên.');
+  if (!profile || !['student', 'parent', 'teacher'].includes(profile.role)) {
+    throw new Error('Không tìm thấy tài khoản học sinh, phụ huynh hoặc giáo viên.');
   }
 
   const { data, error } = await client.auth.admin.updateUserById(userId, {
@@ -134,4 +158,4 @@ async function registerStudent(email, password, fullName) {
   return data;
 }
 
-module.exports = { signIn, registerStudent, createTeacher, listManagedUsers, setManagedUserDisabled, updateProfile, getClass };
+module.exports = { signIn, registerStudent, registerParent, createTeacher, listManagedUsers, setManagedUserDisabled, updateProfile, getClass };

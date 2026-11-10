@@ -5,6 +5,7 @@ import AccountPage from './pages/AccountPage.jsx';
 import StudentHomePage from './pages/StudentHomePage.jsx';
 import StudentLeaderboardPage from './pages/StudentLeaderboardPage.jsx';
 import StudentCompetencyPage from './pages/StudentCompetencyPage.jsx';
+import ParentDashboardPage from './pages/ParentDashboardPage.jsx';
 import MeteorGamePage from './pages/MeteorGamePage.jsx';
 import TeacherPage from './pages/TeacherPage.jsx';
 import Brand from './components/Brand.jsx';
@@ -38,9 +39,11 @@ function App() {
         ? ['/public/css/admin.css', '/public/css/admin-dashboard.css']
         : path === '/teacher'
           ? ['/public/css/teacher.css']
-          : path === '/profile' || path === '/history' || path === '/competency'
-            ? ['/public/css/quiz-generator.css', '/public/css/account.css']
-            : ['/public/css/quiz-generator.css'];
+          : path === '/parent'
+            ? ['/public/css/quiz-generator.css', '/public/css/parent.css']
+            : path === '/profile' || path === '/history' || path === '/competency'
+              ? ['/public/css/quiz-generator.css', '/public/css/account.css']
+              : ['/public/css/quiz-generator.css'];
     document.querySelectorAll('link[data-page-style]').forEach((link) => link.remove());
     styles.forEach((href) => {
       const link = document.createElement('link');
@@ -57,12 +60,13 @@ function App() {
   }, [isPublicPath, session?.access_token]);
   if (isPublicPath || !session?.access_token)   return <AuthPage api={api} Brand={Brand} go={go} sessionKey={sessionKey} />;
   const role = session.profile?.role;
+  const homePath = roleHomePath(role);
   if (path === '/admin') {
-    if (role !== 'admin') return <AccessDenied destination={role === 'teacher' ? '/teacher' : '/learn'} go={go} />;
+    if (role !== 'admin') return <AccessDenied destination={homePath} go={go} />;
     return <AdminPage Brand={Brand} api={api} logout={logout} go={go} />;
   }
   if (path === '/teacher') {
-    if (!['teacher', 'admin'].includes(role)) return <AccessDenied destination="/learn" go={go} />;
+    if (!['teacher', 'admin'].includes(role)) return <AccessDenied destination={homePath} go={go} />;
     return <TeacherPage
       api={api}
       logout={logout}
@@ -76,21 +80,36 @@ function App() {
       LessonStudio={LessonStudio}
     />;
   }
+  if (path === '/parent') {
+    if (role !== 'parent') return <AccessDenied destination={homePath} go={go} />;
+    return <ParentDashboardPage api={api} readSession={readSession} Header={Header} Brand={Brand} go={go} logout={logout} />;
+  }
   if (path === '/profile') return <AccountPage api={api} readSession={readSession} sessionKey={sessionKey} Header={Header} Brand={Brand} go={go} logout={logout} />;
-  if (path === '/history') return <AccountPage history api={api} readSession={readSession} sessionKey={sessionKey} Header={Header} Brand={Brand} go={go} logout={logout} />;
+  if (path === '/history') {
+    if (role !== 'student') return <AccessDenied destination={homePath} go={go} />;
+    return <AccountPage history api={api} readSession={readSession} sessionKey={sessionKey} Header={Header} Brand={Brand} go={go} logout={logout} />;
+  }
   if (path === '/competency') {
-    if (role !== 'student') return <AccessDenied destination={role === 'teacher' || role === 'admin' ? '/teacher' : '/learn'} go={go} />;
+    if (role !== 'student') return <AccessDenied destination={homePath} go={go} />;
     return <StudentCompetencyPage api={api} readSession={readSession} Header={Header} Brand={Brand} go={go} logout={logout} />;
   }
   if (path === '/leaderboard') {
-    if (role !== 'student') return <AccessDenied destination={role === 'teacher' || role === 'admin' ? '/teacher' : '/learn'} go={go} />;
+    if (role !== 'student') return <AccessDenied destination={homePath} go={go} />;
     return <StudentLeaderboardPage api={api} readSession={readSession} Header={Header} Brand={Brand} go={go} logout={logout} />;
   }
   if (path === '/meteor-game') {
-    if (role !== 'student') return <AccessDenied destination={role === 'teacher' || role === 'admin' ? '/teacher' : '/learn'} go={go} />;
+    if (role !== 'student') return <AccessDenied destination={homePath} go={go} />;
     return <MeteorGamePage api={api} Header={Header} Brand={Brand} readSession={readSession} go={go} logout={logout} />;
   }
+  if (role !== 'student') return <AccessDenied destination={homePath} go={go} />;
   return <StudentHomePage api={api} readSession={readSession} Header={Header} Brand={Brand} LessonView={LessonView} AssignedWorkView={AssignedWorkView} go={go} logout={logout} />;
+}
+
+function roleHomePath(role) {
+  if (role === 'admin') return '/admin';
+  if (role === 'teacher') return '/teacher';
+  if (role === 'parent') return '/parent';
+  return '/learn';
 }
 
 export default App;
