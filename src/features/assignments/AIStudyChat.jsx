@@ -54,7 +54,7 @@ export default function AIStudyChat({ api, onOpenLesson, onOpenAssignment }) {
         if (!plan) throw new Error('Không thể tạo gợi ý học tập lúc này.');
         setMessages((current) => [...current, {
           role: 'assistant',
-          text: describeStudyPlan(plan),
+          text: classification.assistantMessage || describeStudyPlan(plan),
           plan
         }]);
         return;

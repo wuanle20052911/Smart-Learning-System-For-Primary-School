@@ -320,7 +320,7 @@ export default function AdminPage({ Brand, api, logout, go }) {
           {aiUsage.recentRequests?.length > 0 ? <div className="ai-usage-recent">
             <h3>Yêu cầu AI gần đây</h3>
             {aiUsage.recentRequests.map((request, index) => <div className="ai-usage-row" key={`${request.created_at}-${index}`}>
-              <span>{request.feature === 'ai-chat' ? 'Trợ lý học tập' : 'Tạo câu hỏi'}</span>
+              <span>{request.feature === 'ai-chat' ? 'Trợ lý học tập' : request.feature === 'study-plan' ? 'Diễn đạt gợi ý học' : 'Tạo câu hỏi'}</span>
               <span>{request.model} · {request.prompt_version}</span>
               <span>{Number(request.prompt_tokens + request.completion_tokens).toLocaleString()} token</span>
               <span>{formatLatency(request.latency_ms)}</span>

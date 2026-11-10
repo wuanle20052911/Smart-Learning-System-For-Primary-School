@@ -470,6 +470,7 @@ module.exports = {
   embedTexts,
   extractDefinitionAnswer,
   extractProcedureSteps,
+  getEmbeddingModel,
   getKnowledgeBaseBucket,
   getKnowledgeBaseSource,
   getMinimumSimilarity,
