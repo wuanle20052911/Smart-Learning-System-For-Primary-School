@@ -7,6 +7,8 @@ const riskAlertModel = require('../models/riskAlertModel');
 const { buildStudyPlan } = require('../services/studyPlan');
 const { classifyStudyIntent } = require('../services/studyIntent');
 const { getAIFeaturesEnabled } = require('../services/aiFeatureSettings');
+const { VERSION: STUDY_PLAN_PROMPT_VERSION, narrateStudyPlan } = require('../services/studyPlanNarration');
+const { recordAIUsage } = require('../services/aiUsage');
 const { assessStudentRisk } = require('../services/riskAssessment');
 
 function normalizeAttempt(body = {}) {
@@ -86,9 +88,10 @@ async function studyPlan(req, res) {
     return res.status(400).json({ error: 'Danh sách bài học đã hoàn thành không hợp lệ.' });
   }
   try {
+    const aiEnabled = await getAIFeaturesEnabled();
     const classification = requestedIntent
       ? { intent: requestedIntent, source: 'explicit' }
-      : await classifyStudyIntent(question, { allowModel: await getAIFeaturesEnabled() });
+      : await classifyStudyIntent(question, { allowModel: aiEnabled });
     if (classification.intent === 'other') {
       return res.json({ intent: 'other', classificationSource: classification.source });
     }
@@ -98,17 +101,35 @@ async function studyPlan(req, res) {
       submissionModel.listForStudent(req.accessToken, req.user.id),
       quizAttemptModel.listForStudent(req.accessToken, req.user.id)
     ]);
+    const plan = buildStudyPlan({
+      lessons,
+      assignments,
+      submissions,
+      attempts,
+      completedLessonIds: completedLessonIds || [],
+      intent: classification.intent
+    });
+    let assistantMessage;
+    if (aiEnabled) {
+      const narration = await narrateStudyPlan(plan);
+      assistantMessage = narration.message || undefined;
+      await recordAIUsage({
+        userId: req.user.id,
+        feature: 'study-plan',
+        promptVersion: STUDY_PLAN_PROMPT_VERSION,
+        model: narration.model,
+        promptTokens: narration.promptTokens,
+        completionTokens: narration.completionTokens,
+        latencyMs: narration.latencyMs,
+        tools: ['study-plan-rules', 'study-plan-narration'],
+        statusCode: narration.statusCode
+      });
+    }
     return res.json({
       intent: classification.intent,
       classificationSource: classification.source,
-      plan: buildStudyPlan({
-        lessons,
-        assignments,
-        submissions,
-        attempts,
-        completedLessonIds: completedLessonIds || [],
-        intent: classification.intent
-      })
+      plan,
+      ...(assistantMessage ? { assistantMessage } : {})
     });
   } catch (error) {
     console.error('Could not build student study plan:', error);

@@ -15,7 +15,6 @@ Tài liệu thiết kế, user stories, bảng truy vết, sơ đồ kiến trú
 - Phụ huynh đăng ký tài khoản, xem tiến độ/điểm mạnh-yếu và khuyến nghị dựa trên học sinh được quản trị viên liên kết
 - Hội thoại chatbot chỉ tồn tại trong phiên giao diện hiện tại, không lưu vào Supabase
 - Model AI chạy local qua Ollama, không cần API key của nhà cung cấp AI
-- Có thể chạy ứng dụng và Ollama trong Docker Compose; Supabase vẫn là dịch vụ bên ngoài
 
 ## Yêu cầu hệ thống
 
@@ -80,6 +79,7 @@ Tài liệu thiết kế, user stories, bảng truy vết, sơ đồ kiến trú
    - Chạy `supabase/016_create_feedback.sql` để giáo viên xem bài nộp chi tiết và lưu nhận xét cho học sinh.
    - Chạy `supabase/023_create_risk_alerts.sql` để lưu riêng cảnh báo Learning Analytics, cập nhật cảnh báo đang mở và giữ lịch sử cảnh báo đã đóng.
    - Chạy `supabase/024_enforce_assignment_deadlines.sql` để chặn bài nộp hết hạn trực tiếp tại Supabase; bài tập không có hạn tiếp tục nhận bài.
+   - Chạy `supabase/036_personalized_assignments.sql` để bật bài tập giao riêng cho một học sinh và cập nhật quyền truy cập theo người nhận.
    - Chạy `supabase/027_chatbot_supabase_storage.sql` để tạo vector store pgvector cho chatbot và các bảng lịch sử có RLS theo tài khoản.
    - Chạy `supabase/028_ai_usage_observability.sql` để lưu telemetry và cấp quyền tổng hợp thống kê AI cho backend.
    - Nếu đã áp dụng migration thống kê AI trước đây, chạy `supabase/032_remove_ai_usage_costs.sql` để bỏ dữ liệu chi phí ước tính khỏi database.
@@ -95,7 +95,7 @@ Tài liệu thiết kế, user stories, bảng truy vết, sơ đồ kiến trú
   - Chạy `supabase/020_link_questions_to_lessons.sql` để lưu liên kết lesson trên bài tập, từng câu hỏi trong bài tập và câu hỏi ngân hàng; migration cũng gắn lesson cho các câu hỏi thuộc bài tập đã có.
   - Chạy `supabase/021_student_practice_question_access.sql` để cho phép học sinh đọc câu hỏi ngân hàng thuộc bài học đã xuất bản và dùng nút **Luyện tập ngay** trong bài học.
   - Tài khoản đăng ký với vai trò **Giáo viên** có thể mở `http://localhost:3000/teacher` để thêm, sửa, xoá và xuất bản bài học.
-  - Trong **Bài tập**, giáo viên chọn một bài học (kể cả bản nháp) làm nguồn, tạo câu hỏi bằng AI local, kiểm tra/chỉnh sửa rồi xuất bản cho lớp. Học sinh chỉ làm các bài tập giáo viên đã giao; API tạo câu hỏi AI chỉ cho phép giáo viên/quản trị viên.
+  - Trong **Bài tập**, giáo viên chọn một học sinh để hệ thống phân tích kết quả theo bài học (dưới 70% đúng) và lấy tối đa 10 câu tương ứng từ ngân hàng câu hỏi làm bài ôn cá nhân; giáo viên có thể kiểm tra/chỉnh sửa rồi mới giao. Bài tập chung cho lớp vẫn hỗ trợ tạo câu hỏi bằng AI local từ bài học hoặc tài liệu.
   - Trong mục **Bài tập**, nút **Nạp toàn bộ file mẫu từ Supabase Storage** đọc các file PDF, DOCX, TXT, Markdown, CSV và JSON từ cả hai bucket `Math4` và `Chapter1`; nội dung đã trích xuất được dùng trực tiếp làm nguồn cho AI tạo câu hỏi.
 
    - Trang học sinh chỉ hiển thị các bài học đã được giáo viên xuất bản.
@@ -139,42 +139,6 @@ Tài liệu thiết kế, user stories, bảng truy vết, sơ đồ kiến trú
    ```
 
    Trang đăng nhập/đăng ký nằm tại `/` (route `/auth` sẽ chuyển về `/`).
-
-## Chạy demo bằng Docker Compose
-
-Compose chạy app Express/React và Ollama trong hai container. Supabase Auth, database, Storage và pgvector vẫn dùng project Supabase bên ngoài; chuẩn bị các biến Supabase trước khi khởi động.
-
-1. Cài Docker Desktop hoặc Docker Engine kèm Docker Compose plugin.
-2. Sao chép `.env.example` thành `.env` (PowerShell: `Copy-Item .env.example .env`; macOS/Linux: `cp .env.example .env`) và điền cấu hình Supabase của riêng bạn. Không chia sẻ hoặc commit `.env`.
-3. Trong Supabase SQL Editor, áp dụng các migration ứng dụng cần thiết theo thứ tự trong phần **Cài đặt**, bao gồm `supabase/027_chatbot_supabase_storage.sql`, `supabase/028_chatbot_multi_file_search.sql`, `supabase/029_disable_chat_history_storage.sql` và `supabase/028_ai_usage_observability.sql` để bật thống kê AI. Nếu database đã dùng phiên bản migration thống kê cũ, áp dụng thêm `supabase/032_remove_ai_usage_costs.sql`.
-4. Khởi động container:
-
-   ```bash
-   docker compose up --build -d
-   ```
-
-5. Tải các model vào volume của Ollama (có thể mất thời gian và cần nhiều dung lượng):
-
-   ```bash
-   docker compose exec ollama ollama pull qwen3:8b
-   docker compose exec ollama ollama pull deepseek-r1:8b
-   docker compose exec ollama ollama pull llama3.2:3b
-   docker compose exec ollama ollama pull nomic-embed-text
-   ```
-
-   Nếu cần đồng bộ kho tài liệu chatbot từ container, chạy `docker compose exec app npm run kb:ingest`. File Markdown nguồn cần có trong Supabase Storage bucket đã cấu hình; chatbot cũng tự đồng bộ khi nhận câu hỏi đầu tiên.
-
-6. Mở `http://localhost:3000`. Kiểm tra trạng thái app bằng `http://localhost:3000/health`.
-
-Các lệnh quản lý:
-
-```bash
-docker compose ps
-docker compose logs -f app
-docker compose down
-```
-
-Model Ollama được giữ trong volume `ollama-data` qua các lần dừng/chạy. Xóa volume sẽ xóa các model đã tải. Cần cân nhắc RAM/CPU của máy; có thể cần cấu hình GPU riêng cho Docker nếu muốn tăng tốc.
 
 ### Tài khoản demo và kiểm tra theo vai trò
 
