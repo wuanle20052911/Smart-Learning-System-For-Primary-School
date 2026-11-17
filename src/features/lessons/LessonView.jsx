@@ -20,6 +20,11 @@ export default function LessonView({ lesson, onBack, onComplete, onStudyActivity
   const [materialError, setMaterialError] = useState('');
   const [docxHtml, setDocxHtml] = useState('');
   const [docxLoading, setDocxLoading] = useState(false);
+  const [storySlides, setStorySlides] = useState([]);
+  const [storyIndex, setStoryIndex] = useState(0);
+  const [storyLoading, setStoryLoading] = useState(false);
+  const [storyError, setStoryError] = useState('');
+  const [readingLesson, setReadingLesson] = useState(!lesson.story_slides?.length);
   const isDocx = /\.docx$/i.test(lesson.source_filename || lesson.source_path || '');
   const materialEndpoint = getLessonMaterialEndpoint(lesson);
   useEffect(() => {
@@ -47,6 +52,29 @@ export default function LessonView({ lesson, onBack, onComplete, onStudyActivity
     })();
     return () => { active = false; };
   }, [api, isDocx, lesson.id, lesson.source_filename, lesson.source_path, materialEndpoint]);
+  useEffect(() => {
+    let active = true;
+    setStorySlides([]);
+    setStoryIndex(0);
+    setReadingLesson(!lesson.story_slides?.length);
+    setStoryError('');
+    if (!lesson.story_slides?.length) {
+      setStoryLoading(false);
+      return () => { active = false; };
+    }
+    setStoryLoading(true);
+    api(`/api/lessons/${lesson.id}/story-images`)
+      .then((data) => {
+        if (active) setStorySlides(data.slides || []);
+      })
+      .catch((error) => {
+        if (active) setStoryError(error.message || 'Không thể tải câu chuyện ảnh.');
+      })
+      .finally(() => {
+        if (active) setStoryLoading(false);
+      });
+    return () => { active = false; };
+  }, [api, lesson.id, lesson.story_slides]);
   const openMaterial = async () => {
     const materialWindow = window.open('about:blank', '_blank');
     try {
@@ -98,7 +126,17 @@ export default function LessonView({ lesson, onBack, onComplete, onStudyActivity
       <div><h2>{lesson.title}</h2><p>{lesson.subject || 'Toán'} · {lesson.grade || 'Tiểu học'}</p></div>
       <button className="lesson-close" type="button" onClick={onBack}>← Quay lại</button>
     </div>
-    <article className="lesson-detail">
+    {!readingLesson && <section className="lesson-story-view" aria-label="Câu chuyện mở đầu bài học">
+      <div className="lesson-story-view-heading"><span>📖</span><div><small>TRƯỚC KHI VÀO BÀI</small><h2>Cùng xem câu chuyện nhé!</h2></div></div>
+      {storyLoading ? <p className="lesson-story-status">Đang tải câu chuyện...</p> : storyError ? <p className="ai-error" role="alert">{storyError}</p> : storySlides.length ? <>
+        <div className="lesson-story-frame"><img src={storySlides[storyIndex]?.url} alt={storySlides[storyIndex]?.caption || `Ảnh ${storyIndex + 1}`} />{storySlides[storyIndex]?.caption && <p>{storySlides[storyIndex].caption}</p>}</div>
+        <div className="lesson-story-controls"><button type="button" onClick={() => setStoryIndex((current) => Math.max(0, current - 1))} disabled={storyIndex === 0}>← Trước</button><span>Ảnh {storyIndex + 1} / {storySlides.length}</span><button type="button" onClick={() => setStoryIndex((current) => Math.min(storySlides.length - 1, current + 1))} disabled={storyIndex === storySlides.length - 1}>Tiếp →</button></div>
+        <div className="lesson-story-dots" aria-label="Chọn ảnh"><span>{storySlides.map((slide, index) => <button key={`${slide.path}-${index}`} type="button" className={index === storyIndex ? 'active' : ''} aria-label={`Xem ảnh ${index + 1}`} aria-current={index === storyIndex ? 'step' : undefined} onClick={() => setStoryIndex(index)} />)}</span></div>
+      </> : !storyLoading && <p className="lesson-story-status">Câu chuyện chưa có ảnh để hiển thị.</p>}
+      <button className="lesson-story-start" type="button" disabled={storyLoading} onClick={() => setReadingLesson(true)}>Bắt đầu đọc bài học →</button>
+    </section>}
+    {readingLesson && lesson.story_slides?.length > 0 && <button className="lesson-story-reopen" type="button" onClick={() => setReadingLesson(false)}>← Xem lại câu chuyện ảnh</button>}
+    {readingLesson && <article className="lesson-detail">
       <div className="lesson-detail-heading"><div><small>{lesson.subject || 'Toán'} · {lesson.grade || 'Tiểu học'}</small><h1>{lesson.title}</h1>{getLessonDescription(lesson) && <p>{getLessonDescription(lesson)}</p>}</div></div>
       <div className="lesson-content"><h2>Nội dung bài học</h2>{lesson.source_filename && <p className="lesson-material">📎 Tài liệu: <b>{lesson.source_filename}</b>{materialEndpoint && <button className="lesson-material-open" type="button" onClick={openMaterial}>Mở tài liệu</button>}</p>}{docxLoading && <p className="lesson-material-status">Đang tải nội dung Word...</p>}{materialError && <p className="ai-error">{materialError}</p>}{docxHtml ? <div className="lesson-content-text lesson-docx-content" dangerouslySetInnerHTML={{ __html: docxHtml }} /> : content ? <div className="lesson-content-text">{content}</div> : <p>{docxLoading ? 'Đang đọc tài liệu bài học...' : 'Bài học này chưa có tài liệu chi tiết. Hãy xem hướng dẫn của giáo viên để bắt đầu nhé.'}</p>}</div>
       <div className="lesson-actions">
@@ -107,5 +145,6 @@ export default function LessonView({ lesson, onBack, onComplete, onStudyActivity
       </div>
       {practiceError && <p className="ai-error" role="alert">{practiceError}</p>}
     </article>
+    }
   </section>;
 }

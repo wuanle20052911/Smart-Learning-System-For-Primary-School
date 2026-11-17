@@ -1,7 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { deduplicateLessonsBySourceNumber, extractLearningText, getLessonChapterName, getLessonDisplayTitle, getLessonSourceCode } from '../../services/learningMaterials.js';
 
 const MAX_FILE_BYTES = 6 * 1024 * 1024;
+const MAX_STORY_IMAGE_BYTES = 5 * 1024 * 1024;
+const MAX_STORY_SLIDES = 20;
+const storyImageTypes = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif']);
 const fileTypes = {
   pdf: 'application/pdf',
   docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
@@ -53,6 +56,11 @@ export default function LessonStudio({ api, onMessage, onRefresh }) {
   const [grade, setGrade] = useState('Lớp 1');
   const [description, setDescription] = useState('');
   const [content, setContent] = useState('');
+  const [storySlides, setStorySlides] = useState([]);
+  const [dropSlideId, setDropSlideId] = useState(null);
+  const [draggedSlide, setDraggedSlide] = useState(null);
+  const storySlidesContainerRef = useRef(null);
+  const storySlidePositionsRef = useRef(null);
   const [file, setFile] = useState(null);
   const [sourceMode, setSourceMode] = useState('local');
   const [sampleBucket, setSampleBucket] = useState('Math4');
@@ -80,6 +88,25 @@ export default function LessonStudio({ api, onMessage, onRefresh }) {
     chapterOptions.push({ id: group.id, topicId: group.topicId, name: group.name });
   });
   const selectedChapter = chapterOptions.find((chapter) => chapter.id === chapterId);
+
+  useLayoutEffect(() => {
+    const previousPositions = storySlidePositionsRef.current;
+    const slideElements = storySlidesContainerRef.current?.querySelectorAll('[data-slide-id]');
+    if (!previousPositions || !slideElements) return;
+    storySlidePositionsRef.current = null;
+    slideElements.forEach((element) => {
+      const previousPosition = previousPositions.get(element.dataset.slideId);
+      if (!previousPosition) return;
+      const currentPosition = element.getBoundingClientRect();
+      const offsetX = previousPosition.left - currentPosition.left;
+      const offsetY = previousPosition.top - currentPosition.top;
+      if (!offsetX && !offsetY) return;
+      element.animate([
+        { transform: `translate(${offsetX}px, ${offsetY}px)` },
+        { transform: 'translate(0, 0)' }
+      ], { duration: 220, easing: 'cubic-bezier(0.2, 0.8, 0.2, 1)' });
+    });
+  }, [storySlides]);
 
   const refresh = async () => {
     const [subjectData, lessonData, storageChapterData] = await Promise.all([
@@ -187,6 +214,57 @@ export default function LessonStudio({ api, onMessage, onRefresh }) {
     }
   };
 
+  const selectStoryImages = (event) => {
+    const files = Array.from(event.target.files || []);
+    event.target.value = '';
+    if (!files.length) return;
+    if (files.some((image) => !storyImageTypes.has(image.type) || image.size > MAX_STORY_IMAGE_BYTES)) {
+      onMessage('Chỉ hỗ trợ ảnh JPG, PNG, WEBP hoặc GIF, tối đa 5 MB mỗi ảnh.');
+      return;
+    }
+    const availableSlots = MAX_STORY_SLIDES - storySlides.length;
+    if (availableSlots <= 0) {
+      onMessage(`Mỗi câu chuyện chỉ có tối đa ${MAX_STORY_SLIDES} bức ảnh.`);
+      return;
+    }
+    const addedSlides = files.slice(0, availableSlots).map((image) => ({
+      id: `${Date.now()}-${Math.random()}`,
+      file: image,
+      path: '',
+      caption: '',
+      previewUrl: URL.createObjectURL(image),
+      localPreview: true
+    }));
+    setStorySlides((current) => [...current, ...addedSlides]);
+    if (files.length > availableSlots) onMessage(`Chỉ thêm ${availableSlots} ảnh để đủ giới hạn ${MAX_STORY_SLIDES} ảnh.`);
+  };
+
+  const removeStorySlide = (index) => {
+    setStorySlides((current) => {
+      const removedSlide = current[index];
+      if (removedSlide?.localPreview) URL.revokeObjectURL(removedSlide.previewUrl);
+      return current.filter((_, slideIndex) => slideIndex !== index);
+    });
+  };
+
+  const moveStorySlide = (slideId, targetId) => {
+    if (!slideId || !targetId || slideId === targetId) return;
+    const slideElements = storySlidesContainerRef.current?.querySelectorAll('[data-slide-id]');
+    storySlidePositionsRef.current = new Map(Array.from(slideElements || []).map((element) => [
+      element.dataset.slideId,
+      element.getBoundingClientRect()
+    ]));
+    setStorySlides((current) => {
+      const fromIndex = current.findIndex((slide) => slide.id === slideId);
+      const toIndex = current.findIndex((slide) => slide.id === targetId);
+      if (fromIndex < 0 || toIndex < 0 || fromIndex === toIndex) return current;
+      const nextSlides = [...current];
+      const [movedSlide] = nextSlides.splice(fromIndex, 1);
+      nextSlides.splice(toIndex, 0, movedSlide);
+      return nextSlides;
+    });
+  };
+
   const selectSampleFile = async (objectPath) => {
     setSampleFilePath(objectPath);
     setSampleSource(null);
@@ -212,10 +290,15 @@ export default function LessonStudio({ api, onMessage, onRefresh }) {
   };
 
   const clearLessonForm = (formElement) => {
+    storySlides.forEach((slide) => {
+      if (slide.localPreview) URL.revokeObjectURL(slide.previewUrl);
+    });
     setEditingLesson(null);
     setTitle('');
     setDescription('');
     setContent('');
+    setStorySlides([]);
+    setDraggedSlide(null);
     setFile(null);
     setSampleFilePath('');
     setSampleSource(null);
@@ -223,7 +306,22 @@ export default function LessonStudio({ api, onMessage, onRefresh }) {
     formElement?.reset();
   };
 
-  const editLesson = (lesson) => {
+  const editLesson = async (lesson) => {
+    setBusy(true);
+    let slides = [];
+    try {
+      if (lesson.story_slides?.length) {
+        const data = await api(`/api/lessons/${lesson.id}/story-images`);
+        slides = data.slides || [];
+      }
+    } catch (error) {
+      onMessage(`Không thể tải ảnh câu chuyện: ${error.message}`);
+      setBusy(false);
+      return;
+    }
+    storySlides.forEach((slide) => {
+      if (slide.localPreview) URL.revokeObjectURL(slide.previewUrl);
+    });
     const subject = subjects.find((item) => item.name.trim().toLocaleLowerCase() === lesson.subject?.trim().toLocaleLowerCase());
     const chapter = chapterOptions.find((item) => item.topicId === lesson.topic_id)
       || chapterOptions.find((item) => item.name.toLocaleLowerCase() === getLessonChapterName(lesson).toLocaleLowerCase());
@@ -234,11 +332,19 @@ export default function LessonStudio({ api, onMessage, onRefresh }) {
     setGrade(lesson.grade || 'Lớp 1');
     setDescription(lesson.description || '');
     setContent(lesson.content || '');
+    setStorySlides(slides.map((slide, index) => ({
+      ...slide,
+      id: `${lesson.id}-${index}`,
+      file: null,
+      previewUrl: slide.url,
+      localPreview: false
+    })));
     setFile(null);
     setSampleFilePath('');
     setSampleSource(null);
     setPublished(lesson.published === true);
     setSourceMode('local');
+    setBusy(false);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -293,6 +399,22 @@ export default function LessonStudio({ api, onMessage, onRefresh }) {
           })
         });
       }
+      const savedStorySlides = [];
+      for (const slide of storySlides) {
+        let objectPath = slide.path;
+        if (slide.file) {
+          const uploaded = await api('/api/lessons/story-images', {
+            method: 'POST',
+            body: JSON.stringify({
+              fileName: slide.file.name,
+              contentType: slide.file.type,
+              contentBase64: await toBase64(slide.file)
+            })
+          });
+          objectPath = uploaded.path;
+        }
+        savedStorySlides.push({ path: objectPath, caption: slide.caption });
+      }
       await api(editingLesson ? `/api/lessons/${editingLesson.id}` : '/api/lessons', {
         method: editingLesson ? 'PATCH' : 'POST',
         body: JSON.stringify({
@@ -303,6 +425,7 @@ export default function LessonStudio({ api, onMessage, onRefresh }) {
           topic: chapter.name,
           topic_id: chapter.topicId,
           content: content.trim(),
+          story_slides: savedStorySlides,
           source_filename: material.source_filename || null,
           source_bucket: material.source_bucket || null,
           source_path: material.source_path || null,
@@ -341,6 +464,30 @@ export default function LessonStudio({ api, onMessage, onRefresh }) {
           {sourceMode === 'local' ? <label className="lesson-file-picker"><span>📄</span><b>{file?.name || (editingLesson?.source_filename ? `Giữ tài liệu hiện tại: ${editingLesson.source_filename}` : 'Chọn tài liệu từ máy')}</b><small>PDF, DOCX, TXT, Markdown · tối đa 6 MB</small><input type="file" accept=".pdf,.docx,.txt,.md,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain,text/markdown" onChange={selectFile} /></label> : <div className="lesson-sample-picker"><label>Bucket<select value={sampleBucket} onChange={(event) => { setSampleBucket(event.target.value); setSampleFilePath(''); setSampleSource(null); }}><option value="">Chọn chương / bucket</option>{sampleBuckets.map((bucket) => <option value={bucket} key={bucket}>{bucket}</option>)}</select></label><label>File mẫu<select value={sampleFilePath} onChange={(event) => selectSampleFile(event.target.value)} disabled={!sampleBucket || sampleLoading || busy}><option value="">{sampleLoading ? 'Đang tải danh sách file...' : 'Chọn file trong Storage'}</option>{sampleFiles.map((item) => <option value={item.path} key={item.path}>{item.name}{item.size ? ` · ${(item.size / 1024 / 1024).toFixed(1)} MB` : ''}</option>)}</select></label><small>{sampleSource ? `Đang dùng ${sampleSource.bucket}/${sampleSource.path}` : editingLesson?.source_filename ? `Để giữ tài liệu hiện tại, không cần chọn file mới (${editingLesson.source_filename}).` : 'Danh sách chương và file được lấy từ Supabase Storage.'}</small></div>}
         </div>
         <label>Nội dung cho học sinh<textarea rows="6" value={content} onChange={(event) => setContent(event.target.value)} placeholder="Nội dung được trích từ tài liệu hoặc nhập trực tiếp. Nội dung này giúp AI tạo bài tập." /></label>
+        <section className="lesson-story-editor">
+          <div className="lesson-story-editor-heading"><div><strong>Truyện tranh mở đầu bài học</strong><small>Kéo thả các ảnh trên hàng để thay đổi thứ tự như các slide.</small></div><span>{storySlides.length}/{MAX_STORY_SLIDES}</span></div>
+          <label className="lesson-story-picker"><span>＋</span><b>Thêm ảnh vào câu chuyện</b><small>JPG, PNG, WEBP hoặc GIF · tối đa 5 MB mỗi ảnh</small><input type="file" accept="image/jpeg,image/png,image/webp,image/gif" multiple onChange={selectStoryImages} disabled={busy || storySlides.length >= MAX_STORY_SLIDES} /></label>
+          {storySlides.length > 0 && <div className="lesson-story-slides" ref={storySlidesContainerRef}>{storySlides.map((slide, index) => <article
+            className={`lesson-story-slide${draggedSlide === slide.id ? ' is-dragged' : ''}${dropSlideId === slide.id ? ' is-drop-target' : ''}`}
+            key={slide.id}
+            data-slide-id={slide.id}
+            draggable
+            onDragStart={(event) => { setDraggedSlide(slide.id); event.dataTransfer.effectAllowed = 'move'; event.dataTransfer.setData('text/plain', slide.id); }}
+            onDragOver={(event) => { event.preventDefault(); event.dataTransfer.dropEffect = 'move'; }}
+            onDragEnter={(event) => {
+              event.preventDefault();
+              if (!draggedSlide || draggedSlide === slide.id || dropSlideId === slide.id) return;
+              setDropSlideId(slide.id);
+              moveStorySlide(draggedSlide, slide.id);
+            }}
+            onDrop={(event) => { event.preventDefault(); setDraggedSlide(null); setDropSlideId(null); }}
+            onDragEnd={() => { setDraggedSlide(null); setDropSlideId(null); }}
+          >
+            <div className="lesson-story-slide-top"><span className="lesson-story-drag-handle" aria-hidden="true" title="Kéo để đổi thứ tự">⠿</span><strong>Slide {index + 1}</strong><button type="button" className="lesson-story-remove" disabled={busy} onClick={() => removeStorySlide(index)}>Xóa</button></div>
+            <img src={slide.previewUrl} alt={`Ảnh ${index + 1}: ${slide.file?.name || 'trong câu chuyện'}`} />
+            <div className="lesson-story-slide-details"><input aria-label={`Chú thích ảnh ${index + 1}`} value={slide.caption} maxLength="300" onChange={(event) => setStorySlides((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, caption: event.target.value } : item))} placeholder="Chú thích (không bắt buộc)" /></div>
+          </article>)}</div>}
+        </section>
         <button className="teacher-create lesson-save" type="submit" disabled={busy || !chapterId}>{busy ? 'Đang lưu lên Supabase...' : editingLesson ? 'Cập nhật bài học' : 'Lưu bài học vào chương'}</button>
         {editingLesson && <button className="lesson-cancel-edit" type="button" disabled={busy} onClick={() => clearLessonForm()}>Hủy chỉnh sửa</button>}
       </form>
