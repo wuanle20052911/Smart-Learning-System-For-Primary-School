@@ -88,6 +88,10 @@ export default function StudentHomePage({ api, readSession, Header, Brand, Lesso
   const [selectedAssignment, setSelectedAssignment] = useState(null);
   const [loadingChapters, setLoadingChapters] = useState(true);
   const [error, setError] = useState('');
+  const [studyPlan, setStudyPlan] = useState(null);
+  const [studyPlanMessage, setStudyPlanMessage] = useState('');
+  const [studyPlanLoading, setStudyPlanLoading] = useState(false);
+  const [studyPlanError, setStudyPlanError] = useState('');
   const [streak, setStreak] = useState(() => getStreakCount(streakKey));
   const [dailyStudyTime, setDailyStudyTime] = useState(() => getDailyStudyTime(studyTimeKey));
   const [progress, setProgress] = useState(() => JSON.parse(localStorage.getItem('mathjoy-progress') || '{"xp":0,"lessons":0,"answered":0}'));
@@ -215,6 +219,27 @@ export default function StudentHomePage({ api, readSession, Header, Brand, Lesso
     else setError('Không tìm thấy bài học được đề xuất.');
   };
 
+  const loadStudyPlan = async () => {
+    setStudyPlanLoading(true);
+    setStudyPlanError('');
+    try {
+      const data = await api('/api/attempts/study-plan', {
+        method: 'POST',
+        body: JSON.stringify({
+          intent: 'recommendation',
+          completedLessonIds: completedLessons
+        })
+      });
+      if (!data.plan) throw new Error('Không thể tải kế hoạch học tập lúc này.');
+      setStudyPlan(data.plan);
+      setStudyPlanMessage(data.assistantMessage || '');
+    } catch (loadError) {
+      setStudyPlanError(loadError.message || 'Không thể tải kế hoạch học tập lúc này.');
+    } finally {
+      setStudyPlanLoading(false);
+    }
+  };
+
   const openLesson = (lesson) => {
     const studiedAt = Date.now();
     const nextRecentLessons = [
@@ -333,6 +358,24 @@ export default function StudentHomePage({ api, readSession, Header, Brand, Lesso
         </section>
         <aside>
           <section className="daily-card christmas-frame"><h2>Mục tiêu hôm nay</h2><p>Học 15 phút mỗi ngày để duy trì thói quen học tập nhé!</p><div className="daily-progress" role="progressbar" aria-label="Thời gian học hôm nay" aria-valuemin="0" aria-valuemax={dailyStudyGoalSeconds} aria-valuenow={Math.min(dailyStudyGoalSeconds, todayStudySeconds)}><span style={{ width: `${studyProgress}%` }} /></div><small>{Math.min(15, studiedMinutes)}/15 phút</small><Cane position="br" /></section>
+          <section className="study-plan-card christmas-frame" aria-labelledby="study-plan-title">
+            <div className="study-plan-heading"><span aria-hidden="true">🗓️</span><h2 id="study-plan-title">Kế hoạch học tập</h2></div>
+            {studyPlan ? <>
+              <h3>{studyPlan.title}</h3>
+              <p>{studyPlanMessage || studyPlan.reason}</p>
+              <small>Thời gian gợi ý: {studyPlan.studyMinutes} phút</small>
+              {studyPlan.lesson && <button className="study-plan-action" type="button" onClick={() => openRecommendedLesson(studyPlan.lesson.id)}>📘 Mở bài học</button>}
+              {studyPlan.assignment && <button className="study-plan-action" type="button" onClick={() => {
+                const assignment = assignments.find((item) => item.id === studyPlan.assignment.id);
+                if (assignment) openAssignment(assignment);
+                else setStudyPlanError('Không tìm thấy bài tập được đề xuất.');
+              }}>📝 Mở bài tập</button>}
+            </> : <p>Xem gợi ý bài học phù hợp với tiến độ và bài tập của con.</p>}
+            {studyPlanError && <p className="study-plan-error" role="alert">{studyPlanError}</p>}
+            <button className="study-plan-button" type="button" onClick={loadStudyPlan} disabled={studyPlanLoading}>
+              {studyPlanLoading ? 'Đang tạo kế hoạch...' : studyPlan ? 'Cập nhật kế hoạch' : 'Xem kế hoạch học'}
+            </button>
+          </section>
           <section className="meteor-game-card christmas-frame">
             <button className="meteor-game-artwork" type="button" onClick={() => go('/meteor-game')} aria-label="Chơi game Bắn Thiên Thạch">
               <img src="/public/img/B%E1%BA%AFn%20Thi%C3%AAn%20Th%E1%BA%A1ch_%20Neon%20Space%20Battle.png" alt="Bắn Thiên Thạch" />
