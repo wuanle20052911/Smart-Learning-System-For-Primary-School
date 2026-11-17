@@ -16,8 +16,28 @@ const allowedMaterialTypes = new Set([
   'text/plain',
   'text/markdown'
 ]);
+const allowedStoryImageTypes = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif']);
 
-function normalizeLesson(body = {}) {
+function normalizeStorySlides(slides, userId) {
+  if (slides === undefined) return [];
+  if (!Array.isArray(slides) || slides.length > 20) {
+    throw new Error('Câu chuyện chỉ được có tối đa 20 bức ảnh.');
+  }
+  const paths = new Set();
+  return slides.map((slide) => {
+    const objectPath = typeof slide?.path === 'string' ? slide.path.trim() : '';
+    if (!objectPath.startsWith(`${userId}/`) || paths.has(objectPath)) {
+      throw new Error('Ảnh câu chuyện không hợp lệ. Vui lòng tải ảnh lên lại.');
+    }
+    paths.add(objectPath);
+    return {
+      path: objectPath,
+      caption: typeof slide.caption === 'string' ? slide.caption.trim().slice(0, 300) : ''
+    };
+  });
+}
+
+function normalizeLesson(body = {}, userId) {
   const sourcePath = typeof body.source_path === 'string' ? body.source_path.trim().slice(0, 500) : null;
   const sourceBucket = sourcePath
     ? (typeof body.source_bucket === 'string' && sourceBuckets.has(body.source_bucket) ? body.source_bucket : materialBucket)
@@ -30,6 +50,7 @@ function normalizeLesson(body = {}) {
     topic: typeof body.topic === 'string' && body.topic.trim() ? body.topic.trim() : 'Chưa phân loại',
     topic_id: typeof body.topic_id === 'string' && body.topic_id ? body.topic_id : null,
     content: typeof body.content === 'string' ? body.content.trim().slice(0, 18000) : '',
+    story_slides: normalizeStorySlides(body.story_slides, userId),
     source_filename: typeof body.source_filename === 'string' ? body.source_filename.trim().slice(0, 255) : null,
     source_bucket: sourceBucket,
     source_path: sourcePath,
@@ -177,6 +198,44 @@ async function uploadMaterial(req, res) {
   }
 }
 
+async function uploadStoryImage(req, res) {
+  const { fileName, contentType, contentBase64 } = req.body || {};
+  if (typeof fileName !== 'string' || !fileName.trim() || typeof contentBase64 !== 'string' || !contentBase64) {
+    return res.status(400).json({ error: 'Vui lòng chọn ảnh cần tải lên.' });
+  }
+  if (!allowedStoryImageTypes.has(contentType)) {
+    return res.status(400).json({ error: 'Chỉ hỗ trợ ảnh JPG, PNG, WEBP hoặc GIF.' });
+  }
+  if (contentBase64.length > 7 * 1024 * 1024 || !/^[\da-z+/]+={0,2}$/i.test(contentBase64)) {
+    return res.status(413).json({ error: 'Ảnh trống hoặc vượt quá 5 MB.' });
+  }
+
+  try {
+    const buffer = Buffer.from(contentBase64, 'base64');
+    const signatures = {
+      'image/jpeg': buffer.length >= 3 && buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff,
+      'image/png': buffer.length >= 8 && buffer.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10])),
+      'image/webp': buffer.length >= 12 && buffer.toString('ascii', 0, 4) === 'RIFF' && buffer.toString('ascii', 8, 12) === 'WEBP',
+      'image/gif': buffer.length >= 6 && ['GIF87a', 'GIF89a'].includes(buffer.toString('ascii', 0, 6))
+    };
+    if (!buffer.length || buffer.length > 5 * 1024 * 1024 || !signatures[contentType]) {
+      return res.status(400).json({ error: 'Ảnh không hợp lệ hoặc vượt quá 5 MB.' });
+    }
+    const originalName = path.basename(fileName.trim()).slice(0, 255);
+    const safeName = originalName.replace(/[^a-zA-Z0-9._-]/g, '_').slice(-120) || 'story-image';
+    const objectPath = `${req.user.id}/${randomUUID()}-${safeName}`;
+    const { data, error } = await getSupabaseClient(req.accessToken)
+      .storage
+      .from(materialBucket)
+      .upload(objectPath, buffer, { contentType, upsert: false });
+    if (error) throw error;
+    return res.status(201).json({ path: data.path });
+  } catch (error) {
+    console.error('Could not upload lesson story image:', error);
+    return res.status(400).json({ error: error.message || 'Không thể tải ảnh câu chuyện lên Supabase Storage.' });
+  }
+}
+
 function teacherOnly(req, res, next) {
   if (!['teacher', 'admin'].includes(req.profile?.role)) {
     return res.status(403).json({ error: 'Chỉ giáo viên mới có quyền quản lý bài học.' });
@@ -220,9 +279,31 @@ async function getMaterial(req, res) {
   }
 }
 
+async function getStoryImages(req, res) {
+  try {
+    const lesson = await lessonModel.getById(req.accessToken, req.params.id);
+    if (!lesson) return res.status(404).json({ error: 'Không tìm thấy bài học.' });
+    if (!lesson.published && lesson.created_by !== req.user.id && req.profile?.role !== 'admin') {
+      return res.status(403).json({ error: 'Bạn không có quyền xem câu chuyện ảnh này.' });
+    }
+    const slides = await Promise.all((lesson.story_slides || []).map(async (slide) => {
+      const { data, error } = await getSupabaseClient(req.accessToken)
+        .storage
+        .from(materialBucket)
+        .createSignedUrl(slide.path, 60 * 60);
+      if (error) throw error;
+      return { path: slide.path, caption: slide.caption || '', url: data.signedUrl };
+    }));
+    return res.json({ slides });
+  } catch (error) {
+    console.error('Could not create lesson story image URLs:', error);
+    return res.status(500).json({ error: 'Không thể tải ảnh câu chuyện.' });
+  }
+}
+
 async function create(req, res) {
   try {
-    const lesson = await lessonModel.create(req.accessToken, req.user.id, normalizeLesson(req.body));
+    const lesson = await lessonModel.create(req.accessToken, req.user.id, normalizeLesson(req.body, req.user.id));
     return res.status(201).json({ lesson });
   } catch (error) {
     console.error('Could not create lesson:', error);
@@ -237,7 +318,7 @@ async function create(req, res) {
 
 async function update(req, res) {
   try {
-    const lesson = await lessonModel.update(req.accessToken, req.user.id, req.params.id, normalizeLesson(req.body));
+    const lesson = await lessonModel.update(req.accessToken, req.user.id, req.params.id, normalizeLesson(req.body, req.user.id));
     return res.json({ lesson });
   } catch (error) {
     console.error('Could not update lesson:', error);
@@ -260,4 +341,4 @@ async function remove(req, res) {
   }
 }
 
-module.exports = { listPublished, listMine, getMaterial, listStorageFiles, listStorageChapters, listStorageChapterFiles, createStorageChapterFileUrl, createStorageFileUrl, teacherOnly, uploadMaterial, create, update, remove };
+module.exports = { listPublished, listMine, getMaterial, getStoryImages, listStorageFiles, listStorageChapters, listStorageChapterFiles, createStorageChapterFileUrl, createStorageFileUrl, teacherOnly, uploadMaterial, uploadStoryImage, create, update, remove };

@@ -88,6 +88,7 @@ Tài liệu thiết kế, user stories, bảng truy vết, sơ đồ kiến trú
 
   - Chạy `supabase/017_lesson_chapters_storage.sql` để liên kết bài học với chương, tạo bucket riêng tư `lesson-materials` và policy đọc các bucket mẫu `Math4`/`Chapter1`.
   - Tài khoản **Giáo viên** mở `http://localhost:3000/teacher` → **Bài học** để chọn môn, tạo chương, thêm, sửa hoặc xóa bài học và chọn nguồn file từ máy hoặc các bucket chương hiện có (`Math4`, `Chapter1`–`Chapter3`). Nội dung bài được lưu trong `public.lessons`; `source_bucket` và `source_path` giữ địa chỉ file để backend mở lại bằng signed URL.
+  - Chạy `supabase/040_lesson_story_slides.sql` để bật truyện ảnh mở đầu bài học. Giáo viên có thể thêm tối đa 20 ảnh (JPG, PNG, WEBP hoặc GIF, tối đa 5 MB/ảnh), sắp xếp bằng kéo-thả hoặc nút mũi tên và thêm chú thích; học sinh xem lần lượt câu chuyện trước khi đọc bài.
   - Nếu danh sách môn/chương thiếu dữ liệu từ các bài học đã có, chạy `supabase/019_sync_catalog_from_lessons.sql` trong Supabase SQL Editor để đồng bộ `subjects`, `topics` và `lessons.topic_id` từ `lessons.subject`/`lessons.topic`. Có thể chạy lại an toàn sau khi thêm bài học; tải lại trang **Bài học** sau khi chạy.
   - Chạy `supabase/019_backfill_lesson_source_filenames.sql` để điền `source_filename` còn thiếu từ `source_path` cho bài học thuộc `Chapter1`–`Chapter3`.
   - Chạy `supabase/022_fix_chapter_lesson_material_paths.sql` để sửa liên kết `C2B4.docx`–`C2B6.docx` sang các file thực có `Chapter1/C1B4.docx`–`C1B6.docx`.
