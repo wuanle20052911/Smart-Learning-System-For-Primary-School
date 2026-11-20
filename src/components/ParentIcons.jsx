@@ -94,6 +94,31 @@ const icons = {
     <Face x={22} y={15} size={0.5} blush={false} />
     <path d="M26.5 4.5c1.2-1.4 3.5-.3 3 1.5-.4 1.4-3 2.8-3 2.8s-2.6-1.4-3-2.8c-.5-1.8 1.8-2.9 3-1.5z" fill="#ff7b7b" {...stroke} strokeWidth="1" />
   </>,
+  calendar: <>
+    <rect x="4" y="6.5" width="24" height="21.5" rx="5" fill="#fff6e8" {...stroke} />
+    <path d="M4 12.5h24V11a4.5 4.5 0 0 0-4.5-4.5h-15A4.5 4.5 0 0 0 4 11z" fill="#ff8a8a" {...stroke} />
+    <path d="M10.5 4v5M21.5 4v5" {...stroke} strokeWidth="1.8" />
+    <rect x="8" y="16" width="4" height="3.5" rx="1" fill="#7bd3a6" />
+    <rect x="14" y="16" width="4" height="3.5" rx="1" fill="#7bd3a6" />
+    <rect x="8" y="22" width="4" height="3.5" rx="1" fill="#c6ebd6" />
+    <path d="M22.5 17.2l.8 1.6 1.8.3-1.3 1.3.3 1.8-1.6-.9-1.6.9.3-1.8-1.3-1.3 1.8-.3z" fill="#ffc94d" stroke={INK} strokeWidth="1" strokeLinejoin="round" />
+  </>,
+  flame: <>
+    <path d="M16 29c-6 0-9.5-4-9.5-9 0-4.8 3.4-7.6 5-11.5.4 2.6 1.8 4 3 4.5C15 8.5 17 5 20.5 3c-.6 3.8 1.2 6.3 2.8 8.4 1.4 1.9 2.2 4 2.2 7.6 0 5.8-3.8 10-9.5 10z" fill="#ff9f68" {...stroke} />
+    <path d="M16 28c-3 0-4.8-2-4.8-4.6 0-2.6 2-4 3-6.2.8 1.8 2.2 2.4 3.2 2.2.4 1 .9 2 .9 3.6 0 3-1.4 5-2.3 5z" fill="#ffe066" />
+    <Face y={20} size={0.75} />
+  </>,
+  link: <>
+    <g transform="rotate(-45 16 16)">
+      <rect x="2" y="11" width="16" height="10" rx="5" fill="none" stroke={INK} strokeWidth="5.2" />
+      <rect x="2" y="11" width="16" height="10" rx="5" fill="none" stroke="#7cc5f2" strokeWidth="2.6" />
+      <rect x="14" y="11" width="16" height="10" rx="5" fill="none" stroke={INK} strokeWidth="5.2" />
+      <rect x="14" y="11" width="16" height="10" rx="5" fill="none" stroke="#ffc94d" strokeWidth="2.6" />
+      <path d="M14 13.6a5 5 0 0 1 0 4.8" fill="none" stroke={INK} strokeWidth="5.2" />
+      <path d="M14 13.6a5 5 0 0 1 0 4.8" fill="none" stroke="#7cc5f2" strokeWidth="2.6" />
+    </g>
+    <path d="M24.5 4.2c1.1-1.3 3.2-.3 2.8 1.4-.4 1.3-2.8 2.6-2.8 2.6s-2.4-1.3-2.8-2.6c-.4-1.7 1.7-2.7 2.8-1.4z" fill="#ff7b7b" stroke={INK} strokeWidth="1" />
+  </>,
   school: <>
     <path d="M4 14L16 5l12 9" fill="#ff8a8a" {...stroke} />
     <rect x="6.5" y="13" width="19" height="15" rx="2" fill="#fff6e8" {...stroke} />

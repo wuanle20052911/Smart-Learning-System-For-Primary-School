@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 40">
+  <style>
+    .b{animation:tw 1.6s ease-in-out infinite}
+    .b2{animation-delay:.4s}.b3{animation-delay:.8s}.b4{animation-delay:1.2s}
+    @keyframes tw{0%,100%{opacity:1}50%{opacity:.45}}
+    @media (prefers-reduced-motion: reduce){.b{animation:none}}
+  </style>
+  <path d="M0 6Q40 26 80 6T160 6" fill="none" stroke="#2f7d45" stroke-width="9" stroke-linecap="round"/>
+  <path d="M0 6Q40 26 80 6T160 6" fill="none" stroke="#45a85c" stroke-width="5" stroke-linecap="round" stroke-dasharray="2 5"/>
+  <path d="M0 6Q40 26 80 6T160 6" fill="none" stroke="#7fd08f" stroke-width="2" stroke-linecap="round" stroke-dasharray="1 7"/>
+  <g stroke="#6b3d1c" stroke-width="1.2">
+    <rect x="18" y="13" width="5" height="3" rx="1" fill="#c9d6e3"/><ellipse class="b" cx="20.5" cy="21" rx="4" ry="5.4" fill="#ff5a64"/>
+    <rect x="58" y="15" width="5" height="3" rx="1" fill="#c9d6e3"/><ellipse class="b b2" cx="60.5" cy="23" rx="4" ry="5.4" fill="#ffd84d"/>
+    <rect x="98" y="13" width="5" height="3" rx="1" fill="#c9d6e3"/><ellipse class="b b3" cx="100.5" cy="21" rx="4" ry="5.4" fill="#5fd6ff"/>
+    <rect x="138" y="15" width="5" height="3" rx="1" fill="#c9d6e3"/><ellipse class="b b4" cx="140.5" cy="23" rx="4" ry="5.4" fill="#6ee59a"/>
+  </g>
+  <g fill="#fff" opacity=".75"><ellipse cx="19.3" cy="19" rx="1.1" ry="1.8"/><ellipse cx="59.3" cy="21" rx="1.1" ry="1.8"/><ellipse cx="99.3" cy="19" rx="1.1" ry="1.8"/><ellipse cx="139.3" cy="21" rx="1.1" ry="1.8"/></g>
+</svg>

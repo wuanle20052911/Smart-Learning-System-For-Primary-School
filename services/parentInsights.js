@@ -20,6 +20,80 @@ function buildTrend(attempts) {
   };
 }
 
+const VIETNAM_OFFSET_MS = 7 * 60 * 60 * 1000;
+const DAY_MS = 24 * 60 * 60 * 1000;
+const ACTIVITY_DAYS = 35;
+
+function dayKey(value) {
+  const time = new Date(value).getTime();
+  if (!Number.isFinite(time)) return null;
+  return new Date(time + VIETNAM_OFFSET_MS).toISOString().slice(0, 10);
+}
+
+function shiftDay(key, delta) {
+  return new Date(new Date(`${key}T00:00:00Z`).getTime() + delta * DAY_MS).toISOString().slice(0, 10);
+}
+
+function buildActivity({ attempts, submissions, completions, now }) {
+  const today = dayKey(now);
+  const byDay = new Map();
+  const bucket = (key) => {
+    if (!byDay.has(key)) byDay.set(key, { attempts: 0, submissions: 0, lessons: 0, correct: 0, total: 0 });
+    return byDay.get(key);
+  };
+  attempts.forEach((attempt) => {
+    const key = dayKey(attempt.created_at);
+    if (!key || key > today) return;
+    const item = bucket(key);
+    item.attempts += 1;
+    item.correct += Number(attempt.score) || 0;
+    item.total += Number(attempt.total) || 0;
+  });
+  submissions.forEach((submission) => {
+    const key = dayKey(submission.submitted_at);
+    if (key && key <= today) bucket(key).submissions += 1;
+  });
+  completions.forEach((completion) => {
+    const key = dayKey(completion.completed_at);
+    if (key && key <= today) bucket(key).lessons += 1;
+  });
+
+  const days = [];
+  for (let offset = ACTIVITY_DAYS - 1; offset >= 0; offset -= 1) {
+    const date = shiftDay(today, -offset);
+    const item = byDay.get(date) || { attempts: 0, submissions: 0, lessons: 0, correct: 0, total: 0 };
+    days.push({
+      date,
+      ...item,
+      activities: item.attempts + item.submissions + item.lessons,
+      accuracy: item.total ? Math.round((item.correct / item.total) * 100) : null
+    });
+  }
+
+  const activeKeys = [...byDay.keys()].sort();
+  let longest = 0;
+  let run = 0;
+  activeKeys.forEach((key, index) => {
+    run = index > 0 && shiftDay(activeKeys[index - 1], 1) === key ? run + 1 : 1;
+    longest = Math.max(longest, run);
+  });
+  let current = 0;
+  let cursor = byDay.has(today) ? today : shiftDay(today, -1);
+  while (byDay.has(cursor)) {
+    current += 1;
+    cursor = shiftDay(cursor, -1);
+  }
+
+  const countActive = (span) => days.slice(-span).filter((day) => day.activities > 0).length;
+  return {
+    today,
+    days,
+    streak: { current, longest, active_today: byDay.has(today) },
+    active_days_7: countActive(7),
+    active_days_30: countActive(30)
+  };
+}
+
 function buildAttention(alerts) {
   if (!alerts.length) return null;
   const sorted = [...alerts].sort((left, right) => new Date(right.last_seen_at) - new Date(left.last_seen_at));
@@ -155,6 +229,7 @@ function buildChildInsights({
       completed_lesson_count: completedLessons.count
     },
     attention: buildAttention(alerts),
+    activity: buildActivity({ attempts, submissions, completions, now }),
     completed_lessons: completedLessons.recent,
     trend: buildTrend(attempts),
     strengths: competencies.filter((item) => item.accuracy !== null && item.accuracy >= 80),
@@ -169,4 +244,4 @@ function buildChildInsights({
   };
 }
 
-module.exports = { buildChildInsights };
+module.exports = { buildChildInsights, buildActivity, dayKey };

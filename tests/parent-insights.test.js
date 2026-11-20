@@ -88,3 +88,51 @@ test('parent insights have no attention banner without active alerts', () => {
   assert.equal(result.attention, null);
   assert.equal(result.summary.completed_lesson_count, 0);
 });
+
+const { buildActivity, dayKey } = require('../services/parentInsights');
+
+test('activity days use Vietnam time and count each kind of activity', () => {
+  assert.equal(dayKey('2026-11-19T17:30:00Z'), '2026-11-20');
+  const activity = buildActivity({
+    now: new Date('2026-11-20T05:00:00Z').getTime(),
+    attempts: [
+      { score: 8, total: 10, created_at: '2026-11-19T17:30:00Z' },
+      { score: 2, total: 10, created_at: '2026-11-20T01:00:00Z' },
+      { score: 5, total: 10, created_at: '2026-11-21T01:00:00Z' }
+    ],
+    submissions: [{ submitted_at: '2026-11-19T03:00:00Z' }],
+    completions: [{ completed_at: '2026-11-18T03:00:00Z' }]
+  });
+
+  assert.equal(activity.days.length, 35);
+  const today = activity.days.at(-1);
+  assert.equal(today.date, '2026-11-20');
+  assert.equal(today.attempts, 2);
+  assert.equal(today.accuracy, 50);
+  assert.equal(activity.days.at(-2).submissions, 1);
+  assert.equal(activity.days.at(-2).accuracy, null);
+  assert.equal(activity.days.at(-3).lessons, 1);
+  assert.deepEqual(activity.streak, { current: 3, longest: 3, active_today: true });
+  assert.equal(activity.active_days_7, 3);
+});
+
+test('current streak continues from yesterday and longest streak uses full history', () => {
+  const activity = buildActivity({
+    now: new Date('2026-11-20T05:00:00Z').getTime(),
+    attempts: ['2026-10-01', '2026-10-02', '2026-10-03', '2026-10-04', '2026-11-18', '2026-11-19']
+      .map((date) => ({ score: 1, total: 1, created_at: `${date}T03:00:00Z` })),
+    submissions: [],
+    completions: []
+  });
+  assert.deepEqual(activity.streak, { current: 2, longest: 4, active_today: false });
+});
+
+test('streak is zero when the child skipped yesterday and today', () => {
+  const activity = buildActivity({
+    now: new Date('2026-11-20T05:00:00Z').getTime(),
+    attempts: [{ score: 1, total: 1, created_at: '2026-11-17T03:00:00Z' }],
+    submissions: [],
+    completions: []
+  });
+  assert.equal(activity.streak.current, 0);
+});
