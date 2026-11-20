@@ -250,6 +250,24 @@ Response mẫu:
 }
 ```
 
+### POST /api/generate-story-adventure
+
+Học sinh tạo truyện học tập dạng nhiều khung và một minigame dựa trên nội dung bài đã xuất bản. Màn giới thiệu trước minigame cho biết chủ đề và cách chơi; đây là phần xem trước trong ứng dụng, không phải quảng cáo bên thứ ba.
+
+```json
+{
+  "lessonId": "id-bai-hoc-da-xuat-ban"
+}
+```
+
+Minigame được chọn theo từng bài: trắc nghiệm, đúng/sai hoặc sắp xếp thứ tự. Truyện có 4 khung đối thoại giữa hai nhân vật xuyên suốt; mỗi khung có bảng ghi quy tắc/ví dụ, bóng thoại và minh họa nhân vật dạng SVG trên giao diện. Giới hạn nội dung được áp dụng ngay trong schema; nếu đầu ra sai định dạng hoặc lệch tiêu đề bài, AI được yêu cầu sửa một lần trước bước rà soát nội dung. API yêu cầu access token của học sinh và nội dung bài học đủ để tạo hoạt động.
+
+Thời gian chờ mặc định cho cả lượt tạo và rà soát là 5 phút (`OLLAMA_STORY_TIMEOUT_MS`, tính bằng mili giây). Khi không chỉ định `OLLAMA_STORY_MODEL`, hệ thống ưu tiên model local 3B nếu có; có thể cấu hình model khác bằng biến môi trường này.
+
+### Truyện ảnh bài học và trò chơi nối tiếp
+
+Với bài học ôn tập các số đến 100 000 có truyện ảnh, học sinh lần lượt xem hết các ảnh trước khi mở màn chọn trò chơi. Có ba trò chơi HTML độc lập trong `public/games/`: sắp xếp số tăng dần, so sánh số và giải mã hàng/chữ số. Từ màn chọn game, học sinh có thể quay lại truyện hoặc tiếp tục vào nội dung bài học.
+
 ### POST /api/download-quiz
 
 Xuất bộ câu hỏi ra file HTML hoặc TXT.
