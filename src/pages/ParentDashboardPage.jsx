@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import ParentIcon from '../components/ParentIcons.jsx';
 
 function formatPercent(value) {
   return value === null || value === undefined ? '—' : `${value}%`;
@@ -23,14 +24,78 @@ const assignmentStatus = {
 
 function AttentionBanner({ attention }) {
   if (!attention) return null;
-  return <section className={`parent-attention ${attention.level}`} role="status">
-    <span aria-hidden="true">{attention.level === 'high' ? '💛' : '🔎'}</span>
+  return <section className={`parent-attention ${attention.level}`} id="parent-sec-attention" role="status">
+    <ParentIcon name="heart" size={34} />
     <div>
       <strong>{attention.level === 'high' ? 'Con đang cần được quan tâm thêm' : 'Giáo viên đang theo dõi thêm việc học của con'}</strong>
       {attention.reasons.map((reason) => <p key={reason}>{reason}</p>)}
       <small>Cập nhật {formatDate(attention.updated_at)} · Hãy trò chuyện nhẹ nhàng với con và liên hệ giáo viên nếu cần.</small>
     </div>
   </section>;
+}
+
+function scrollToSection(id) {
+  document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function ParentSidebar({ childrenList, selectedChild, onSelectChild, requestCount, loading, onRefresh, onProfile }) {
+  const unfinished = selectedChild?.assignments.filter((item) => item.status !== 'submitted').length || 0;
+  const overdue = selectedChild?.assignments.some((item) => item.status === 'overdue');
+  const items = [
+    requestCount > 0 && { id: 'parent-sec-requests', icon: 'envelope', label: 'Yêu cầu liên kết', badge: requestCount, tone: 'alert' },
+    selectedChild && { id: 'parent-sec-overview', icon: 'overview', label: 'Tổng quan' },
+    selectedChild?.attention && { id: 'parent-sec-attention', icon: 'heart', label: 'Cần quan tâm', badge: '!', tone: 'alert' },
+    selectedChild && { id: 'parent-sec-competency', icon: 'target', label: 'Năng lực' },
+    selectedChild && { id: 'parent-sec-recommendations', icon: 'bulb', label: 'Khuyến nghị' },
+    selectedChild && { id: 'parent-sec-assignments', icon: 'books', label: 'Bài tập', badge: unfinished || null, tone: overdue ? 'alert' : 'info' },
+    selectedChild && { id: 'parent-sec-attempts', icon: 'pencil', label: 'Luyện tập' },
+    selectedChild && { id: 'parent-sec-lessons', icon: 'openBook', label: 'Bài học' }
+  ].filter(Boolean);
+  const [activeId, setActiveId] = useState('');
+  const itemKey = items.map((item) => item.id).join('|');
+
+  useEffect(() => {
+    if (typeof IntersectionObserver === 'undefined') return undefined;
+    const elements = itemKey.split('|').map((id) => document.getElementById(id)).filter(Boolean);
+    if (!elements.length) return undefined;
+    const observer = new IntersectionObserver((entries) => {
+      const visible = entries.filter((entry) => entry.isIntersecting)
+        .sort((left, right) => left.boundingClientRect.top - right.boundingClientRect.top);
+      if (visible[0]) setActiveId(visible[0].target.id);
+    }, { rootMargin: '-15% 0px -65% 0px' });
+    elements.forEach((element) => observer.observe(element));
+    return () => observer.disconnect();
+  }, [itemKey, selectedChild?.student.id]);
+
+  return <aside className="parent-sidebar" aria-label="Điều hướng nhanh">
+    {childrenList.length > 1 && <div className="parent-sidebar-group">
+      <span className="parent-sidebar-label">CON CỦA BẠN</span>
+      <div className="parent-child-switch">{childrenList.map((child) => <button
+        type="button"
+        key={child.student.id}
+        className={child.student.id === selectedChild?.student.id ? 'active' : ''}
+        aria-pressed={child.student.id === selectedChild?.student.id}
+        onClick={() => onSelectChild(child.student.id)}
+      ><span><ParentIcon name="backpack" /></span>{child.student.full_name || 'Học sinh'}{child.attention && <i aria-label="Cần quan tâm">!</i>}</button>)}</div>
+    </div>}
+    {childrenList.length === 1 && selectedChild && <div className="parent-sidebar-child"><ParentIcon name="backpack" size={36} /><div><small>Đang xem</small><strong>{selectedChild.student.full_name || 'Học sinh'}</strong></div></div>}
+    <div className="parent-sidebar-links">
+    {items.length > 0 && <nav className="parent-sidebar-group">
+      <span className="parent-sidebar-label">ĐI NHANH ĐẾN</span>
+      {items.map((item) => <button
+        type="button"
+        key={item.id}
+        className={activeId === item.id ? 'active' : ''}
+        aria-current={activeId === item.id ? 'true' : undefined}
+        onClick={() => { setActiveId(item.id); scrollToSection(item.id); }}
+      ><span><ParentIcon name={item.icon} /></span>{item.label}{item.badge ? <b className={item.tone}>{item.badge}</b> : null}</button>)}
+    </nav>}
+    <div className="parent-sidebar-group parent-sidebar-actions">
+      <button type="button" onClick={onRefresh} disabled={loading}><span><ParentIcon name="refresh" /></span>{loading ? 'Đang tải...' : 'Làm mới'}</button>
+      <button type="button" onClick={onProfile}><span><ParentIcon name="profile" /></span>Thông tin cá nhân</button>
+    </div>
+    </div>
+  </aside>;
 }
 
 function ReviewPanel({ state, onClose }) {
@@ -85,6 +150,8 @@ export default function ParentDashboardPage({ api, readSession, Header, Brand, g
   const [requestBusy, setRequestBusy] = useState('');
   const [refresh, setRefresh] = useState(0);
   const [reviewState, setReviewState] = useState(null);
+  const [selectedChildId, setSelectedChildId] = useState('');
+  const selectedChild = children.find((child) => child.student.id === selectedChildId) || children[0] || null;
 
   const openReview = async (studentId, kind, itemId, title) => {
     const request = `${kind}:${itemId}`;
@@ -137,6 +204,16 @@ export default function ParentDashboardPage({ api, readSession, Header, Brand, g
 
   return <>
     <Header Brand={Brand} readSession={readSession} go={go} logout={logout} />
+    <div className="parent-layout">
+    <ParentSidebar
+      childrenList={children}
+      selectedChild={selectedChild}
+      onSelectChild={(id) => { setSelectedChildId(id); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+      requestCount={loading ? 0 : requests.length}
+      loading={loading}
+      onRefresh={() => setRefresh((value) => value + 1)}
+      onProfile={() => go('/profile')}
+    />
     <main className="parent-dashboard">
       <div className="parent-dashboard-heading">
         <div>
@@ -145,15 +222,14 @@ export default function ParentDashboardPage({ api, readSession, Header, Brand, g
           <p>Xin chào {session?.profile?.full_name || 'phụ huynh'}! Hãy cùng khám phá hành trình và những tiến bộ của con nhé.</p>
         </div>
         <div className="parent-heading-actions">
-          <span className="parent-hero-mascot" aria-hidden="true">👨‍👩‍👧‍👦</span>
-          <button type="button" className="parent-refresh" onClick={() => setRefresh((value) => value + 1)} disabled={loading}>↻ Làm mới</button>
+          <span className="parent-hero-mascot"><ParentIcon name="family" size={64} /></span>
         </div>
       </div>
 
       {error && <div className="parent-alert" role="alert">{error}</div>}
       {!session?.profile?.phone_number && <div className="parent-alert parent-phone-reminder">Hãy thêm số điện thoại trong <a href="/profile" onClick={(event) => { event.preventDefault(); go('/profile'); }}>Thông tin cá nhân</a> để học sinh có thể gửi yêu cầu liên kết.</div>}
       {requestError && <div className="parent-alert" role="alert">{requestError}</div>}
-      {!loading && requests.length > 0 && <section className="parent-request-card">
+      {!loading && requests.length > 0 && <section className="parent-request-card" id="parent-sec-requests">
         <div className="parent-section-heading"><div><span className="parent-eyebrow">CẦN XÁC NHẬN</span><h2>Yêu cầu liên kết từ học sinh</h2></div><span className="parent-request-count">{requests.length}</span></div>
         <p>Chỉ chấp nhận nếu bạn nhận ra học sinh này. Khi xác nhận, tài khoản sẽ được liên kết và tiến độ học tập sẽ hiển thị trong dashboard.</p>
         <div className="parent-request-list">{requests.map((request) => <article key={request.id}>
@@ -166,7 +242,7 @@ export default function ParentDashboardPage({ api, readSession, Header, Brand, g
       </section>}
       {loading ? <section className="parent-empty">Đang tải tiến độ học tập...</section>
         : children.length === 0 ? <section className="parent-empty">
-          <div className="parent-empty-art" aria-hidden="true"><span>🏫</span><i>✨</i></div>
+          <div className="parent-empty-art" aria-hidden="true"><ParentIcon name="school" size={52} /><i>✨</i></div>
           <span className="parent-eyebrow">BẮT ĐẦU HÀNH TRÌNH CÙNG CON</span>
           <h2>Chờ kết nối với con nhé!</h2>
           <p>Thêm số điện thoại trong hồ sơ để học sinh gửi yêu cầu cho bạn, hoặc nhờ nhà trường tạo liên kết. Sau khi xác nhận, tiến bộ của con sẽ được cập nhật tại đây.</p>
@@ -177,7 +253,7 @@ export default function ParentDashboardPage({ api, readSession, Header, Brand, g
           </div>
         </section>
           : <div className="parent-children">
-            {children.map((child) => <article className="parent-child-card" key={child.student.id}>
+            {(selectedChild ? [selectedChild] : []).map((child) => <article className="parent-child-card" key={child.student.id}>
               <header className="parent-child-heading">
                 <div>
                   <span className="parent-eyebrow">HỒ SƠ HỌC TẬP</span>
@@ -186,19 +262,19 @@ export default function ParentDashboardPage({ api, readSession, Header, Brand, g
                     ? child.student.classes.map((classItem) => `${classItem.name} · ${classItem.grade}`).join(' / ')
                     : 'Chưa được xếp lớp'}</p>
                 </div>
-                <span className="parent-child-icon" aria-hidden="true">🎒</span>
+                <span className="parent-child-icon"><ParentIcon name="backpack" size={36} /></span>
               </header>
 
               <AttentionBanner attention={child.attention} />
 
-              <section className="parent-metrics" aria-label={`Tổng quan học tập của ${child.student.full_name}`}>
-                <article><span>📚</span><strong>{child.summary.assigned_count ? `${child.summary.completion_rate}%` : '—'}</strong><small>Hoàn thành bài tập</small><em>{child.summary.submitted_count}/{child.summary.assigned_count} bài đã nộp</em></article>
-                <article><span>🎯</span><strong>{formatPercent(child.summary.accuracy)}</strong><small>Độ chính xác luyện tập</small><em>{child.summary.correct_answers}/{child.summary.total_answers} câu đúng</em></article>
-                <article><span>✏️</span><strong>{child.summary.attempt_count}</strong><small>Lượt luyện tập</small><em>{trendLabel(child.trend)}</em></article>
-                <article><span>📖</span><strong>{child.summary.completed_lesson_count ?? 0}</strong><small>Bài học đã hoàn thành</small><em>{child.completed_lessons?.[0] ? `Gần nhất ${formatDate(child.completed_lessons[0].completed_at)}` : 'Chưa có bài học hoàn thành'}</em></article>
+              <section className="parent-metrics" id="parent-sec-overview" aria-label={`Tổng quan học tập của ${child.student.full_name}`}>
+                <article><span><ParentIcon name="books" size={30} /></span><strong>{child.summary.assigned_count ? `${child.summary.completion_rate}%` : '—'}</strong><small>Hoàn thành bài tập</small><em>{child.summary.submitted_count}/{child.summary.assigned_count} bài đã nộp</em></article>
+                <article><span><ParentIcon name="target" size={30} /></span><strong>{formatPercent(child.summary.accuracy)}</strong><small>Độ chính xác luyện tập</small><em>{child.summary.correct_answers}/{child.summary.total_answers} câu đúng</em></article>
+                <article><span><ParentIcon name="pencil" size={30} /></span><strong>{child.summary.attempt_count}</strong><small>Lượt luyện tập</small><em>{trendLabel(child.trend)}</em></article>
+                <article><span><ParentIcon name="openBook" size={30} /></span><strong>{child.summary.completed_lesson_count ?? 0}</strong><small>Bài học đã hoàn thành</small><em>{child.completed_lessons?.[0] ? `Gần nhất ${formatDate(child.completed_lessons[0].completed_at)}` : 'Chưa có bài học hoàn thành'}</em></article>
               </section>
 
-              <section className="parent-section">
+              <section className="parent-section" id="parent-sec-competency">
                 <div className="parent-section-heading"><div><span className="parent-eyebrow">PHÂN TÍCH TỪ KẾT QUẢ ĐÃ LƯU</span><h3>Điểm mạnh và nội dung nên ôn</h3></div></div>
                 {child.competencies.length ? <div className="parent-competencies">
                   {child.competencies.map((item) => <article className="parent-competency" key={`${item.chapter}-${item.title}`}>
@@ -217,7 +293,7 @@ export default function ParentDashboardPage({ api, readSession, Header, Brand, g
                 </div>
               </section>
 
-              <section className="parent-section">
+              <section className="parent-section" id="parent-sec-recommendations">
                 <div className="parent-section-heading"><div><span className="parent-eyebrow">GỢI Ý ĐỒNG HÀNH</span><h3>Khuyến nghị học tập</h3></div></div>
                 {child.recommendations.length
                   ? <ul className="parent-recommendations">{child.recommendations.map((item, index) => <li key={`${item.type}-${index}`}>{item.text}</li>)}</ul>
@@ -225,7 +301,7 @@ export default function ParentDashboardPage({ api, readSession, Header, Brand, g
                 <p className="parent-disclaimer">Gợi ý được tổng hợp từ bài tập và lượt luyện tập đã lưu, không thay thế đánh giá của giáo viên.</p>
               </section>
 
-              <section className="parent-section">
+              <section className="parent-section" id="parent-sec-assignments">
                 <div className="parent-section-heading"><div><span className="parent-eyebrow">THEO DÕI BÀI TẬP</span><h3>Bài được giao</h3></div></div>
                 {child.assignments.length ? <div className="parent-assignment-list">{child.assignments.map((assignment) => <article key={assignment.id}>
                   <div><strong>{assignment.title}</strong><small>{assignment.due_at ? `Hạn nộp ${formatDate(assignment.due_at)}` : 'Không có hạn nộp'}</small></div>
@@ -238,7 +314,7 @@ export default function ParentDashboardPage({ api, readSession, Header, Brand, g
                 </article>)}</div> : <p className="parent-muted">Chưa có bài tập được giao trong các lớp của con.</p>}
               </section>
 
-              <section className="parent-section">
+              <section className="parent-section" id="parent-sec-attempts">
                 <div className="parent-section-heading"><div><span className="parent-eyebrow">HOẠT ĐỘNG GẦN ĐÂY</span><h3>Lượt luyện tập</h3></div></div>
                 {child.recent_attempts.length ? <div className="parent-attempt-list">{child.recent_attempts.map((attempt, index) => <article key={`${attempt.created_at}-${index}`}>
                   <div><strong>{attempt.title}</strong><small>{attempt.chapter} · {formatDate(attempt.created_at)}</small></div>
@@ -249,7 +325,7 @@ export default function ParentDashboardPage({ api, readSession, Header, Brand, g
                 </article>)}</div> : <p className="parent-muted">Chưa có lượt luyện tập được lưu.</p>}
               </section>
 
-              <section className="parent-section">
+              <section className="parent-section" id="parent-sec-lessons">
                 <div className="parent-section-heading"><div><span className="parent-eyebrow">HÀNH TRÌNH BÀI HỌC</span><h3>Bài học con đã hoàn thành</h3></div></div>
                 {child.completed_lessons?.length ? <div className="parent-lesson-list">{child.completed_lessons.map((lesson) => <article key={lesson.id}>
                   <span aria-hidden="true">✓</span>
@@ -260,5 +336,6 @@ export default function ParentDashboardPage({ api, readSession, Header, Brand, g
           </div>}
       {reviewState && <ReviewPanel state={reviewState} onClose={closeReview} />}
     </main>
+    </div>
   </>;
 }
