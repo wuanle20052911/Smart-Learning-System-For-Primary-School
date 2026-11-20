@@ -445,23 +445,131 @@ button, input, select { font: inherit; }
 .adventure-feedback.is-wrong { background: #fff5e9; color: #8d5c20; }
 .adventure-game-actions { justify-content: flex-end; }
 .adventure-result-score { display: block; margin: 16px 0; color: #6554c7; font-size: 54px; }
-.lesson-game-select { max-width: 960px; min-height: 520px; margin: 0 auto 24px; padding: 24px; border: 1px solid #e4e9f5; border-radius: 24px; background: radial-gradient(circle at 85% 4%, #fff4ce 0, transparent 26%), linear-gradient(145deg, #fff 0%, #f6f7ff 100%); box-shadow: 0 16px 42px rgba(45, 59, 104, .14); color: #29385b; }
-.lesson-game-select-content { width: min(100%, 780px); margin: 28px auto 10px; }
-.lesson-game-select-heading { display: flex; align-items: center; gap: 14px; margin-bottom: 14px; }
-.lesson-game-select-heading > span { font-size: 38px; }
-.lesson-game-select-heading small { color: #9c7435; font-size: 10px; font-weight: 900; letter-spacing: .1em; }
-.lesson-game-select-heading h1 { margin: 4px 0; color: #263a67; font-size: clamp(24px, 4vw, 36px); line-height: 1.15; }
-.lesson-game-select-intro { margin: 12px 0 20px; color: #56617c; line-height: 1.65; }
-.lesson-game-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
-.lesson-game-card { display: flex; flex-direction: column; align-items: flex-start; min-height: 220px; padding: 18px; border: 1px solid #e4e9f5; border-radius: 18px; background: #fff; box-shadow: 0 8px 20px rgba(45, 59, 104, .08); color: #29385b; text-decoration: none; transition: transform .18s ease, box-shadow .18s ease; }
-.lesson-game-card:hover { transform: translateY(-3px); box-shadow: 0 12px 24px rgba(45, 59, 104, .14); }
+.lesson-game-select {
+  position: relative;
+  isolation: isolate;
+  max-width: 1080px;
+  min-height: 650px;
+  margin: 0 auto 24px;
+  padding: 22px;
+  overflow: hidden;
+  border: 5px solid #fff0bd;
+  border-radius: 30px;
+  background:
+    linear-gradient(180deg, rgba(89, 175, 226, .12), rgba(61, 132, 47, .12)),
+    url("/public/img/MCUcXngQAdKyKdpnEufKG4UxTA7xkFaTDsWyiQnfbGrX_f3mtXyBEXKIlLBluXvaAHSFBqLEB_9aKfhYVTvlZCKDDimuMjkK0j5mv2l4Aefek-nDSe__XOsMbZODG5IWWNKPAWnnZlqZmVWodukMFYcEGClWG8arYwSBFSPgQDNq.jpg") center / cover;
+  box-shadow: 0 18px 42px rgba(45, 59, 104, .2), inset 0 0 0 2px rgba(255,255,255,.55);
+  color: #29385b;
+}
+.lesson-game-select-content { position: relative; z-index: 1; width: min(100%, 900px); margin: 18px auto 10px; }
+.lesson-game-select .study-adventure-header {
+  padding: 12px 16px;
+  border: 2px solid #e4c47f;
+  border-radius: 16px;
+  background: linear-gradient(100deg, rgba(255,250,231,.96), rgba(255,243,210,.94));
+  box-shadow: 0 4px 0 rgba(110, 67, 29, .35);
+}
+.lesson-game-select .study-adventure-header h2 { color: #553719; }
+.lesson-game-select .study-adventure-kicker { color: #734bbb; }
+.lesson-game-select .lesson-close { color: #8c4c16; }
+.lesson-game-banner {
+  position: relative;
+  margin: 0 0 22px;
+  padding: 18px 24px 16px;
+  border: 6px solid #74431e;
+  border-radius: 25px;
+  background:
+    radial-gradient(circle at 6% 18%, rgba(255,224,129,.2) 0 4px, transparent 5px),
+    repeating-linear-gradient(2deg, transparent 0 23px, rgba(83,43,17,.15) 24px 26px),
+    linear-gradient(180deg, #bd762f 0%, #a85e24 55%, #8d491d 100%);
+  box-shadow: 0 8px 0 #5c351e, inset 0 2px 0 rgba(255,226,154,.5), inset 0 -6px 0 rgba(83,43,19,.2);
+  color: white;
+  text-align: center;
+}
+.lesson-game-select-heading { display: flex; align-items: center; justify-content: center; gap: 14px; }
+.lesson-game-select-heading > span {
+  display: grid;
+  flex: 0 0 auto;
+  width: 58px;
+  height: 58px;
+  place-items: center;
+  border: 3px solid #5b3b91;
+  border-radius: 19px;
+  background: linear-gradient(145deg, #b995ff, #7250c7);
+  box-shadow: 0 5px 0 #4e3584, inset 0 2px 0 rgba(255,255,255,.45);
+  font-size: 34px;
+  transform: rotate(-5deg);
+}
+.lesson-game-select-heading small {
+  display: inline-block;
+  padding: 5px 15px;
+  border: 2px solid #633b97;
+  border-radius: 8px;
+  background: linear-gradient(#a774e7, #7548b7);
+  box-shadow: 0 4px 0 #5d398b;
+  color: white;
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: .08em;
+}
+.lesson-game-select-heading h1 {
+  display: grid;
+  gap: 0;
+  margin: 10px 0 0;
+  font-family: 'Baloo 2', 'Quicksand', sans-serif;
+  font-size: clamp(30px, 4vw, 46px);
+  font-weight: 900;
+  line-height: 1.02;
+  text-shadow: 0 4px 0 #623c24, 0 6px 10px rgba(45,26,13,.4);
+}
+.lesson-game-select-heading h1 span { color: #fff; }
+.lesson-game-select-heading h1 strong { color: #ffd84c; font-weight: 900; }
+.lesson-game-select-intro {
+  max-width: 700px;
+  margin: 12px auto 0;
+  color: #fff9e9;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.45;
+  text-shadow: 0 2px 3px rgba(58,31,15,.9);
+}
+.lesson-game-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+.lesson-game-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-height: 290px;
+  padding: 18px 20px 20px;
+  border: 5px solid #a96d2b;
+  border-radius: 24px;
+  background:
+    radial-gradient(circle at 15% 13%, rgba(255,255,255,.6) 0 3px, transparent 4px),
+    linear-gradient(180deg, #fff6d8, #f8dda5);
+  box-shadow: 0 8px 0 #75431e, inset 0 0 0 2px rgba(255,255,255,.7), 0 12px 20px rgba(51,48,25,.22);
+  color: #493016;
+  text-align: center;
+  text-decoration: none;
+  transition: transform .18s ease, filter .18s ease, box-shadow .18s ease;
+}
+.lesson-game-card:hover { transform: translateY(-5px); filter: brightness(1.04); box-shadow: 0 11px 0 #75431e, inset 0 0 0 2px rgba(255,255,255,.7), 0 17px 25px rgba(51,48,25,.27); }
 .lesson-game-card:focus-visible { outline: 3px solid #5e4bc4; outline-offset: 3px; }
-.lesson-game-icon { margin-bottom: 12px; font-size: 34px; }
-.lesson-game-card small { color: #7765cf; font-size: 10px; font-weight: 900; letter-spacing: .1em; }
-.lesson-game-card strong { margin-top: 5px; color: #263a67; font-size: 17px; }
-.lesson-game-card p { margin: 8px 0 16px; color: #56617c; font-size: 13px; line-height: 1.5; }
-.lesson-game-link { margin-top: auto; color: #5e4bc4; font-size: 13px; font-weight: 900; }
-.lesson-game-select-actions { display: flex; justify-content: center; flex-wrap: wrap; gap: 12px; margin-top: 22px; }
+.lesson-game-icon { display: grid; width: 86px; height: 82px; margin: 0 0 10px; place-items: center; border-radius: 26px; background: rgba(255,255,255,.65); box-shadow: inset 0 -4px 0 rgba(112,73,28,.12); font-size: 57px; }
+.lesson-game-card small { display: inline-block; padding: 5px 16px; border: 2px solid #57328e; border-radius: 8px; background: linear-gradient(#a579ec, #754ac0); box-shadow: 0 4px 0 #57328e; color: white; font-size: 13px; font-weight: 900; letter-spacing: .06em; }
+.lesson-game-card:nth-child(2) small { border-color: #145da0; background: linear-gradient(#56b4f1, #267ac5); box-shadow: 0 4px 0 #145da0; }
+.lesson-game-card:nth-child(3) small { border-color: #387719; background: linear-gradient(#93d83c, #5caa24); box-shadow: 0 4px 0 #387719; }
+.lesson-game-card strong { margin-top: 12px; color: #633d9b; font-family: 'Baloo 2', 'Quicksand', sans-serif; font-size: 22px; font-weight: 900; line-height: 1.15; }
+.lesson-game-card:nth-child(2) strong { color: #1766a8; }
+.lesson-game-card:nth-child(3) strong { color: #427c22; }
+.lesson-game-card p { margin: 8px 0 16px; color: #5f452a; font-size: 15px; font-weight: 700; line-height: 1.45; }
+.lesson-game-link { display: inline-flex; align-items: center; justify-content: center; min-height: 46px; margin-top: auto; padding: 8px 20px; border: 3px solid #633b97; border-radius: 999px; background: linear-gradient(#a476e9, #7549c1); box-shadow: 0 4px 0 #53327f; color: white; font-size: 15px; font-weight: 900; }
+.lesson-game-card:nth-child(2) .lesson-game-link { border-color: #145da0; background: linear-gradient(#4eb3f4, #247ac4); box-shadow: 0 4px 0 #145da0; }
+.lesson-game-card:nth-child(3) .lesson-game-link { border-color: #3a7d1b; background: linear-gradient(#94d942, #5bab25); box-shadow: 0 4px 0 #3a7d1b; }
+.lesson-game-select-actions { display: flex; justify-content: center; flex-wrap: wrap; gap: 14px; margin-top: 24px; }
+.lesson-game-select-actions .adventure-secondary-button { border: 3px solid #9a652b; border-radius: 999px; background: linear-gradient(#fff0c1, #eac275); box-shadow: 0 5px 0 #80501f; color: #684018; font-size: 16px; }
+.lesson-game-select-actions .adventure-primary-button { border: 3px solid #bd790b; border-radius: 999px; background: linear-gradient(#ffe15e, #f29a12); box-shadow: 0 5px 0 #a85f08; color: #60370c; font-size: 16px; }
+.lesson-game-select-actions button:hover { filter: brightness(1.08); transform: translateY(-2px); }
+.lesson-game-select-actions button:active { transform: translateY(3px); box-shadow: 0 2px 0 currentColor; }
 .lesson-inline { margin-bottom: 18px; }
 .lesson-inline .panel-heading { align-items: center; }
 .lesson-close { border: 0; background: transparent; color: #d14a1e; font-weight: 800; cursor: pointer; }
@@ -703,10 +811,22 @@ button.ai-option.selected { border-color: #f07835; background: #ffe0a4; }
   .adventure-story-controls { flex-wrap: wrap; }
   .adventure-progress { order: 1; width: 100%; justify-content: center; }
   .adventure-answer-options { grid-template-columns: 1fr; }
-  .lesson-game-select { min-height: 0; margin: 0 0 18px; padding: 14px; border-radius: 17px; }
+  .lesson-game-select { min-height: 0; margin: 0 0 18px; padding: 12px; border-width: 3px; border-radius: 20px; }
   .lesson-game-select .study-adventure-header { align-items: flex-start; }
   .lesson-game-select .study-adventure-header h2 { font-size: 15px; }
+  .lesson-game-select-content { margin-top: 15px; }
+  .lesson-game-banner { margin-bottom: 18px; padding: 16px 12px 14px; border-width: 4px; border-radius: 19px; }
+  .lesson-game-select-heading { gap: 9px; }
+  .lesson-game-select-heading > span { width: 44px; height: 44px; border-radius: 14px; font-size: 27px; }
+  .lesson-game-select-heading small { padding: 4px 10px; font-size: 10px; }
+  .lesson-game-select-heading h1 { margin-top: 8px; font-size: clamp(26px, 7vw, 35px); }
+  .lesson-game-select-intro { margin-top: 9px; font-size: 14px; }
   .lesson-game-grid { grid-template-columns: 1fr; }
-  .lesson-game-card { min-height: 0; }
-  .adventure-primary-button, .adventure-secondary-button { padding: 9px 12px; font-size: 12px; }
+  .lesson-game-card { min-height: 0; padding: 16px; }
+  .lesson-game-icon { width: 70px; height: 66px; margin-bottom: 8px; border-radius: 20px; font-size: 46px; }
+  .lesson-game-card strong { margin-top: 9px; font-size: 21px; }
+  .lesson-game-card p { margin: 7px 0 13px; font-size: 14px; }
+  .lesson-game-select-actions { gap: 12px; margin-top: 20px; }
+  .lesson-game-select-actions .adventure-primary-button,
+  .lesson-game-select-actions .adventure-secondary-button { flex: 1 1 150px; padding: 10px 12px; font-size: 14px; }
 }

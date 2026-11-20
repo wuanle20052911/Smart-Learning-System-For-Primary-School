@@ -17,7 +17,24 @@
 .decoding-game .game-stats { display: none; }
 .decoding-game .topbar-left { gap: 0; }
 .decoding-game .game-hero { margin-top: 4px; }
-.decoding-game .hero-copy h1 { color: #fff; text-shadow: 0 3px 0 #623c96, 2px 5px 0 rgba(67, 42, 92, .48); }
+.decoding-game .hero-label { font-family: Arial, Tahoma, sans-serif; letter-spacing: .03em; }
+.decoding-game .hero-copy h1 {
+  color: #fff;
+  font-family: Arial, Tahoma, sans-serif;
+  font-size: clamp(29px, 4vw, 37px);
+  font-weight: 800;
+  line-height: 1.15;
+  -webkit-text-stroke: 0;
+  text-shadow: 0 2px 2px rgba(58, 31, 15, .8);
+}
+.decoding-game .hero-copy p {
+  color: #fff9e9;
+  font-family: Arial, Tahoma, sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.45;
+  text-shadow: 0 1px 2px rgba(58, 31, 15, .8);
+}
 .decoding-game .hero-art img { display: block; width: 104px; height: 104px; border-radius: 50%; mix-blend-mode: multiply; object-fit: contain; }
 .decoding-game .game-layout { grid-template-columns: minmax(0, 1.9fr) minmax(250px, .82fr); }
 .decoding-game .game-panel {
@@ -97,10 +114,12 @@
   .decoding-game main { padding: 8px 10px 24px; }
   .decoding-game .topbar { top: 6px; left: 6px; }
   .decoding-game .back-button { width: 38px; min-height: 38px; }
-  .decoding-game .game-hero { grid-template-columns: minmax(0, 1fr) 72px; min-height: 160px; height: 160px; }
+  .decoding-game .game-hero { grid-template-columns: minmax(0, 1fr) 72px; grid-template-rows: minmax(160px, auto); min-height: 160px; height: auto; }
   .decoding-game .game-hero::before { right: 48px; }
   .decoding-game .hero-copy { grid-column: 1 / 3; grid-row: 1; min-height: 140px; padding: 18px 68px 14px 20px; }
-  .decoding-game .hero-copy h1 { font-size: 25px; }
+  .decoding-game .hero-label { font-size: 11px; }
+  .decoding-game .hero-copy h1 { font-size: 27px; }
+  .decoding-game .hero-copy p { font-size: 14px; }
   .decoding-game .hero-kid { display: none; }
   .decoding-game .hero-art { grid-column: 2; grid-row: 1; width: 68px; height: 72px; font-size: 44px; }
   .decoding-game .hero-art img { width: 60px; height: 60px; }

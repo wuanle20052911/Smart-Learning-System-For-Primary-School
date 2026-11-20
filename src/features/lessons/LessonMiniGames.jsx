@@ -28,11 +28,16 @@ export default function LessonMiniGames({ lessonTitle, onBack, onContinue }) {
       <button className="lesson-close" type="button" onClick={onBack}>← Xem lại truyện</button>
     </header>
     <div className="lesson-game-select-content">
-      <div className="lesson-game-select-heading">
-        <span aria-hidden="true">🎮</span>
-        <div><small>CHẶNG TIẾP THEO</small><h1>Cùng chinh phục các số đến 100 000!</h1></div>
+      <div className="lesson-game-banner">
+        <div className="lesson-game-select-heading">
+          <span aria-hidden="true">🎮</span>
+          <div>
+            <small>CHẶNG TIẾP THEO</small>
+            <h1><span>Cùng chinh phục</span><strong>các số đến 100 000!</strong></h1>
+          </div>
+        </div>
+        <p className="lesson-game-select-intro">Mỗi trò chơi là một trang riêng. Sắp xếp, so sánh và giải mã các số để hoàn thành thử thách nhé.</p>
       </div>
-      <p className="lesson-game-select-intro">Mỗi trò chơi là một trang riêng. Sắp xếp, so sánh và giải mã các số để hoàn thành thử thách nhé.</p>
       <div className="lesson-game-grid">
         {games.map((game, index) => <a
           className="lesson-game-card"

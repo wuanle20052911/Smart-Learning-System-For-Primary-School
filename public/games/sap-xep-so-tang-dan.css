@@ -5,6 +5,27 @@
 }
 
 .sorting-game::before { display: none; }
+.sorting-game .hero-label {
+  font-family: Arial, Tahoma, sans-serif;
+  letter-spacing: .03em;
+}
+.sorting-game .hero-copy h1 {
+  color: #fff;
+  font-family: Arial, Tahoma, sans-serif;
+  font-size: clamp(29px, 4vw, 37px);
+  font-weight: 800;
+  line-height: 1.15;
+  -webkit-text-stroke: 0;
+  text-shadow: 0 2px 2px rgba(58, 31, 15, .8);
+}
+.sorting-game .hero-copy p {
+  color: #fff9e9;
+  font-family: Arial, Tahoma, sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.45;
+  text-shadow: 0 1px 2px rgba(58, 31, 15, .8);
+}
 .sorting-game .game-hero::before {
   background:
     radial-gradient(ellipse at 8% 12%, rgba(255, 227, 128, .18) 0 4px, transparent 5px),
@@ -29,4 +50,8 @@
 
 @media (max-width: 600px) {
   .sorting-game { background-attachment: scroll; }
+  .sorting-game .hero-label { font-size: 11px; }
+  .sorting-game .hero-copy h1 { font-size: 27px; }
+  .sorting-game .hero-copy p { font-size: 14px; }
+  .sorting-game .game-hero { grid-template-rows: minmax(160px, auto) auto; height: auto; }
 }
