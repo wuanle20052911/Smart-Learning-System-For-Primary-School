@@ -45,3 +45,46 @@ test('parent insights identify strengths, practice needs, recommendations, and s
   assert.equal(result.recommendations.length, 1);
   assert.match(result.recommendations[0].text, /Phân số/);
 });
+
+test('parent insights attach teacher feedback, attention alerts, and completed lessons', () => {
+  const result = buildChildInsights({
+    student: { id: 'student-1', full_name: 'Nguyễn An' },
+    classes: [{ id: 'class-1', name: 'Lớp 4A', grade: '4' }],
+    assignments: [{ id: 'assignment-1', title: 'Phân số', class_id: 'class-1', due_at: null, published: true }],
+    submissions: [{ id: 'submission-1', assignment_id: 'assignment-1', submitted_at: '2026-01-10T00:00:00Z', score: 80 }],
+    attempts: [],
+    feedback: [
+      { id: 'feedback-1', submission_id: 'submission-1', comment: 'Cũ', created_at: '2026-01-11T00:00:00Z' },
+      { id: 'feedback-2', submission_id: 'submission-1', comment: 'Con làm tốt', created_at: '2026-01-12T00:00:00Z' },
+      { id: 'feedback-3', submission_id: 'other-submission', comment: 'Không liên quan', created_at: '2026-01-12T00:00:00Z' }
+    ],
+    alerts: [
+      { risk_level: 'Theo dõi', reason: 'Còn 1 bài đã quá hạn chưa nộp.', last_seen_at: '2026-01-09T00:00:00Z' },
+      { risk_level: 'Cao', reason: 'Điểm trung bình thấp.', last_seen_at: '2026-01-12T00:00:00Z' }
+    ],
+    completions: [
+      { lesson_id: 'lesson-1', completed_at: '2026-01-05T00:00:00Z' },
+      { lesson_id: 'lesson-2', completed_at: '2026-01-08T00:00:00Z' },
+      { lesson_id: 'deleted-lesson', completed_at: '2026-01-09T00:00:00Z' }
+    ],
+    lessons: [
+      { id: 'lesson-1', title: 'Cộng trừ', topic: 'Số học' },
+      { id: 'lesson-2', title: 'Hình vuông', topic: '' }
+    ]
+  });
+
+  const [assignment] = result.assignments;
+  assert.equal(assignment.submission_id, 'submission-1');
+  assert.deepEqual(assignment.feedback.map((item) => item.comment), ['Con làm tốt', 'Cũ']);
+  assert.equal(result.recommendations[0].type, 'feedback');
+  assert.equal(result.attention.level, 'high');
+  assert.deepEqual(result.attention.reasons, ['Điểm trung bình thấp.', 'Còn 1 bài đã quá hạn chưa nộp.']);
+  assert.equal(result.summary.completed_lesson_count, 2);
+  assert.deepEqual(result.completed_lessons.map((item) => item.title), ['Hình vuông', 'Cộng trừ']);
+});
+
+test('parent insights have no attention banner without active alerts', () => {
+  const result = buildChildInsights({ student: { id: 's', full_name: 'A' }, classes: [], assignments: [], submissions: [], attempts: [] });
+  assert.equal(result.attention, null);
+  assert.equal(result.summary.completed_lesson_count, 0);
+});

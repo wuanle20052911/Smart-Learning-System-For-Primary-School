@@ -1,5 +1,6 @@
 const { getSupabaseAdminClient } = require('./supabaseAdminClient');
 const { buildChildInsights } = require('../services/parentInsights');
+const { buildSubmissionReview, buildAttemptReview } = require('../services/answerReview');
 
 async function fetchAllPages(buildQuery) {
   const rows = [];
@@ -47,7 +48,7 @@ async function getDashboard(parentId) {
   ]);
 
   const classIds = [...new Set(memberships.map((item) => item.class_id))];
-  const [classes, assignments, submissions] = await Promise.all([
+  const [classes, assignments, submissions, alerts, completions] = await Promise.all([
     classIds.length
       ? fetchAllPages(() => client.from('classes').select('id,name,grade').in('id', classIds).order('id'))
       : Promise.resolve([]),
@@ -62,6 +63,31 @@ async function getDashboard(parentId) {
       .select('id,assignment_id,student_id,score,submitted_at,attempt_number')
       .in('student_id', visibleStudentIds)
       .order('submitted_at', { ascending: false })
+      .order('id')),
+    fetchAllPages(() => client.from('risk_alerts')
+      .select('id,student_id,risk_level,reason,last_seen_at')
+      .in('student_id', visibleStudentIds)
+      .eq('status', 'active')
+      .order('last_seen_at', { ascending: false })
+      .order('id')),
+    fetchAllPages(() => client.from('student_lesson_completions')
+      .select('student_id,lesson_id,completed_at')
+      .in('student_id', visibleStudentIds)
+      .order('completed_at', { ascending: false })
+      .order('lesson_id'))
+  ]);
+
+  const submissionIds = submissions.map((item) => item.id);
+  const lessonIds = [...new Set(completions.map((item) => item.lesson_id))];
+  const [feedback, lessons] = await Promise.all([
+    fetchInChunks(submissionIds, (ids) => client.from('feedback')
+      .select('id,submission_id,comment,created_at')
+      .in('submission_id', ids)
+      .order('created_at', { ascending: false })
+      .order('id')),
+    fetchInChunks(lessonIds, (ids) => client.from('lessons')
+      .select('id,title,topic')
+      .in('id', ids)
       .order('id'))
   ]);
 
@@ -75,9 +101,105 @@ async function getDashboard(parentId) {
         classes: classes.filter((classItem) => studentClassIds.has(classItem.id)),
         assignments,
         submissions: submissions.filter((item) => item.student_id === student.id),
-        attempts: attempts.filter((item) => item.student_id === student.id)
+        attempts: attempts.filter((item) => item.student_id === student.id),
+        feedback,
+        alerts: alerts.filter((item) => item.student_id === student.id),
+        completions: completions.filter((item) => item.student_id === student.id),
+        lessons
       });
     })
+  };
+}
+
+async function fetchInChunks(ids, buildQuery, chunkSize = 200) {
+  const rows = [];
+  for (let index = 0; index < ids.length; index += chunkSize) {
+    const chunk = ids.slice(index, index + chunkSize);
+    rows.push(...await fetchAllPages(() => buildQuery(chunk)));
+  }
+  return rows;
+}
+
+function notFound(message) {
+  const error = new Error(message);
+  error.code = 'NOT_FOUND';
+  return error;
+}
+
+async function assertLinked(client, parentId, studentId) {
+  const { data, error } = await client
+    .from('parent_student_links')
+    .select('student_id')
+    .eq('parent_id', parentId)
+    .eq('student_id', studentId)
+    .maybeSingle();
+  if (error) throw error;
+  if (!data) throw notFound('Không tìm thấy học sinh đã liên kết.');
+}
+
+async function getSubmissionReview(parentId, studentId, submissionId) {
+  const client = getSupabaseAdminClient();
+  await assertLinked(client, parentId, studentId);
+
+  const { data: submission, error } = await client
+    .from('assignment_submissions')
+    .select('id,assignment_id,student_id,answers,score,correct_count,total_questions,submitted_at')
+    .eq('id', submissionId)
+    .eq('student_id', studentId)
+    .maybeSingle();
+  if (error) throw error;
+  if (!submission) throw notFound('Không tìm thấy bài nộp.');
+
+  const [{ data: assignment, error: assignmentError }, { data: questions, error: questionError }, { data: feedback, error: feedbackError }] = await Promise.all([
+    client.from('assignments').select('id,title,published').eq('id', submission.assignment_id).maybeSingle(),
+    client.from('assignment_questions')
+      .select('position,type,question,options,answer,explanation')
+      .eq('assignment_id', submission.assignment_id)
+      .order('position'),
+    client.from('feedback')
+      .select('id,comment,created_at')
+      .eq('submission_id', submission.id)
+      .order('created_at', { ascending: false })
+  ]);
+  if (assignmentError) throw assignmentError;
+  if (questionError) throw questionError;
+  if (feedbackError) throw feedbackError;
+  if (!assignment?.published) throw notFound('Không tìm thấy bài tập.');
+
+  return {
+    kind: 'submission',
+    title: assignment.title,
+    submitted_at: submission.submitted_at,
+    score: Number(submission.score),
+    correct_count: submission.correct_count,
+    total_questions: submission.total_questions,
+    questions: buildSubmissionReview(questions || [], submission.answers),
+    feedback: feedback || []
+  };
+}
+
+async function getAttemptReview(parentId, studentId, attemptId) {
+  const client = getSupabaseAdminClient();
+  await assertLinked(client, parentId, studentId);
+
+  const { data: attempt, error } = await client
+    .from('quiz_attempts')
+    .select('id,title,chapter,score,total,questions,incorrect_answers,created_at')
+    .eq('id', attemptId)
+    .eq('student_id', studentId)
+    .maybeSingle();
+  if (error) throw error;
+  if (!attempt) throw notFound('Không tìm thấy lượt luyện tập.');
+
+  return {
+    kind: 'attempt',
+    title: attempt.title,
+    chapter: attempt.chapter,
+    submitted_at: attempt.created_at,
+    correct_count: attempt.score,
+    total_questions: attempt.total,
+    questions: buildAttemptReview(attempt),
+    feedback: []
   };
 }
 
@@ -250,6 +372,6 @@ async function respondToRequest(parentId, requestId, action) {
 }
 
 module.exports = {
-  getDashboard, listLinks, createLink, removeLink,
+  getDashboard, getSubmissionReview, getAttemptReview, listLinks, createLink, removeLink,
   getIncomingRequests, getStudentRequests, createLinkRequest, respondToRequest
 };

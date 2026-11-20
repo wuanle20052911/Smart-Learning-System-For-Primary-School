@@ -131,7 +131,27 @@ async function respondToRequest(req, res) {
   }
 }
 
+function reviewHandler(loadReview) {
+  return async (req, res) => {
+    res.set('Cache-Control', 'no-store');
+    const { studentId, itemId } = req.params;
+    if (!uuidPattern.test(studentId) || !uuidPattern.test(itemId)) {
+      return res.status(400).json({ error: 'Yêu cầu xem bài làm không hợp lệ.' });
+    }
+    try {
+      return res.json({ review: await loadReview(req.user.id, studentId, itemId) });
+    } catch (error) {
+      if (error.code === 'NOT_FOUND') return res.status(404).json({ error: error.message });
+      console.error('Could not load parent answer review:', error);
+      return res.status(500).json({ error: 'Không thể tải chi tiết bài làm của con.' });
+    }
+  };
+}
+
+const submissionReview = reviewHandler((...args) => parentModel.getSubmissionReview(...args));
+const attemptReview = reviewHandler((...args) => parentModel.getAttemptReview(...args));
+
 module.exports = {
-  parentOnly, studentOnly, adminOnly, dashboard, listLinks, createLink, removeLink,
+  parentOnly, studentOnly, adminOnly, dashboard, submissionReview, attemptReview, listLinks, createLink, removeLink,
   incomingRequests, myRequests, createRequest, respondToRequest
 };
