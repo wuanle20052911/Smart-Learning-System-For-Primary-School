@@ -1,0 +1,32 @@
+.sorting-game {
+  background:
+    linear-gradient(180deg, rgba(205, 235, 255, .12), rgba(228, 248, 220, .1)),
+    url("/public/img/MCUcXngQAdKyKdpnEufKG4UxTA7xkFaTDsWyiQnfbGrX_f3mtXyBEXKIlLBluXvaAHSFBqLEB_9aKfhYVTvlZCKDDimuMjkK0j5mv2l4Aefek-nDSe__XOsMbZODG5IWWNKPAWnnZlqZmVWodukMFYcEGClWG8arYwSBFSPgQDNq.jpg") center 48% / cover fixed;
+}
+
+.sorting-game::before { display: none; }
+.sorting-game .game-hero::before {
+  background:
+    radial-gradient(ellipse at 8% 12%, rgba(255, 227, 128, .18) 0 4px, transparent 5px),
+    repeating-linear-gradient(2deg, transparent 0 19px, rgba(96, 48, 17, .14) 20px 22px),
+    linear-gradient(180deg, #bd762f 0%, #a85e24 46%, #8d491d 100%);
+}
+.sorting-game .game-panel {
+  border-color: #b86f2d;
+  background: repeating-linear-gradient(0deg, transparent 0 23px, rgba(152, 100, 40, .045) 24px 25px), linear-gradient(#fff0cc, #f7dca8);
+}
+.sorting-game .item {
+  border: 3px solid #e7c58f;
+  border-radius: 20px;
+  background: linear-gradient(180deg, #fff8ed, #f6dfbd);
+  box-shadow: 0 4px 0 #c7a16e;
+}
+.sorting-game .moves button:first-child { background: linear-gradient(#9cf58e, #63c94e); color: #237d34; }
+.sorting-game .moves button:last-child { background: linear-gradient(#91b9ff, #55a9ed); color: white; }
+.sorting-game .primary { background: linear-gradient(180deg, #ffd275, #ffbd45); color: #754611; }
+.sorting-game .side-panel:first-child { background: linear-gradient(#fffdf5, #fff1d8); }
+.sorting-game .side-panel:nth-child(2) { background: linear-gradient(#c9e6ff, #55a9ed); }
+
+@media (max-width: 600px) {
+  .sorting-game { background-attachment: scroll; }
+}

@@ -32,53 +32,46 @@
     @media (max-width: 560px) { body { padding: 12px; } main { margin: 12px auto; border-radius: 20px; } .top { flex-direction: column; } .pair { gap: 7px; } }
   </style>
   <link rel="stylesheet" href="/public/games/game-ui.css">
+  <link rel="stylesheet" href="/public/games/so-sanh-so.css">
 </head>
-<body>
+<body class="comparison-game">
   <main>
     <header class="topbar">
       <div class="topbar-left"><a class="home back-button" href="/learn" aria-label="Về bài học">←</a><a class="brand" href="/learn"><span class="brand-copy"><strong>Toán Học Siêu Tốc</strong><small>MATHJOY · TOÁN LỚP 4</small></span></a></div>
       <div class="game-stats"><span class="stat-pill">⭐ <strong id="top-score">0</strong></span><span class="stat-pill">💎 <strong>100K</strong></span><span class="stat-pill">📘 <strong>TOÁN 4</strong></span></div>
     </header>
     <section class="game-hero">
-      <div class="hero-copy"><span class="hero-label">TRÒ CHƠI 2</span><h1>Ai lớn hơn?</h1><p>So sánh các số thật nhanh để chinh phục thử thách mỗi ngày!</p></div>
+      <div class="hero-copy"><span class="hero-label">TRÒ CHƠI 2 · THỬ THÁCH SO SÁNH</span><h1>So sánh số lớn hơn</h1><p>So sánh các số dưới đây và chọn dấu thích hợp.</p></div>
       <div class="hero-art" aria-hidden="true">⚖️</div>
-      <div class="hero-kid" aria-hidden="true"><svg viewBox="0 0 150 200">
-        <ellipse cx="76" cy="193" rx="43" ry="7" fill="rgba(48,72,37,.24)"/>
-        <path d="M58 157 L53 187 M94 157 L100 187" fill="none" stroke="#38538a" stroke-width="14" stroke-linecap="round"/>
-        <ellipse cx="51" cy="189" rx="12" ry="7" fill="#704629"/><ellipse cx="102" cy="189" rx="12" ry="7" fill="#704629"/>
-        <path d="M49 117 Q75 104 101 117 L111 160 Q78 176 42 160 Z" fill="#ffb629" stroke="#75451f" stroke-width="4" stroke-linejoin="round"/>
-        <path d="M53 125 L34 146 M99 123 Q117 111 124 76" fill="none" stroke="#75451f" stroke-width="12" stroke-linecap="round"/>
-        <path d="M123 78 Q111 70 116 60 Q121 52 128 63 Q134 51 141 58 Q146 66 133 81" fill="#ffd1a0" stroke="#75451f" stroke-width="3"/>
-        <path d="M62 112 L77 125 L92 112" fill="none" stroke="#fff1d2" stroke-width="5"/>
-        <path d="M39 59 Q29 18 70 15 Q111 12 113 54 L103 88 L48 86 Z" fill="#75401f" stroke="#5b321c" stroke-width="4"/>
-        <ellipse cx="76" cy="72" rx="38" ry="42" fill="#ffd2a0" stroke="#75451f" stroke-width="4"/>
-        <path d="M39 60 Q45 20 78 23 Q105 22 114 51 Q97 40 85 43 Q65 32 49 58 Z" fill="#6c3a1e"/>
-        <ellipse cx="62" cy="70" rx="5" ry="7" fill="#fff"/><ellipse cx="89" cy="70" rx="5" ry="7" fill="#fff"/>
-        <circle cx="63" cy="72" r="2.8" fill="#293451"/><circle cx="90" cy="72" r="2.8" fill="#293451"/>
-        <ellipse cx="50" cy="86" rx="7" ry="4" fill="#f39a89" opacity=".8"/><ellipse cx="101" cy="86" rx="7" ry="4" fill="#f39a89" opacity=".8"/>
-        <path d="M65 91 Q77 104 91 90 Q89 108 77 108 Q67 105 65 91" fill="#a74238"/>
-        <path d="M55 120 Q77 136 99 120" fill="none" stroke="#f4d94b" stroke-width="5"/>
-      </svg></div>
-      <div class="hero-status"><div class="counter"><span id="counter"></span><span id="score"></span></div><div class="game-progress" aria-label="Tiến độ"><span id="progress"></span></div></div>
+      <div class="hero-kid" aria-hidden="true"><img src="/public/img/adventure-boy-explorer.png" alt=""></div>
     </section>
     <div class="game-layout">
       <section id="play" class="game-panel">
-        <div class="game-panel-heading"><div><span class="panel-kicker">CHỌN DẤU SO SÁNH</span><h2>Số nào lớn hơn?</h2></div></div>
-        <div class="pair"><div id="left" class="value"></div><span class="question">?</span><div id="right" class="value"></div></div>
+        <div class="game-panel-heading"><div><span class="panel-kicker">CHỌN DẤU SO SÁNH</span><h2>Số nào lớn hơn?</h2></div><div class="counter"><span id="counter"></span><span id="score"></span></div></div>
+        <div class="game-progress" aria-label="Tiến độ"><span id="progress"></span></div>
+        <div class="pair"><div id="left" class="value number-left" data-label="SỐ THỨ NHẤT"></div><span class="question comparison-mark">?</span><div id="right" class="value number-right" data-label="SỐ THỨ HAI"></div></div>
         <p class="question">Điền dấu so sánh đúng:</p>
         <div id="operators" class="operators">
-          <button type="button" data-sign="&gt;">&gt;</button>
-          <button type="button" data-sign="=">=</button>
-          <button type="button" data-sign="&lt;">&lt;</button>
+          <button type="button" data-sign="&gt;" data-label="Lớn hơn" aria-label="Lớn hơn">&gt;</button>
+          <button type="button" data-sign="=" data-label="Bằng nhau" aria-label="Bằng nhau">=</button>
+          <button type="button" data-sign="&lt;" data-label="Bé hơn" aria-label="Bé hơn">&lt;</button>
         </div>
         <p id="feedback" class="feedback" role="status" aria-live="polite"></p>
         <div class="actions"><button id="next" class="primary" type="button" disabled>Thử cặp tiếp →</button></div>
       </section>
       <aside class="game-sidebar">
         <section class="side-panel"><span class="side-icon">🧠</span><span class="side-label">BÍ QUYẾT</span><h3>Đọc từng hàng</h3><p>Bắt đầu từ hàng chục nghìn. Hàng nào có chữ số lớn hơn thì số đó lớn hơn.</p><div class="quick-tip">Nhớ: &gt; là lớn hơn, &lt; là bé hơn, = là bằng nhau.</div></section>
-        <section class="side-panel"><div class="side-stat"><span class="side-stat-icon">⚖️</span><div><strong>5 cặp số</strong><small>Điểm hiện tại: <span id="side-score">0</span></small></div></div></section>
+        <section class="side-panel"><div class="side-stat"><span class="side-stat-icon">⭐</span><div><strong>5 cấp số</strong><small>Điểm hiện tại: <span id="side-score">0</span></small></div></div><div class="star-progress" aria-hidden="true">⭐ ☆ ☆ ☆ ☆</div></section>
       </aside>
     </div>
+    <section class="comparison-guide" aria-label="Cách so sánh số">
+      <span class="guide-ribbon">CÁCH SO SÁNH</span>
+      <div class="guide-steps">
+        <div><strong>Bước 1</strong><p>So sánh từ hàng cao nhất trước.</p></div>
+        <div><strong>Bước 2</strong><p>Nếu bằng nhau, lần lượt xét các hàng tiếp theo.</p></div>
+        <div class="guide-conclusion"><strong>Kết luận</strong><p>Hàng đầu tiên khác nhau quyết định số lớn hơn.</p></div>
+      </div>
+    </section>
     <section id="finish" class="finish" aria-live="polite"><div style="font-size:64px">🏆</div><h2 id="finish-title"></h2><p id="finish-score"></p><button class="primary" type="button" onclick="location.reload()">Chơi lại</button></section>
   </main>
   <script>

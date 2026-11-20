@@ -1,0 +1,190 @@
+.comparison-game {
+  background:
+    linear-gradient(180deg, rgba(225, 246, 255, .1), rgba(224, 245, 220, .12)),
+    url("/public/img/QTsTkVNnEPOXRKZvQHHIkrIGJPY1waMN4MTgBLqF8LCIExXEqKmWuwaYq3HZ-p9yFVxjcGdGX86AyHIgzOxgcaijPIFN9Tc4BYqXckuNha4-K1azEejgpOFFtFBTvDTsYy8JmjulLDyLl2HdnmfFbewMOlYYyEL0vlaCVenjnrCJ.jpg") center / cover fixed;
+}
+
+.comparison-game::before,
+.comparison-game::after { display: none; }
+.comparison-game main { max-width: 1280px; padding: 12px 22px 24px; }
+.comparison-game .topbar {
+  position: absolute;
+  z-index: 5;
+  top: 10px;
+  left: 12px;
+  width: auto;
+  min-height: 0;
+  margin: 0;
+}
+.comparison-game .brand,
+.comparison-game .game-stats { display: none; }
+.comparison-game .topbar-left { gap: 0; }
+.comparison-game .game-hero {
+  grid-template-columns: minmax(0, 1fr) 0 minmax(130px, 16%);
+  grid-template-rows: minmax(0, 1fr);
+  height: 150px;
+  min-height: 150px;
+  margin: 0 0 12px;
+}
+.comparison-game .game-hero::before {
+  inset: 0 110px 0 0;
+  border-color: #784019;
+  background: repeating-linear-gradient(2deg, transparent 0 18px, rgba(96, 48, 17, .13) 19px 21px), linear-gradient(#c57a2f, #914719);
+}
+.comparison-game .game-hero::after { right: 155px; }
+.comparison-game .hero-copy {
+  grid-column: 1 / 3;
+  grid-row: 1;
+  min-height: 130px;
+  padding: 20px 36px;
+  text-align: center;
+}
+.comparison-game .hero-label { padding: 4px 12px; }
+.comparison-game .hero-copy h1 { margin: 4px 0; font-size: clamp(25px, 3.8vw, 40px); }
+.comparison-game .hero-copy p { margin: 0 auto; font-size: 14px; }
+.comparison-game .hero-art { display: none; }
+.comparison-game .hero-kid { grid-column: 3; grid-row: 1; width: 155px; height: 130px; margin-top: 20px; }
+.comparison-game .game-layout {
+  grid-template-columns: minmax(0, 3fr) minmax(215px, 1fr);
+  gap: 12px;
+  margin-top: 0;
+}
+.comparison-game .game-panel {
+  padding: 15px 18px;
+  border: 5px solid #bd823d;
+  border-radius: 22px;
+  background: linear-gradient(145deg, #fff4dc, #ffe9be);
+  box-shadow: 0 7px 0 #97632e, inset 0 0 0 3px #fff0cf;
+}
+.comparison-game .game-panel-heading h2 { color: #5b3518; font-size: 21px; }
+.comparison-game .counter { gap: 5px; font-size: 11px; }
+.comparison-game .counter span { padding: 5px 8px; border-color: #e6c38b; border-radius: 10px; background: #fff3d9; color: #68431c; }
+.comparison-game .game-progress { height: 10px; margin: 9px 0; border-color: white; background: #e8d1a6; }
+.comparison-game .game-progress span { background: linear-gradient(90deg, #ffbf35, #ff8a32); }
+.comparison-game .pair { gap: 12px; margin: 12px 0; }
+.comparison-game .value {
+  display: grid;
+  min-height: 104px;
+  place-content: center;
+  gap: 5px;
+  padding: 12px;
+  border: 3px solid #9bc9ef;
+  border-radius: 18px;
+  background: linear-gradient(#eff8ff, #dceeff);
+  color: #2867a7;
+  font-size: clamp(26px, 4vw, 40px);
+  box-shadow: 0 4px 0 #b0cce3;
+}
+.comparison-game .value::before { content: attr(data-label); color: #52779a; font-size: 10px; letter-spacing: .08em; }
+.comparison-game .number-right { border-color: #b3d58c; background: linear-gradient(#f7ffeb, #e6f4ce); color: #3c742e; }
+.comparison-game .number-right::before { color: #5b8843; }
+.comparison-game .comparison-mark {
+  display: grid;
+  width: 48px;
+  height: 48px;
+  place-items: center;
+  border: 2px dashed #caa66e;
+  border-radius: 12px;
+  color: #3674ad;
+  font-size: 30px;
+}
+.comparison-game .game-panel > .question { min-height: 0; margin: 8px 0 12px; color: #654623; font-size: 15px; }
+.comparison-game .operators { gap: 10px; }
+.comparison-game .operators button {
+  display: grid;
+  min-height: 76px;
+  place-content: center;
+  gap: 0;
+  border: 2px solid #e3c18c;
+  border-radius: 16px;
+  background: linear-gradient(#fff5df, #ffe8bf);
+  box-shadow: 0 4px 0 #cba565;
+  color: #dd397a;
+  font-size: 36px;
+}
+.comparison-game .operators button:nth-child(2) { color: #ef8a12; }
+.comparison-game .operators button::after { content: attr(data-label); color: #654623; font-size: 11px; }
+.comparison-game .operators button:hover:not(:disabled) { transform: translateY(-2px); background: #fff8e9; }
+.comparison-game .feedback { min-height: 0; margin: 8px 0; padding: 8px 10px; font-size: 12px; }
+.comparison-game .actions { margin-top: 8px; }
+.comparison-game .primary {
+  min-height: 42px;
+  padding: 8px 16px;
+  border-color: white;
+  border-radius: 14px;
+  background: linear-gradient(#ffc94f, #ff9d23);
+  color: #754611;
+  font-size: 13px;
+}
+.comparison-game .game-sidebar { grid-template-columns: 1fr; gap: 10px; }
+.comparison-game .side-panel:first-child {
+  padding: 16px;
+  border: 5px solid #bd823d;
+  border-radius: 20px;
+  background: linear-gradient(#fff9e9, #ffedc8);
+  box-shadow: 0 6px 0 #97632e;
+}
+.comparison-game .side-panel:first-child .side-label {
+  padding: 4px 12px;
+  border: 2px solid #684b9f;
+  border-radius: 7px;
+  background: linear-gradient(#a983ed, #7551c6);
+  color: white;
+}
+.comparison-game .side-panel h3 { color: #463018; }
+.comparison-game .side-panel p { color: #5f513f; }
+.comparison-game .quick-tip { border: 2px solid #e6c27f; background: #fff5dd; color: #3e668f; }
+.comparison-game .side-panel:nth-child(2) { border-color: #ba8747; background: linear-gradient(#fff4d8, #f2d99f); box-shadow: 0 5px 0 #97632e; }
+.comparison-game .side-stat-icon { border-radius: 50%; background: linear-gradient(#ffe785, #f1ad32); }
+.comparison-game .star-progress { margin: 8px 0 0 53px; color: #d6aa59; font-size: 17px; letter-spacing: 2px; }
+.comparison-game .comparison-guide {
+  position: relative;
+  margin-top: 12px;
+  padding: 34px 18px 14px;
+  border: 5px solid #b77c39;
+  border-radius: 20px;
+  background: linear-gradient(#fff4dc, #ffe6b4);
+  box-shadow: 0 6px 0 #895a2d;
+}
+.comparison-game .guide-ribbon {
+  position: absolute;
+  top: -13px;
+  left: 14%;
+  padding: 5px 24px;
+  border: 3px solid #684b9f;
+  border-radius: 8px;
+  background: linear-gradient(#a983ed, #7551c6);
+  color: white;
+  font-weight: 900;
+}
+.comparison-game .guide-steps { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+.comparison-game .guide-steps > div { padding: 4px 8px; }
+.comparison-game .guide-steps strong { color: #7845d3; }
+.comparison-game .guide-steps p { margin: 4px 0 0; color: #5f4b32; font-size: 13px; line-height: 1.4; }
+.comparison-game .guide-conclusion { border: 2px dashed #bda0e8; border-radius: 12px; }
+
+@media (max-width: 820px) {
+  .comparison-game .game-layout { grid-template-columns: minmax(0, 1fr); }
+  .comparison-game .game-sidebar { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 600px) {
+  .comparison-game { background-attachment: scroll; }
+  .comparison-game main { padding: 12px 10px 24px; }
+  .comparison-game .game-hero { grid-template-columns: minmax(0, 1fr) 86px; height: 138px; min-height: 138px; }
+  .comparison-game .game-hero::before { inset: 0 50px 0 0; }
+  .comparison-game .hero-copy { grid-column: 1 / 3; min-height: 128px; padding: 18px 54px 14px 18px; }
+  .comparison-game .hero-kid { display: none; }
+  .comparison-game .topbar { top: 6px; left: 6px; }
+  .comparison-game .back-button { width: 38px; min-height: 38px; }
+  .comparison-game .game-panel-heading { align-items: flex-start; flex-direction: column; gap: 8px; }
+  .comparison-game .pair { gap: 6px; }
+  .comparison-game .value { min-height: 80px; padding: 8px 4px; font-size: 24px; }
+  .comparison-game .comparison-mark { width: 35px; height: 35px; }
+  .comparison-game .operators { gap: 6px; }
+  .comparison-game .operators button { min-height: 66px; padding: 4px; font-size: 28px; }
+  .comparison-game .operators button::after { font-size: 9px; }
+  .comparison-game .game-sidebar { grid-template-columns: 1fr; }
+  .comparison-game .guide-steps { grid-template-columns: 1fr; gap: 4px; }
+  .comparison-game .guide-conclusion { border: 0; }
+}
