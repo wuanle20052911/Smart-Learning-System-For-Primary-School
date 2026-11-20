@@ -33,19 +33,32 @@
     .finish { display: none; padding: 24px 0 4px; text-align: center; }
     @media (max-width: 560px) { body { padding: 12px; } main { margin: 12px auto; border-radius: 20px; } .top { flex-direction: column; } .value { font-size: 17px; } }
   </style>
+  <link rel="stylesheet" href="/public/games/game-ui.css">
 </head>
 <body>
   <main>
-    <div class="top"><span>🪨 TOÁN LỚP 4 · SẮP XẾP ĐẾN 100 000</span><a class="home" href="/learn">← Về bài học</a></div>
-    <h1>Đường đua sắp xếp</h1>
-    <p>Xếp các hòn đá mang số theo thứ tự từ bé đến lớn để giúp các bạn qua cầu.</p>
-    <section id="play">
-      <div class="counter"><span id="round"></span><span id="score"></span></div>
-      <div id="prompt" class="prompt"></div>
-      <ol id="items" class="items" aria-label="Các số cần sắp xếp tăng dần"></ol>
-      <p id="feedback" class="feedback" role="status" aria-live="polite"></p>
-      <div class="actions"><button id="check" class="primary" type="button">Kiểm tra thứ tự</button><button id="next" class="primary" type="button" hidden>Chặng tiếp →</button></div>
+    <header class="topbar">
+      <a class="brand" href="/learn"><span class="brand-mark">🌟</span><span class="brand-copy"><strong>Toán Học Siêu Tốc</strong><small>MATHJOY · TOÁN LỚP 4</small></span></a>
+      <a class="home" href="/learn">← Về bài học</a>
+    </header>
+    <section class="game-hero">
+      <div class="hero-copy"><span class="hero-label">TRÒ CHƠI 1 · THỬ THÁCH SẮP XẾP</span><h1>Đường đua sắp xếp</h1><p>Xếp các hòn đá mang số theo thứ tự từ bé đến lớn để giúp các bạn qua cầu.</p></div>
+      <div class="hero-art" aria-hidden="true">🪨</div>
     </section>
+    <div class="game-layout">
+      <section id="play" class="game-panel">
+        <div class="game-panel-heading"><div><span class="panel-kicker">THỬ THÁCH TĂNG DẦN</span><h2>Xếp các số theo thứ tự</h2></div><div class="counter"><span id="round"></span><span id="score"></span></div></div>
+        <div class="game-progress" aria-label="Tiến độ"><span id="progress"></span></div>
+        <div id="prompt" class="prompt"></div>
+        <ol id="items" class="items" aria-label="Các số cần sắp xếp tăng dần"></ol>
+        <p id="feedback" class="feedback" role="status" aria-live="polite"></p>
+        <div class="actions"><button id="check" class="primary" type="button">Kiểm tra thứ tự</button><button id="next" class="primary" type="button" hidden>Chặng tiếp →</button></div>
+      </section>
+      <aside class="game-sidebar">
+        <section class="side-panel"><span class="side-icon">💡</span><span class="side-label">MẸO HAY</span><h3>So sánh từ hàng lớn nhất</h3><p>Nhìn hàng chục nghìn trước. Nếu bằng nhau, so tiếp hàng nghìn, hàng trăm rồi đến hàng chục.</p><div class="quick-tip">Số có ít chữ số hơn luôn bé hơn số có nhiều chữ số.</div></section>
+        <section class="side-panel"><div class="side-stat"><span class="side-stat-icon">🏁</span><div><strong>3 chặng vui</strong><small>Mỗi chặng có 4 số cần xếp</small></div></div></section>
+      </aside>
+    </div>
     <section id="finish" class="finish" aria-live="polite"><div style="font-size:64px">🏁</div><h2 id="finish-title"></h2><p id="finish-score"></p><button class="primary" type="button" onclick="location.reload()">Chơi lại</button></section>
   </main>
   <script>
@@ -67,6 +80,7 @@
       completed = false;
       document.getElementById('round').textContent = `Chặng ${index + 1}/${rounds.length}`;
       document.getElementById('score').textContent = `⭐ ${score} điểm`;
+      document.getElementById('progress').style.width = `${((index + 1) / rounds.length) * 100}%`;
       document.getElementById('prompt').textContent = 'Dùng mũi tên để xếp các số theo thứ tự tăng dần.';
       feedback.textContent = '';
       feedback.className = 'feedback';

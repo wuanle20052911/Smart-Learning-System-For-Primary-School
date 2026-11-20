@@ -31,24 +31,37 @@
     .finish { display: none; padding: 24px 0 4px; text-align: center; }
     @media (max-width: 560px) { body { padding: 12px; } main { margin: 12px auto; border-radius: 20px; } .top { flex-direction: column; } .pair { gap: 7px; } }
   </style>
+  <link rel="stylesheet" href="/public/games/game-ui.css">
 </head>
 <body>
   <main>
-    <div class="top"><span>⚖️ TOÁN LỚP 4 · SO SÁNH SỐ ĐẾN 100 000</span><a class="home" href="/learn">← Về bài học</a></div>
-    <h1>Ai lớn hơn?</h1>
-    <p>Chọn dấu thích hợp để so sánh hai số. Hãy nhìn hàng cao nhất trước nhé.</p>
-    <section id="play">
-      <div class="counter"><span id="counter"></span><span id="score"></span></div>
-      <div class="pair"><div id="left" class="value"></div><span class="question">?</span><div id="right" class="value"></div></div>
-      <p class="question">Điền dấu so sánh đúng:</p>
-      <div id="operators" class="operators">
-        <button type="button" data-sign="&gt;">&gt;</button>
-        <button type="button" data-sign="=">=</button>
-        <button type="button" data-sign="&lt;">&lt;</button>
-      </div>
-      <p id="feedback" class="feedback" role="status" aria-live="polite"></p>
-      <div class="actions"><button id="next" class="primary" type="button" disabled>Thử cặp tiếp →</button></div>
+    <header class="topbar">
+      <a class="brand" href="/learn"><span class="brand-mark">🌟</span><span class="brand-copy"><strong>Toán Học Siêu Tốc</strong><small>MATHJOY · TOÁN LỚP 4</small></span></a>
+      <a class="home" href="/learn">← Về bài học</a>
+    </header>
+    <section class="game-hero">
+      <div class="hero-copy"><span class="hero-label">TRÒ CHƠI 2 · THỬ THÁCH SO SÁNH</span><h1>Ai lớn hơn?</h1><p>Chọn dấu thích hợp để so sánh hai số. Hãy nhìn hàng cao nhất trước nhé.</p></div>
+      <div class="hero-art" aria-hidden="true">⚖️</div>
     </section>
+    <div class="game-layout">
+      <section id="play" class="game-panel">
+        <div class="game-panel-heading"><div><span class="panel-kicker">CHỌN DẤU SO SÁNH</span><h2>Số nào lớn hơn?</h2></div><div class="counter"><span id="counter"></span><span id="score"></span></div></div>
+        <div class="game-progress" aria-label="Tiến độ"><span id="progress"></span></div>
+        <div class="pair"><div id="left" class="value"></div><span class="question">?</span><div id="right" class="value"></div></div>
+        <p class="question">Điền dấu so sánh đúng:</p>
+        <div id="operators" class="operators">
+          <button type="button" data-sign="&gt;">&gt;</button>
+          <button type="button" data-sign="=">=</button>
+          <button type="button" data-sign="&lt;">&lt;</button>
+        </div>
+        <p id="feedback" class="feedback" role="status" aria-live="polite"></p>
+        <div class="actions"><button id="next" class="primary" type="button" disabled>Thử cặp tiếp →</button></div>
+      </section>
+      <aside class="game-sidebar">
+        <section class="side-panel"><span class="side-icon">🧠</span><span class="side-label">BÍ QUYẾT</span><h3>Đọc từng hàng</h3><p>Bắt đầu từ hàng chục nghìn. Hàng nào có chữ số lớn hơn thì số đó lớn hơn.</p><div class="quick-tip">Nhớ: &gt; là lớn hơn, &lt; là bé hơn, = là bằng nhau.</div></section>
+        <section class="side-panel"><div class="side-stat"><span class="side-stat-icon">⚖️</span><div><strong>5 cặp số</strong><small>Điểm hiện tại: <span id="side-score">0</span></small></div></div></section>
+      </aside>
+    </div>
     <section id="finish" class="finish" aria-live="polite"><div style="font-size:64px">🏆</div><h2 id="finish-title"></h2><p id="finish-score"></p><button class="primary" type="button" onclick="location.reload()">Chơi lại</button></section>
   </main>
   <script>
@@ -70,6 +83,8 @@
       const round = rounds[index];
       document.getElementById('counter').textContent = `Cặp số ${index + 1}/${rounds.length}`;
       document.getElementById('score').textContent = `⭐ ${score} điểm`;
+      document.getElementById('side-score').textContent = String(score);
+      document.getElementById('progress').style.width = `${((index + 1) / rounds.length) * 100}%`;
       document.getElementById('left').textContent = round.left.toLocaleString('vi-VN');
       document.getElementById('right').textContent = round.right.toLocaleString('vi-VN');
       feedback.textContent = '';
@@ -88,6 +103,7 @@
       feedback.textContent = `${correct ? 'Chính xác! ' : 'Cùng so sánh từng hàng nhé. '}${round.explanation}`;
       feedback.classList.add(correct ? 'good' : 'bad');
       document.getElementById('score').textContent = `⭐ ${score} điểm`;
+      document.getElementById('side-score').textContent = String(score);
       next.disabled = false;
     }));
     next.addEventListener('click', () => {
