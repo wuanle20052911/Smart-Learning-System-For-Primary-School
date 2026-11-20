@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Giải mã hàng số | MathJoy</title>
+  <style>
+    :root { font-family: "Trebuchet MS", Arial, sans-serif; color: #293857; background: #f3fbff; }
+    * { box-sizing: border-box; }
+    body { min-height: 100vh; margin: 0; padding: 24px; background: radial-gradient(circle at 8% 8%, #fff1c8 0 10%, transparent 11%), linear-gradient(145deg, #eefaff, #f8f2ff); }
+    main { width: min(100%, 760px); margin: 24px auto; padding: clamp(22px, 5vw, 42px); border: 2px solid #d4e8f2; border-radius: 28px; background: white; box-shadow: 0 18px 45px #345b6b20; }
+    .top { display: flex; justify-content: space-between; gap: 12px; color: #3982a0; font-size: 13px; font-weight: 800; }
+    .home { color: #5e4bc4; }
+    h1 { margin: 16px 0 8px; color: #285d70; font-size: clamp(28px, 6vw, 42px); }
+    p { line-height: 1.65; }
+    .counter { display: flex; justify-content: space-between; margin: 20px 0; color: #66718c; font-weight: 800; }
+    .number-card { margin: 22px 0; padding: 22px 14px; border-radius: 18px; background: #eaf8ff; text-align: center; }
+    .number-card small { color: #3982a0; font-weight: 900; letter-spacing: .1em; }
+    .number-card strong { display: block; margin-top: 7px; color: #285d70; font-size: clamp(42px, 12vw, 68px); }
+    .question { min-height: 52px; font-size: 18px; font-weight: 800; text-align: center; }
+    .answers { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+    button { min-height: 56px; padding: 12px; border: 2px solid #d5e8ef; border-radius: 14px; background: #f8fdff; color: #31596a; font: inherit; font-size: 17px; font-weight: 900; cursor: pointer; }
+    button:hover:not(:disabled) { border-color: #55a3bd; background: #eaf8ff; }
+    button:focus-visible { outline: 3px solid #247a9a; outline-offset: 2px; }
+    button:disabled { cursor: default; opacity: .7; }
+    .feedback { min-height: 48px; margin: 16px 0; font-weight: 800; line-height: 1.5; text-align: center; }
+    .good { color: #21814e; }
+    .bad { color: #a45b25; }
+    .actions { display: flex; justify-content: flex-end; }
+    .primary { min-height: 50px; padding: 10px 18px; border: 0; background: #3982a0; color: white; font-size: 15px; }
+    .primary:hover:not(:disabled) { background: #286d89; }
+    .finish { display: none; padding: 24px 0 4px; text-align: center; }
+    @media (max-width: 560px) { body { padding: 12px; } main { margin: 12px auto; border-radius: 20px; } .top { flex-direction: column; } .answers { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="top"><span>🔎 TOÁN LỚP 4 · CẤU TẠO SỐ ĐẾN 100 000</span><a class="home" href="/learn">← Về bài học</a></div>
+    <h1>Giải mã hàng số</h1>
+    <p>Tìm đúng giá trị của chữ số hoặc ghép các hàng để mở khóa kho báu.</p>
+    <section id="play">
+      <div class="counter"><span id="counter"></span><span id="score"></span></div>
+      <div class="number-card"><small>SỐ BÍ ẨN</small><strong id="number"></strong></div>
+      <p id="question" class="question"></p>
+      <div id="answers" class="answers"></div>
+      <p id="feedback" class="feedback" role="status" aria-live="polite"></p>
+      <div class="actions"><button id="next" class="primary" type="button" disabled>Thử thách tiếp →</button></div>
+    </section>
+    <section id="finish" class="finish" aria-live="polite"><div style="font-size:64px">💎</div><h2 id="finish-title"></h2><p id="finish-score"></p><button class="primary" type="button" onclick="location.reload()">Chơi lại</button></section>
+  </main>
+  <script>
+    const rounds = [
+      { number: 67482, question: 'Chữ số 7 có giá trị là bao nhiêu?', options: [7000, 700, 70000, 70], answer: 7000, explanation: 'Chữ số 7 ở hàng nghìn nên có giá trị là 7.000.' },
+      { number: 93054, question: 'Chữ số 3 có giá trị là bao nhiêu?', options: [300, 3000, 30000, 30], answer: 3000, explanation: 'Chữ số 3 ở hàng nghìn nên có giá trị là 3.000.' },
+      { number: 40276, question: 'Chữ số 4 có giá trị là bao nhiêu?', options: [4000, 40000, 400, 4], answer: 40000, explanation: 'Chữ số 4 ở hàng chục nghìn nên có giá trị là 40.000.' },
+      { number: 52631, question: 'Chữ số 6 có giá trị là bao nhiêu?', options: [6000, 60, 600, 60000], answer: 600, explanation: 'Chữ số 6 ở hàng trăm nên có giá trị là 600.' },
+      { number: null, question: '20.000 + 5.000 + 300 + 40 + 6 bằng số nào?', options: [25346, 250346, 205346, 253406], answer: 25346, explanation: 'Ghép các hàng chục nghìn, nghìn, trăm, chục, đơn vị được 25.346.' },
+      { number: 81709, question: 'Chữ số 7 có giá trị là bao nhiêu?', options: [7000, 70, 700, 70000], answer: 700, explanation: 'Trong 81.709, chữ số 7 ở hàng trăm nên có giá trị là 700.' }
+    ];
+    let index = 0;
+    let score = 0;
+    let locked = false;
+    const answers = document.getElementById('answers');
+    const feedback = document.getElementById('feedback');
+    const next = document.getElementById('next');
+    function render() {
+      const round = rounds[index];
+      locked = false;
+      document.getElementById('counter').textContent = `Mật mã ${index + 1}/${rounds.length}`;
+      document.getElementById('score').textContent = `⭐ ${score} điểm`;
+      document.getElementById('number').textContent = round.number === null ? '—' : round.number.toLocaleString('vi-VN');
+      document.getElementById('number').parentElement.style.display = round.number === null ? 'none' : '';
+      document.getElementById('question').textContent = round.question;
+      feedback.textContent = '';
+      feedback.className = 'feedback';
+      next.disabled = true;
+      next.textContent = index === rounds.length - 1 ? 'Mở kho báu →' : 'Thử thách tiếp →';
+      answers.replaceChildren(...round.options.map((value) => {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.textContent = value.toLocaleString('vi-VN');
+        button.addEventListener('click', () => answer(value));
+        return button;
+      }));
+    }
+    function answer(value) {
+      if (locked) return;
+      locked = true;
+      const round = rounds[index];
+      const correct = value === round.answer;
+      if (correct) score += 1;
+      [...answers.children].forEach((button) => { button.disabled = true; });
+      feedback.textContent = `${correct ? 'Giải mã đúng! ' : 'Cùng xem lại từng hàng nhé. '}${round.explanation}`;
+      feedback.classList.add(correct ? 'good' : 'bad');
+      document.getElementById('score').textContent = `⭐ ${score} điểm`;
+      next.disabled = false;
+    }
+    next.addEventListener('click', () => {
+      index += 1;
+      if (index < rounds.length) return render();
+      document.getElementById('play').hidden = true;
+      document.getElementById('finish-title').textContent = score === rounds.length ? 'Mở kho báu hoàn hảo!' : 'Kho báu đã mở!';
+      document.getElementById('finish-score').textContent = `Con giải đúng ${score}/${rounds.length} mật mã.`;
+      document.getElementById('finish').style.display = 'block';
+    });
+    render();
+  </script>
+</body>
+</html>

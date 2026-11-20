@@ -266,7 +266,7 @@ Thời gian chờ mặc định cho cả lượt tạo và rà soát là 5 phút
 
 ### Truyện ảnh bài học và trò chơi nối tiếp
 
-Với bài học về số chẵn, số lẻ có truyện ảnh, học sinh lần lượt xem hết các ảnh trước khi mở màn chọn trò chơi. Có ba trò chơi HTML độc lập trong `public/games/`: nhận biết số chẵn/lẻ, phân loại số và giải mật mã chữ số tận cùng. Từ màn chọn game, học sinh có thể quay lại truyện hoặc tiếp tục vào nội dung bài học.
+Với bài học ôn tập các số đến 100 000 có truyện ảnh, học sinh lần lượt xem hết các ảnh trước khi mở màn chọn trò chơi. Có ba trò chơi HTML độc lập trong `public/games/`: sắp xếp số tăng dần, so sánh số và giải mã hàng/chữ số. Từ màn chọn game, học sinh có thể quay lại truyện hoặc tiếp tục vào nội dung bài học.
 
 ### POST /api/download-quiz
 

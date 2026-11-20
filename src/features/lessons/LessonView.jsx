@@ -41,7 +41,7 @@ export default function LessonView({ lesson, onBack, onComplete, onStudyActivity
     getLessonDescription(lesson),
     ...storySlides.map((slide) => slide.caption)
   ].filter(Boolean).join(' ');
-  const hasParityTopic = /(?:số\s+chẵn|số\s+lẻ|chẵn.{0,40}lẻ|lẻ.{0,40}chẵn)/i.test(storyContext);
+  const hasNumbersTo100000Topic = /100[\s.]?000|trăm\s+nghìn/i.test(storyContext);
   const hasReadWholeStory = storySlides.length > 0 && visitedStorySlides.size === storySlides.length;
   useEffect(() => {
     if (!isDocx || !materialEndpoint) {
@@ -201,7 +201,7 @@ export default function LessonView({ lesson, onBack, onComplete, onStudyActivity
         <div className="lesson-story-controls"><button type="button" onClick={() => visitStorySlide(Math.max(0, storyIndex - 1))} disabled={storyIndex === 0}>← Trước</button><span>Ảnh {storyIndex + 1} / {storySlides.length}</span><button type="button" onClick={() => visitStorySlide(Math.min(storySlides.length - 1, storyIndex + 1))} disabled={storyIndex === storySlides.length - 1}>Tiếp →</button></div>
         <div className="lesson-story-dots" aria-label="Chọn ảnh"><span>{storySlides.map((slide, index) => <button key={`${slide.path}-${index}`} type="button" className={index === storyIndex ? 'active' : ''} aria-label={`Xem ảnh ${index + 1}`} aria-current={index === storyIndex ? 'step' : undefined} onClick={() => visitStorySlide(index)} />)}</span></div>
       </> : !storyLoading && <p className="lesson-story-status">Câu chuyện chưa có ảnh để hiển thị.</p>}
-      {hasParityTopic && storySlides.length > 0
+      {hasNumbersTo100000Topic && storySlides.length > 0
         ? <button className="lesson-story-start" type="button" disabled={storyLoading || !hasReadWholeStory} onClick={() => setShowLessonGames(true)}>
           {hasReadWholeStory ? 'Đọc xong truyện · Chơi game →' : `Đọc hết truyện để mở game (${visitedStorySlides.size}/${storySlides.length})`}
         </button>

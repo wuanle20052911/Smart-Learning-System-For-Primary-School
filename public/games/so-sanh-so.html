@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Ai lớn hơn? | MathJoy</title>
+  <style>
+    :root { font-family: "Trebuchet MS", Arial, sans-serif; color: #293857; background: #fff8ec; }
+    * { box-sizing: border-box; }
+    body { min-height: 100vh; margin: 0; padding: 24px; background: radial-gradient(circle at 92% 8%, #e0f3ff 0 10%, transparent 11%), linear-gradient(145deg, #fff8ec, #f2f4ff); }
+    main { width: min(100%, 740px); margin: 24px auto; padding: clamp(22px, 5vw, 42px); border: 2px solid #eee1cc; border-radius: 28px; background: white; box-shadow: 0 18px 45px #66522b20; }
+    .top { display: flex; justify-content: space-between; gap: 12px; color: #b17d3f; font-size: 13px; font-weight: 800; }
+    .home { color: #5e4bc4; }
+    h1 { margin: 16px 0 8px; color: #674b2f; font-size: clamp(28px, 6vw, 42px); }
+    p { line-height: 1.65; }
+    .counter { display: flex; justify-content: space-between; margin: 22px 0; color: #66718c; font-weight: 800; }
+    .pair { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 14px; margin: 24px 0; }
+    .value { padding: 24px 10px; border: 2px solid #efe1c9; border-radius: 18px; background: #fffaf0; color: #674b2f; font-size: clamp(25px, 7vw, 42px); font-weight: 900; text-align: center; }
+    .question { color: #65728a; font-size: 18px; font-weight: 800; text-align: center; }
+    .operators { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+    button { min-height: 62px; border: 2px solid #e8dfd1; border-radius: 15px; background: #fffdf8; color: #574735; font: inherit; font-size: 28px; font-weight: 900; cursor: pointer; }
+    button:hover:not(:disabled) { border-color: #dbac61; background: #fff4d9; }
+    button:focus-visible { outline: 3px solid #8a5d19; outline-offset: 2px; }
+    button:disabled { cursor: default; opacity: .7; }
+    .feedback { min-height: 48px; margin: 16px 0; font-weight: 800; line-height: 1.5; text-align: center; }
+    .good { color: #21814e; }
+    .bad { color: #a45b25; }
+    .actions { display: flex; justify-content: flex-end; margin-top: 14px; }
+    .primary { min-height: 50px; padding: 10px 18px; border: 0; background: #b17d3f; color: white; font-size: 15px; }
+    .primary:hover:not(:disabled) { background: #94652f; }
+    .finish { display: none; padding: 24px 0 4px; text-align: center; }
+    @media (max-width: 560px) { body { padding: 12px; } main { margin: 12px auto; border-radius: 20px; } .top { flex-direction: column; } .pair { gap: 7px; } }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="top"><span>⚖️ TOÁN LỚP 4 · SO SÁNH SỐ ĐẾN 100 000</span><a class="home" href="/learn">← Về bài học</a></div>
+    <h1>Ai lớn hơn?</h1>
+    <p>Chọn dấu thích hợp để so sánh hai số. Hãy nhìn hàng cao nhất trước nhé.</p>
+    <section id="play">
+      <div class="counter"><span id="counter"></span><span id="score"></span></div>
+      <div class="pair"><div id="left" class="value"></div><span class="question">?</span><div id="right" class="value"></div></div>
+      <p class="question">Điền dấu so sánh đúng:</p>
+      <div id="operators" class="operators">
+        <button type="button" data-sign="&gt;">&gt;</button>
+        <button type="button" data-sign="=">=</button>
+        <button type="button" data-sign="&lt;">&lt;</button>
+      </div>
+      <p id="feedback" class="feedback" role="status" aria-live="polite"></p>
+      <div class="actions"><button id="next" class="primary" type="button" disabled>Thử cặp tiếp →</button></div>
+    </section>
+    <section id="finish" class="finish" aria-live="polite"><div style="font-size:64px">🏆</div><h2 id="finish-title"></h2><p id="finish-score"></p><button class="primary" type="button" onclick="location.reload()">Chơi lại</button></section>
+  </main>
+  <script>
+    const rounds = [
+      { left: 45100, right: 67400, sign: '<', explanation: 'Ở hàng chục nghìn, 4 bé hơn 6 nên 45.100 bé hơn 67.400.' },
+      { left: 31005, right: 30999, sign: '>', explanation: '31.005 lớn hơn 30.999 vì ở hàng nghìn, 1 lớn hơn 0.' },
+      { left: 8999, right: 15230, sign: '<', explanation: '8.999 có bốn chữ số, còn 15.230 có năm chữ số.' },
+      { left: 50000, right: 50000, sign: '=', explanation: 'Hai số có các chữ số ở cùng hàng bằng nhau.' },
+      { left: 99990, right: 99909, sign: '>', explanation: 'Các hàng cao bằng nhau; ở hàng chục, 9 lớn hơn 0.' }
+    ];
+    let index = 0;
+    let score = 0;
+    let locked = false;
+    const feedback = document.getElementById('feedback');
+    const next = document.getElementById('next');
+    const buttons = [...document.querySelectorAll('[data-sign]')];
+    function render() {
+      locked = false;
+      const round = rounds[index];
+      document.getElementById('counter').textContent = `Cặp số ${index + 1}/${rounds.length}`;
+      document.getElementById('score').textContent = `⭐ ${score} điểm`;
+      document.getElementById('left').textContent = round.left.toLocaleString('vi-VN');
+      document.getElementById('right').textContent = round.right.toLocaleString('vi-VN');
+      feedback.textContent = '';
+      feedback.className = 'feedback';
+      buttons.forEach((button) => { button.disabled = false; });
+      next.disabled = true;
+      next.textContent = index === rounds.length - 1 ? 'Xem kết quả →' : 'Thử cặp tiếp →';
+    }
+    buttons.forEach((button) => button.addEventListener('click', () => {
+      if (locked) return;
+      locked = true;
+      const round = rounds[index];
+      const correct = button.dataset.sign === round.sign;
+      if (correct) score += 1;
+      buttons.forEach((item) => { item.disabled = true; });
+      feedback.textContent = `${correct ? 'Chính xác! ' : 'Cùng so sánh từng hàng nhé. '}${round.explanation}`;
+      feedback.classList.add(correct ? 'good' : 'bad');
+      document.getElementById('score').textContent = `⭐ ${score} điểm`;
+      next.disabled = false;
+    }));
+    next.addEventListener('click', () => {
+      index += 1;
+      if (index < rounds.length) return render();
+      document.getElementById('play').hidden = true;
+      document.getElementById('finish-title').textContent = score === rounds.length ? 'So sánh siêu giỏi!' : 'Con đã hoàn thành!';
+      document.getElementById('finish-score').textContent = `Con chọn đúng ${score}/${rounds.length} dấu.`;
+      document.getElementById('finish').style.display = 'block';
+    });
+    render();
+  </script>
+</body>
+</html>

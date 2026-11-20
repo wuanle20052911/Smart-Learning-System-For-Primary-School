@@ -2,22 +2,22 @@ import React from 'react';
 
 const games = [
   {
-    href: '/public/games/kiem-tra-so-chan-le.html',
-    icon: '🚦',
-    title: 'Trạm số chẵn, số lẻ',
-    description: 'Nhìn chữ số tận cùng và chọn đúng nhóm cho mỗi số.'
+    href: '/public/games/sap-xep-so-tang-dan.html',
+    icon: '🪨',
+    title: 'Đường đua sắp xếp',
+    description: 'Đưa các số từ bé đến lớn để hoàn thành chặng đua.'
   },
   {
-    href: '/public/games/xep-so-vao-nha.html',
-    icon: '🏠',
-    title: 'Xếp số về đúng nhà',
-    description: 'Phân loại nhanh các số vào nhà chẵn hoặc nhà lẻ.'
+    href: '/public/games/so-sanh-so.html',
+    icon: '⚖️',
+    title: 'Ai lớn hơn?',
+    description: 'So sánh các số có nhiều chữ số bằng dấu >, < hoặc =.'
   },
   {
-    href: '/public/games/mat-ma-chu-so.html',
-    icon: '🔐',
-    title: 'Mật mã chữ số cuối',
-    description: 'Tìm chữ số tận cùng để mở cánh cửa bí mật.'
+    href: '/public/games/giai-ma-hang-so.html',
+    icon: '🔎',
+    title: 'Giải mã hàng số',
+    description: 'Khám phá giá trị của chữ số và cấu tạo số đến 100 000.'
   }
 ];
 
@@ -30,9 +30,9 @@ export default function LessonMiniGames({ lessonTitle, onBack, onContinue }) {
     <div className="lesson-game-select-content">
       <div className="lesson-game-select-heading">
         <span aria-hidden="true">🎮</span>
-        <div><small>CHẶNG TIẾP THEO</small><h1>Cùng chơi để khám phá số chẵn, số lẻ!</h1></div>
+        <div><small>CHẶNG TIẾP THEO</small><h1>Cùng chinh phục các số đến 100 000!</h1></div>
       </div>
-      <p className="lesson-game-select-intro">Mỗi trò chơi là một trang riêng. Hãy thử cả 3 trò để nhớ mẹo nhận biết qua chữ số tận cùng nhé.</p>
+      <p className="lesson-game-select-intro">Mỗi trò chơi là một trang riêng. Sắp xếp, so sánh và giải mã các số để hoàn thành thử thách nhé.</p>
       <div className="lesson-game-grid">
         {games.map((game, index) => <a
           className="lesson-game-card"
