@@ -6,6 +6,8 @@ const router = express.Router();
 
 router.use(requireAuth);
 router.get('/dashboard', parentController.parentOnly, parentController.dashboard);
+router.get('/children/:studentId/submissions/:itemId', parentController.parentOnly, parentController.submissionReview);
+router.get('/children/:studentId/attempts/:itemId', parentController.parentOnly, parentController.attemptReview);
 router.get('/requests/incoming', parentController.parentOnly, parentController.incomingRequests);
 router.patch('/requests/:requestId', parentController.parentOnly, parentController.respondToRequest);
 router.get('/requests/mine', parentController.studentOnly, parentController.myRequests);

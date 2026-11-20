@@ -21,6 +21,60 @@ const assignmentStatus = {
   overdue: 'Quá hạn'
 };
 
+function AttentionBanner({ attention }) {
+  if (!attention) return null;
+  return <section className={`parent-attention ${attention.level}`} role="status">
+    <span aria-hidden="true">{attention.level === 'high' ? '💛' : '🔎'}</span>
+    <div>
+      <strong>{attention.level === 'high' ? 'Con đang cần được quan tâm thêm' : 'Giáo viên đang theo dõi thêm việc học của con'}</strong>
+      {attention.reasons.map((reason) => <p key={reason}>{reason}</p>)}
+      <small>Cập nhật {formatDate(attention.updated_at)} · Hãy trò chuyện nhẹ nhàng với con và liên hệ giáo viên nếu cần.</small>
+    </div>
+  </section>;
+}
+
+function ReviewPanel({ state, onClose }) {
+  const [onlyWrong, setOnlyWrong] = useState(true);
+  useEffect(() => {
+    const onKey = (event) => { if (event.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
+
+  const review = state.review;
+  const questions = review ? review.questions.filter((item) => !onlyWrong || !item.is_correct) : [];
+  return <div className="parent-review-backdrop" onClick={onClose}>
+    <section className="parent-review" role="dialog" aria-modal="true" aria-label="Chi tiết bài làm" onClick={(event) => event.stopPropagation()}>
+      <header>
+        <div>
+          <span className="parent-eyebrow">{review?.kind === 'attempt' ? 'LƯỢT LUYỆN TẬP' : 'BÀI TẬP ĐÃ NỘP'}</span>
+          <h3>{review?.title || state.title}</h3>
+          {review && <small>{review.correct_count}/{review.total_questions} câu đúng · {formatDate(review.submitted_at)}</small>}
+        </div>
+        <button type="button" className="parent-review-close" onClick={onClose} aria-label="Đóng">✕</button>
+      </header>
+      {state.loading && <p className="parent-muted">Đang tải bài làm...</p>}
+      {state.error && <div className="parent-alert" role="alert">{state.error}</div>}
+      {review && <>
+        {review.feedback.length > 0 && <div className="parent-feedback-list">
+          {review.feedback.map((item) => <blockquote key={item.id}><b>Nhận xét của giáo viên · {formatDate(item.created_at)}</b>{item.comment}</blockquote>)}
+        </div>}
+        <label className="parent-review-toggle">
+          <input type="checkbox" checked={onlyWrong} onChange={(event) => setOnlyWrong(event.target.checked)} /> Chỉ hiện câu con làm sai
+        </label>
+        {!review.questions.length ? <p className="parent-muted">Lượt làm bài này không lưu chi tiết câu hỏi.</p>
+          : !questions.length ? <p className="parent-muted">🎉 Con đã trả lời đúng tất cả các câu.</p>
+            : <ol className="parent-review-questions">{questions.map((item) => <li key={item.position} className={item.is_correct ? 'correct' : 'wrong'}>
+              <strong>Câu {item.position}. {item.question}</strong>
+              <p>Con trả lời: <b>{item.chosen_answer}</b> {item.is_correct ? '✓' : '✗'}</p>
+              {!item.is_correct && item.correct_answer && <p>Đáp án đúng: <b>{item.correct_answer}</b></p>}
+              {item.explanation && <small>💡 {item.explanation}</small>}
+            </li>)}</ol>}
+      </>}
+    </section>
+  </div>;
+}
+
 export default function ParentDashboardPage({ api, readSession, Header, Brand, go, logout }) {
   const session = readSession();
   const [children, setChildren] = useState([]);
@@ -30,6 +84,21 @@ export default function ParentDashboardPage({ api, readSession, Header, Brand, g
   const [requestError, setRequestError] = useState('');
   const [requestBusy, setRequestBusy] = useState('');
   const [refresh, setRefresh] = useState(0);
+  const [reviewState, setReviewState] = useState(null);
+
+  const openReview = async (studentId, kind, itemId, title) => {
+    const request = `${kind}:${itemId}`;
+    setReviewState({ request, title, loading: true, error: '', review: null });
+    try {
+      const data = await api(`/api/parents/children/${studentId}/${kind === 'attempt' ? 'attempts' : 'submissions'}/${itemId}`);
+      setReviewState((current) => current?.request === request ? { ...current, loading: false, review: data.review } : current);
+    } catch (loadError) {
+      setReviewState((current) => current?.request === request
+        ? { ...current, loading: false, error: loadError.message || 'Không thể tải chi tiết bài làm của con.' }
+        : current);
+    }
+  };
+  const closeReview = React.useCallback(() => setReviewState(null), []);
 
   useEffect(() => {
     let active = true;
@@ -120,10 +189,13 @@ export default function ParentDashboardPage({ api, readSession, Header, Brand, g
                 <span className="parent-child-icon" aria-hidden="true">🎒</span>
               </header>
 
+              <AttentionBanner attention={child.attention} />
+
               <section className="parent-metrics" aria-label={`Tổng quan học tập của ${child.student.full_name}`}>
                 <article><span>📚</span><strong>{child.summary.assigned_count ? `${child.summary.completion_rate}%` : '—'}</strong><small>Hoàn thành bài tập</small><em>{child.summary.submitted_count}/{child.summary.assigned_count} bài đã nộp</em></article>
                 <article><span>🎯</span><strong>{formatPercent(child.summary.accuracy)}</strong><small>Độ chính xác luyện tập</small><em>{child.summary.correct_answers}/{child.summary.total_answers} câu đúng</em></article>
                 <article><span>✏️</span><strong>{child.summary.attempt_count}</strong><small>Lượt luyện tập</small><em>{trendLabel(child.trend)}</em></article>
+                <article><span>📖</span><strong>{child.summary.completed_lesson_count ?? 0}</strong><small>Bài học đã hoàn thành</small><em>{child.completed_lessons?.[0] ? `Gần nhất ${formatDate(child.completed_lessons[0].completed_at)}` : 'Chưa có bài học hoàn thành'}</em></article>
               </section>
 
               <section className="parent-section">
@@ -158,7 +230,11 @@ export default function ParentDashboardPage({ api, readSession, Header, Brand, g
                 {child.assignments.length ? <div className="parent-assignment-list">{child.assignments.map((assignment) => <article key={assignment.id}>
                   <div><strong>{assignment.title}</strong><small>{assignment.due_at ? `Hạn nộp ${formatDate(assignment.due_at)}` : 'Không có hạn nộp'}</small></div>
                   <span className={`parent-status ${assignment.status}`}>{assignmentStatus[assignment.status]}</span>
-                  {assignment.score !== null && <b>{Math.round(assignment.score)}%</b>}
+                  <b>{assignment.score !== null ? `${Math.round(assignment.score)}%` : ''}</b>
+                  {assignment.submission_id
+                    ? <button type="button" className="parent-review-open" onClick={() => openReview(child.student.id, 'submission', assignment.submission_id, assignment.title)}>Xem bài làm</button>
+                    : <span />}
+                  {assignment.feedback?.length > 0 && <blockquote className="parent-inline-feedback"><b>💬 Giáo viên nhận xét · {formatDate(assignment.feedback[0].created_at)}</b>{assignment.feedback[0].comment}</blockquote>}
                 </article>)}</div> : <p className="parent-muted">Chưa có bài tập được giao trong các lớp của con.</p>}
               </section>
 
@@ -167,10 +243,22 @@ export default function ParentDashboardPage({ api, readSession, Header, Brand, g
                 {child.recent_attempts.length ? <div className="parent-attempt-list">{child.recent_attempts.map((attempt, index) => <article key={`${attempt.created_at}-${index}`}>
                   <div><strong>{attempt.title}</strong><small>{attempt.chapter} · {formatDate(attempt.created_at)}</small></div>
                   <b>{attempt.score}/{attempt.total}</b>
+                  {attempt.id
+                    ? <button type="button" className="parent-review-open" onClick={() => openReview(child.student.id, 'attempt', attempt.id, attempt.title)}>Xem lại</button>
+                    : <span />}
                 </article>)}</div> : <p className="parent-muted">Chưa có lượt luyện tập được lưu.</p>}
+              </section>
+
+              <section className="parent-section">
+                <div className="parent-section-heading"><div><span className="parent-eyebrow">HÀNH TRÌNH BÀI HỌC</span><h3>Bài học con đã hoàn thành</h3></div></div>
+                {child.completed_lessons?.length ? <div className="parent-lesson-list">{child.completed_lessons.map((lesson) => <article key={lesson.id}>
+                  <span aria-hidden="true">✓</span>
+                  <div><strong>{lesson.title}</strong><small>{lesson.topic ? `${lesson.topic} · ` : ''}{formatDate(lesson.completed_at)}</small></div>
+                </article>)}</div> : <p className="parent-muted">Con chưa hoàn thành bài học nào.</p>}
               </section>
             </article>)}
           </div>}
+      {reviewState && <ReviewPanel state={reviewState} onClose={closeReview} />}
     </main>
   </>;
 }

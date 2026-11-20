@@ -1,17 +1,7 @@
 const assignmentModel = require('../models/assignmentModel');
 const submissionModel = require('../models/submissionModel');
 const { isAssignmentClosed } = require('../services/assignmentDeadline');
-
-function normalizeAnswer(value) {
-  return String(value ?? '').trim().toLocaleLowerCase('vi-VN').replace(/\s+/g, ' ');
-}
-
-function isCorrect(question, answer) {
-  if (question.type === 'multiple-choice' || question.type === 'true-false') return Number(answer) === Number(question.answer);
-  if (question.type === 'matching') return JSON.stringify(answer) === JSON.stringify(question.answer);
-  const accepted = [question.answer, ...(Array.isArray(question.answer) ? question.answer : [])].flat().filter((item) => item !== null && item !== undefined).map(normalizeAnswer);
-  return accepted.includes(normalizeAnswer(answer));
-}
+const { isCorrect } = require('../services/answerReview');
 
 async function create(req, res) {
   try {

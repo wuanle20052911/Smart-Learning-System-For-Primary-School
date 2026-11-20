@@ -20,7 +20,37 @@ function buildTrend(attempts) {
   };
 }
 
-function buildChildInsights({ student, classes, assignments, submissions, attempts, now = Date.now() }) {
+function buildAttention(alerts) {
+  if (!alerts.length) return null;
+  const sorted = [...alerts].sort((left, right) => new Date(right.last_seen_at) - new Date(left.last_seen_at));
+  const level = sorted.some((alert) => alert.risk_level === 'Cao') ? 'high' : 'watch';
+  const reasons = [...new Set(sorted.map((alert) => alert.reason?.trim()).filter(Boolean))].slice(0, 3);
+  return { level, reasons, updated_at: sorted[0].last_seen_at };
+}
+
+function buildCompletedLessons(completions, lessons) {
+  const lessonById = new Map(lessons.map((lesson) => [lesson.id, lesson]));
+  const items = completions
+    .filter((item) => lessonById.has(item.lesson_id))
+    .sort((left, right) => new Date(right.completed_at) - new Date(left.completed_at))
+    .map((item) => {
+      const lesson = lessonById.get(item.lesson_id);
+      return { id: lesson.id, title: lesson.title, topic: lesson.topic || '', completed_at: item.completed_at };
+    });
+  return { count: items.length, recent: items.slice(0, 8) };
+}
+
+function buildChildInsights({
+  student, classes, assignments, submissions, attempts,
+  feedback = [], alerts = [], completions = [], lessons = [], now = Date.now()
+}) {
+  const feedbackBySubmission = new Map();
+  feedback.forEach((item) => {
+    const list = feedbackBySubmission.get(item.submission_id) || [];
+    list.push({ id: item.id, comment: item.comment, created_at: item.created_at });
+    feedbackBySubmission.set(item.submission_id, list);
+  });
+  feedbackBySubmission.forEach((list) => list.sort((left, right) => new Date(right.created_at) - new Date(left.created_at)));
   const classIds = new Set(classes.map((item) => item.id));
   const visibleAssignments = assignments
     .filter((assignment) => assignment.published && classIds.has(assignment.class_id));
@@ -48,7 +78,9 @@ function buildChildInsights({ student, classes, assignments, submissions, attemp
         title: assignment.title,
         due_at: assignment.due_at,
         submitted_at: submission?.submitted_at || null,
+        submission_id: submission?.id || null,
         score: submission ? Number(submission.score) : null,
+        feedback: submission ? feedbackBySubmission.get(submission.id) || [] : [],
         status: submission ? 'submitted' : overdue ? 'overdue' : 'pending'
       };
     })
@@ -92,7 +124,17 @@ function buildChildInsights({ student, classes, assignments, submissions, attemp
       text: `Có thể ôn thêm "${item.title}" (${item.chapter}); kết quả hiện tại là ${item.accuracy}%.`
     });
   });
-  if (!attempts.length && !assignmentDetails.length) {
+  const latestFeedback = assignmentDetails
+    .flatMap((assignment) => assignment.feedback.map((item) => ({ ...item, assignment_title: assignment.title })))
+    .sort((left, right) => new Date(right.created_at) - new Date(left.created_at))[0];
+  if (latestFeedback) {
+    recommendations.unshift({
+      type: 'feedback',
+      text: `Đọc cùng con nhận xét mới của giáo viên cho bài "${latestFeedback.assignment_title}".`
+    });
+  }
+  const completedLessons = buildCompletedLessons(completions, lessons);
+  if (!attempts.length && !assignmentDetails.length && !completedLessons.count) {
     recommendations.push({ type: 'data', text: 'Chưa có đủ dữ liệu học tập để đưa ra khuyến nghị.' });
   }
 
@@ -109,8 +151,11 @@ function buildChildInsights({ student, classes, assignments, submissions, attemp
       attempt_count: attempts.length,
       accuracy: summary.accuracy,
       correct_answers: summary.correct,
-      total_answers: summary.total
+      total_answers: summary.total,
+      completed_lesson_count: completedLessons.count
     },
+    attention: buildAttention(alerts),
+    completed_lessons: completedLessons.recent,
     trend: buildTrend(attempts),
     strengths: competencies.filter((item) => item.accuracy !== null && item.accuracy >= 80),
     needs_practice: competencies.filter((item) => item.accuracy !== null && item.accuracy < 60),
@@ -120,7 +165,7 @@ function buildChildInsights({ student, classes, assignments, submissions, attemp
     recent_attempts: [...attempts]
       .sort((left, right) => new Date(right.created_at) - new Date(left.created_at))
       .slice(0, 10)
-      .map(({ title, chapter, score, total, created_at }) => ({ title, chapter, score, total, created_at }))
+      .map(({ id, title, chapter, score, total, created_at }) => ({ id, title, chapter, score, total, created_at }))
   };
 }
 
