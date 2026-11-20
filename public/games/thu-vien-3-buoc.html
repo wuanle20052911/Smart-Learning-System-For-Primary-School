@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Giải cứu thư viện | MathJoy</title>
+  <style>
+    :root { color-scheme: light; font-family: "Trebuchet MS", Arial, sans-serif; color: #24365b; background: #eff8ff; }
+    * { box-sizing: border-box; }
+    body { min-height: 100vh; margin: 0; padding: 24px; background: radial-gradient(circle at 8% 10%, #fff6cf 0 9%, transparent 10%), linear-gradient(145deg, #eff8ff, #fff8ec); }
+    main { width: min(100%, 760px); margin: 24px auto; padding: clamp(22px, 5vw, 42px); border: 2px solid #d5e4f6; border-radius: 28px; background: rgba(255,255,255,.94); box-shadow: 0 18px 45px #34547b20; }
+    .top { display: flex; align-items: center; justify-content: space-between; gap: 12px; color: #6f62c8; font-size: 13px; font-weight: 800; }
+    h1 { margin: 16px 0 8px; color: #243d70; font-size: clamp(28px, 6vw, 42px); }
+    .intro, .story { line-height: 1.7; }
+    .story { margin: 22px 0; padding: 18px; border-radius: 18px; background: #fff7dc; font-size: 18px; }
+    .progress { height: 10px; overflow: hidden; border-radius: 9px; background: #e8edf7; }
+    .progress span { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #62c78e, #4a9bd2); transition: width .2s ease; }
+    .prompt { margin: 18px 0 10px; font-size: 20px; }
+    .answers { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+    button { min-height: 52px; padding: 12px 16px; border: 2px solid #dce5f3; border-radius: 14px; background: #f9fbff; color: #30466d; font: inherit; font-weight: 800; cursor: pointer; }
+    button:hover:not(:disabled) { border-color: #7967d6; background: #f3f0ff; }
+    button:focus-visible { outline: 3px solid #3626bd; outline-offset: 3px; }
+    button:disabled { cursor: default; opacity: .7; }
+    .feedback { min-height: 28px; margin: 16px 0; font-weight: 800; line-height: 1.5; }
+    .feedback.good { color: #21814e; }
+    .feedback.bad { color: #a45b25; }
+    .actions { display: flex; justify-content: flex-end; gap: 10px; }
+    .primary { border-color: #5948b0; background: #6959c9; color: white; }
+    .primary:hover:not(:disabled) { background: #5544b5; }
+    .finish { display: none; padding: 24px 0 4px; text-align: center; }
+    .finish h2 { font-size: 30px; }
+    .home { color: #5e4bc4; font-weight: 800; }
+    @media (max-width: 560px) { body { padding: 12px; } main { margin: 12px auto; border-radius: 20px; } .answers { grid-template-columns: 1fr; } .top { align-items: flex-start; flex-direction: column; } }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="top"><span>📚 TOÁN LỚP 4 · BÀI TOÁN NHIỀU BƯỚC</span><a class="home" href="/learn">← Về bài học</a></div>
+    <h1>Giải cứu thư viện!</h1>
+    <p class="intro">Thư viện đang cần con tính nhanh số sách còn lại. Đọc kỹ tình huống rồi chọn đáp số đúng nhé.</p>
+    <div id="play">
+      <div class="progress" aria-label="Tiến độ"><span id="bar"></span></div>
+      <p id="counter"></p>
+      <div class="story" id="story"></div>
+      <h2 class="prompt" id="prompt"></h2>
+      <div class="answers" id="answers"></div>
+      <p class="feedback" id="feedback" role="status" aria-live="polite"></p>
+      <div class="actions"><button class="primary" id="next" type="button" disabled>Thử thách tiếp →</button></div>
+    </div>
+    <section class="finish" id="finish" aria-live="polite">
+      <div style="font-size:64px">🏆</div><h2 id="finish-title"></h2><p id="finish-score"></p>
+      <button class="primary" type="button" onclick="location.reload()">Chơi lại</button>
+    </section>
+  </main>
+  <script>
+    const rounds = [
+      { story: 'Thư viện có 2.450 quyển sách. Nhập thêm 1.350 quyển rồi cho mượn 580 quyển.', prompt: 'Cuối cùng thư viện còn bao nhiêu quyển?', answer: 3220, options: [3220, 4380, 2640, 3800], explanation: '2.450 + 1.350 = 3.800; 3.800 - 580 = 3.220 quyển.' },
+      { story: 'Kho có 1.725 hộp bút. Trường gửi thêm 960 hộp rồi phát cho học sinh 415 hộp.', prompt: 'Kho còn lại bao nhiêu hộp bút?', answer: 2270, options: [2270, 3100, 2685, 1855], explanation: '1.725 + 960 = 2.685; 2.685 - 415 = 2.270 hộp.' },
+      { story: 'Một nông trại thu hoạch 3.180 quả cam, bán đi 725 quả rồi thu hoạch thêm 640 quả.', prompt: 'Nông trại có bao nhiêu quả cam?', answer: 3095, options: [3095, 2175, 3820, 2455], explanation: '3.180 - 725 = 2.455; 2.455 + 640 = 3.095 quả.' },
+      { story: 'Nhà sách có 5.400 cuốn truyện, chuyển đi 1.280 cuốn rồi nhận thêm 375 cuốn.', prompt: 'Nhà sách hiện có bao nhiêu cuốn truyện?', answer: 4495, options: [4495, 5245, 4120, 5575], explanation: '5.400 - 1.280 = 4.120; 4.120 + 375 = 4.495 cuốn.' },
+      { story: 'Lớp 4A quyên góp 1.200 quyển, lớp 4B góp 850 quyển, sau đó trường tặng thêm 450 quyển.', prompt: 'Tủ sách có tất cả bao nhiêu quyển?', answer: 2500, options: [2500, 2050, 2950, 1600], explanation: '1.200 + 850 = 2.050; 2.050 + 450 = 2.500 quyển.' }
+    ];
+    let index = 0;
+    let score = 0;
+    let locked = false;
+    const money = (value) => value.toLocaleString('vi-VN');
+    const story = document.getElementById('story');
+    const prompt = document.getElementById('prompt');
+    const answers = document.getElementById('answers');
+    const feedback = document.getElementById('feedback');
+    const next = document.getElementById('next');
+    function render() {
+      const round = rounds[index];
+      locked = false;
+      document.getElementById('counter').textContent = `Câu ${index + 1} / ${rounds.length} · Đúng ${score}`;
+      document.getElementById('bar').style.width = `${(index / rounds.length) * 100}%`;
+      story.textContent = round.story;
+      prompt.textContent = round.prompt;
+      feedback.textContent = '';
+      feedback.className = 'feedback';
+      next.disabled = true;
+      next.textContent = index === rounds.length - 1 ? 'Xem kết quả →' : 'Thử thách tiếp →';
+      answers.replaceChildren(...round.options.map((value) => {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.textContent = `${money(value)} quyển`;
+        button.addEventListener('click', () => choose(value, button));
+        return button;
+      }));
+    }
+    function choose(value, selected) {
+      if (locked) return;
+      locked = true;
+      const round = rounds[index];
+      const correct = value === round.answer;
+      if (correct) score += 1;
+      [...answers.children].forEach((button) => { button.disabled = true; });
+      selected.setAttribute('aria-pressed', 'true');
+      feedback.textContent = `${correct ? 'Chính xác! ' : 'Mình cùng tính lại nhé. '}${round.explanation}`;
+      feedback.classList.add(correct ? 'good' : 'bad');
+      document.getElementById('counter').textContent = `Câu ${index + 1} / ${rounds.length} · Đúng ${score}`;
+      next.disabled = false;
+    }
+    next.addEventListener('click', () => {
+      index += 1;
+      if (index < rounds.length) return render();
+      document.getElementById('play').hidden = true;
+      document.getElementById('bar').style.width = '100%';
+      document.getElementById('finish-title').textContent = score === rounds.length ? 'Xuất sắc!' : 'Hoàn thành nhiệm vụ!';
+      document.getElementById('finish-score').textContent = `Con trả lời đúng ${score}/${rounds.length} câu.`;
+      document.getElementById('finish').style.display = 'block';
+    });
+    render();
+  </script>
+</body>
+</html>

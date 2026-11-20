@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { getLessonDescription } from '../../services/learningMaterials.js';
 import { getLessonSourceCode, renderDocxHtml } from '../../services/learningMaterials.js';
+import StudyAdventure from './StudyAdventure.jsx';
 
 function getLessonMaterialEndpoint(lesson) {
   if (lesson.source_path) return `/api/lessons/${lesson.id}/material`;
@@ -17,6 +18,9 @@ export default function LessonView({ lesson, onBack, onComplete, onStudyActivity
   const [practiceQuestions, setPracticeQuestions] = useState(null);
   const [practiceLoading, setPracticeLoading] = useState(false);
   const [practiceError, setPracticeError] = useState('');
+  const [adventure, setAdventure] = useState(null);
+  const [adventureLoading, setAdventureLoading] = useState(false);
+  const [adventureError, setAdventureError] = useState('');
   const [materialError, setMaterialError] = useState('');
   const [docxHtml, setDocxHtml] = useState('');
   const [docxLoading, setDocxLoading] = useState(false);
@@ -105,6 +109,31 @@ export default function LessonView({ lesson, onBack, onComplete, onStudyActivity
       setPracticeLoading(false);
     }
   };
+  const startAdventure = async () => {
+    setAdventureLoading(true);
+    setAdventureError('');
+    try {
+      const data = await api('/api/generate-story-adventure', {
+        method: 'POST',
+        body: JSON.stringify({ lessonId: lesson.id })
+      });
+      const storyPanels = data.adventure?.story?.panels;
+      const hasCharacterDialogue = Array.isArray(storyPanels) && storyPanels.every((panel) => (
+        panel.boardText
+        && Array.isArray(panel.dialogue)
+        && panel.dialogue.some((line) => line.role === 'curious')
+        && panel.dialogue.some((line) => line.role === 'explainer')
+      ));
+      if (!hasCharacterDialogue || !data.adventure?.game?.challenges?.length) {
+        throw new Error('Máy chủ đang trả truyện theo phiên bản cũ hoặc nội dung chưa có nhân vật. Hãy khởi động lại server rồi tải lại trang.');
+      }
+      setAdventure(data.adventure);
+    } catch (error) {
+      setAdventureError(error.message || 'Không thể tạo truyện và minigame lúc này.');
+    } finally {
+      setAdventureLoading(false);
+    }
+  };
   if (practiceQuestions) {
     return <AssignedWorkView
       assignment={{
@@ -119,6 +148,14 @@ export default function LessonView({ lesson, onBack, onComplete, onStudyActivity
       onBack={() => setPracticeQuestions(null)}
       onStudyActivity={onStudyActivity}
       api={api}
+    />;
+  }
+  if (adventure) {
+    return <StudyAdventure
+      adventure={adventure}
+      lessonTitle={lesson.title}
+      onBack={() => setAdventure(null)}
+      onStudyActivity={onStudyActivity}
     />;
   }
   return <section className={`home-panel lesson-inline ${lesson.color || 'blue'}`}>
@@ -142,8 +179,11 @@ export default function LessonView({ lesson, onBack, onComplete, onStudyActivity
       <div className="lesson-actions">
         <button className="lesson-action-button lesson-start" type="button" onClick={onComplete}><img src="/public/img/medal.png" alt="" />ĐÃ HỌC XONG BÀI NÀY ✓</button>
         <button className="lesson-action-button lesson-ai" type="button" onClick={startPractice} disabled={practiceLoading}><img src="/public/img/star.png" alt="" />{practiceLoading ? 'ĐANG TẢI CÂU HỎI...' : 'LUYỆN TẬP NGAY'}</button>
+        <button className="lesson-action-button lesson-adventure" type="button" onClick={startAdventure} disabled={adventureLoading}><img src="/public/img/star.png" alt="" />{adventureLoading ? 'ĐANG DỰNG TRUYỆN...' : 'TRUYỆN & MINIGAME AI'}</button>
       </div>
+      {adventureLoading && <p className="adventure-loading-message" role="status">AI đang tạo truyện và kiểm tra thử thách. Có thể mất vài phút trên máy chạy Ollama.</p>}
       {practiceError && <p className="ai-error" role="alert">{practiceError}</p>}
+      {adventureError && <p className="ai-error" role="alert">{adventureError}</p>}
     </article>
     }
   </section>;

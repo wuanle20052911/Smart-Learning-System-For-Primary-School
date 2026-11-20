@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Đường đua phép tính | MathJoy</title>
+  <style>
+    :root { font-family: "Trebuchet MS", Arial, sans-serif; color: #24365b; background: #f2f4ff; }
+    * { box-sizing: border-box; }
+    body { min-height: 100vh; margin: 0; padding: 24px; background: radial-gradient(circle at 95% 5%, #ffe6c4 0 10%, transparent 11%), linear-gradient(140deg, #f1f3ff, #effbff); }
+    main { width: min(100%, 760px); margin: 24px auto; padding: clamp(22px, 5vw, 42px); border: 2px solid #dcdff4; border-radius: 28px; background: white; box-shadow: 0 18px 45px #35497820; }
+    .top { display: flex; justify-content: space-between; gap: 12px; color: #6554c7; font-size: 13px; font-weight: 800; }
+    .home { color: #5e4bc4; }
+    h1 { margin: 16px 0 8px; color: #263a67; font-size: clamp(28px, 6vw, 42px); }
+    p { line-height: 1.65; }
+    .track { height: 16px; margin: 26px 0; overflow: hidden; border: 3px solid #263a67; border-radius: 12px; background: repeating-linear-gradient(90deg, #fff 0 25px, #e6e9f6 26px 29px); }
+    .car { width: 0; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #ffca65, #ff846e); transition: width .25s ease; }
+    .badge { display: flex; justify-content: space-between; color: #6a7391; font-weight: 800; }
+    .question { margin: 18px 0; padding: 22px; border-radius: 18px; background: #fff7e2; }
+    .question h2 { margin: 0; font-size: 21px; line-height: 1.5; }
+    .options { display: grid; gap: 10px; }
+    button { min-height: 54px; padding: 12px 16px; border: 2px solid #e0e5f1; border-radius: 14px; background: #fafbff; color: #34466a; font: inherit; font-weight: 800; text-align: left; cursor: pointer; }
+    button:hover:not(:disabled), button:focus-visible { border-color: #7967d6; background: #f1efff; }
+    button:focus-visible { outline: 3px solid #3626bd; outline-offset: 2px; }
+    button:disabled { cursor: default; }
+    .feedback { min-height: 52px; margin: 16px 0; font-weight: 800; line-height: 1.6; }
+    .good { color: #21814e; }
+    .bad { color: #a45b25; }
+    .primary { background: #6959c9; color: white; text-align: center; }
+    .primary:hover:not(:disabled) { background: #5544b5; }
+    .actions { display: flex; justify-content: flex-end; }
+    .finish { display: none; padding: 24px 0 4px; text-align: center; }
+    .finish button { text-align: center; }
+    @media (max-width: 560px) { body { padding: 12px; } main { margin: 12px auto; border-radius: 20px; } .top { flex-direction: column; } }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="top"><span>🏁 TOÁN LỚP 4 · CHỌN PHÉP TÍNH</span><a class="home" href="/learn">← Về bài học</a></div>
+    <h1>Đường đua phép tính</h1>
+    <p>Đọc từng tình huống. Chọn phép tính đúng để chiếc xe tiến về đích!</p>
+    <div id="play">
+      <div class="track" aria-label="Đường đua"><div id="car" class="car"></div></div>
+      <div class="badge"><span id="counter"></span><span id="score"></span></div>
+      <section class="question"><h2 id="question"></h2></section>
+      <div id="options" class="options"></div>
+      <p id="feedback" class="feedback" role="status" aria-live="polite"></p>
+      <div class="actions"><button id="next" class="primary" type="button" disabled>Chặng tiếp theo →</button></div>
+    </div>
+    <section id="finish" class="finish" aria-live="polite"><div style="font-size:64px">🏎️</div><h2 id="finish-title"></h2><p id="finish-text"></p><button class="primary" type="button" onclick="location.reload()">Chạy lại đường đua</button></section>
+  </main>
+  <script>
+    const rounds = [
+      { prompt: 'Thư viện có 2.450 quyển sách, nhập thêm 1.350 quyển rồi cho mượn 580 quyển. Phép tính nào tìm số sách còn lại?', options: ['2.450 + 1.350 - 580', '2.450 - 1.350 + 580', '2.450 + 1.350 + 580'], answer: 0, explain: 'Nhập thêm thì cộng, cho mượn thì trừ: 2.450 + 1.350 - 580.' },
+      { prompt: 'Kho có 3.200 hộp. Chuyển đi 850 hộp rồi nhận thêm 460 hộp. Chọn phép tính đúng.', options: ['3.200 + 850 - 460', '3.200 - 850 + 460', '3.200 - 850 - 460'], answer: 1, explain: 'Chuyển đi thì trừ trước, nhận thêm thì cộng sau.' },
+      { prompt: 'Có 1.840 vé tham quan. Bán được 625 vé rồi in thêm 900 vé. Phép tính nào tìm số vé hiện có?', options: ['1.840 + 625 + 900', '1.840 - 625 + 900', '1.840 + 625 - 900'], answer: 1, explain: 'Bán vé làm số vé giảm, in thêm làm số vé tăng.' },
+      { prompt: 'Nông trại thu hoạch 2.750 kg cam, ngày sau thu thêm 1.125 kg rồi giao đi 980 kg. Phép tính nào đúng?', options: ['2.750 + 1.125 - 980', '2.750 - 1.125 + 980', '2.750 + 1.125 + 980'], answer: 0, explain: 'Thu thêm thì cộng, giao đi thì trừ.' },
+      { prompt: 'Một cửa hàng có 4.500 quyển vở, bán 1.250 quyển và nhập thêm 780 quyển. Còn lại bao nhiêu?', options: ['4.500 + 1.250 - 780 = 4.970', '4.500 - 1.250 + 780 = 4.030', '4.500 - 1.250 + 780 = 4.130'], answer: 1, explain: '4.500 - 1.250 = 3.250; 3.250 + 780 = 4.030 quyển.' }
+    ];
+    let index = 0;
+    let score = 0;
+    let locked = false;
+    const options = document.getElementById('options');
+    const feedback = document.getElementById('feedback');
+    const next = document.getElementById('next');
+    function render() {
+      locked = false;
+      const round = rounds[index];
+      document.getElementById('counter').textContent = `Chặng ${index + 1}/${rounds.length}`;
+      document.getElementById('score').textContent = `⭐ ${score} điểm`;
+      document.getElementById('car').style.width = `${(index / rounds.length) * 100}%`;
+      document.getElementById('question').textContent = round.prompt;
+      feedback.textContent = '';
+      feedback.className = 'feedback';
+      next.disabled = true;
+      next.textContent = index === rounds.length - 1 ? 'Về đích →' : 'Chặng tiếp theo →';
+      options.replaceChildren(...round.options.map((label, optionIndex) => {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.textContent = label;
+        button.addEventListener('click', () => answer(optionIndex, button));
+        return button;
+      }));
+    }
+    function answer(optionIndex) {
+      if (locked) return;
+      locked = true;
+      const round = rounds[index];
+      const correct = optionIndex === round.answer;
+      if (correct) score += 1;
+      [...options.children].forEach((button) => { button.disabled = true; });
+      feedback.textContent = `${correct ? 'Tuyệt vời! Xe tăng tốc. ' : 'Chưa đúng, mình đọc lại dấu hiệu nhé. '}${round.explain}`;
+      feedback.classList.add(correct ? 'good' : 'bad');
+      document.getElementById('score').textContent = `⭐ ${score} điểm`;
+      next.disabled = false;
+    }
+    next.addEventListener('click', () => {
+      index += 1;
+      if (index < rounds.length) return render();
+      document.getElementById('play').hidden = true;
+      document.getElementById('car').style.width = '100%';
+      document.getElementById('finish-title').textContent = score === rounds.length ? 'Về đích hoàn hảo!' : 'Đã cán đích!';
+      document.getElementById('finish-text').textContent = `Con chọn đúng ${score}/${rounds.length} phép tính.`;
+      document.getElementById('finish').style.display = 'block';
+    });
+    render();
+  </script>
+</body>
+</html>
