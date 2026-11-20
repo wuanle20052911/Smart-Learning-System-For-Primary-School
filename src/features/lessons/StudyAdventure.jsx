@@ -243,34 +243,7 @@ export default function StudyAdventure({ adventure, lessonTitle, onBack, onStudy
       <p>Con vừa ôn lại kiến thức trong bài <b>{lessonTitle}</b>.</p>
       <div className="adventure-preview-actions">
         <button type="button" className="adventure-secondary-button" onClick={onBack}>Về bài học</button>
-        <button type="button" className="adventure-primary-button" onClick={() => setStage('mini-games')}>Chơi 3 game ôn bài →</button>
         <button type="button" className="adventure-primary-button" onClick={() => { setStage('story'); setPanelIndex(0); }}>Đọc truyện lần nữa</button>
-      </div>
-    </div>}
-
-    {stage === 'mini-games' && <div className="adventure-minigames">
-      <div className="adventure-story-heading">
-        <span aria-hidden="true">🕹️</span>
-        <div><small>TRÒ CHƠI ÔN TẬP</small><h1>Chọn thử thách tiếp theo</h1></div>
-      </div>
-      <p className="adventure-minigames-intro">Cùng luyện thêm kiến thức trong bài <b>{lessonTitle}</b>. Mỗi trò chơi sẽ mở ở một trang riêng.</p>
-      <div className="adventure-minigame-grid">
-        <a className="adventure-minigame-card" href="/public/games/thu-vien-3-buoc.html" target="_blank" rel="noopener noreferrer">
-          <span aria-hidden="true">📚</span><small>TRÒ CHƠI 1</small><strong>Giải cứu thư viện</strong>
-          <p>Tính số sách sau khi nhập thêm và cho mượn.</p><span className="adventure-minigame-link">Bắt đầu chơi ↗</span>
-        </a>
-        <a className="adventure-minigame-card" href="/public/games/duong-dua-phep-tinh.html" target="_blank" rel="noopener noreferrer">
-          <span aria-hidden="true">🏁</span><small>TRÒ CHƠI 2</small><strong>Đường đua phép tính</strong>
-          <p>Chọn phép tính đúng cho từng tình huống thực tế.</p><span className="adventure-minigame-link">Bắt đầu chơi ↗</span>
-        </a>
-        <a className="adventure-minigame-card" href="/public/games/xep-buoc-giai-toan.html" target="_blank" rel="noopener noreferrer">
-          <span aria-hidden="true">🧩</span><small>TRÒ CHƠI 3</small><strong>Xếp bước giải toán</strong>
-          <p>Sắp xếp các bước để tìm đáp số chính xác.</p><span className="adventure-minigame-link">Bắt đầu chơi ↗</span>
-        </a>
-      </div>
-      <div className="adventure-preview-actions">
-        <button type="button" className="adventure-secondary-button" onClick={() => setStage('result')}>← Về kết quả</button>
-        <button type="button" className="adventure-primary-button" onClick={onBack}>Về bài học</button>
       </div>
     </div>}
   </section>;

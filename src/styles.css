@@ -445,16 +445,23 @@ button, input, select { font: inherit; }
 .adventure-feedback.is-wrong { background: #fff5e9; color: #8d5c20; }
 .adventure-game-actions { justify-content: flex-end; }
 .adventure-result-score { display: block; margin: 16px 0; color: #6554c7; font-size: 54px; }
-.adventure-minigames { width: min(100%, 780px); margin: 28px auto 10px; }
-.adventure-minigames-intro { margin: 12px 0 20px; color: #56617c; line-height: 1.65; }
-.adventure-minigame-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
-.adventure-minigame-card { display: flex; flex-direction: column; align-items: flex-start; min-height: 220px; padding: 18px; border: 1px solid #e4e9f5; border-radius: 18px; background: #fff; box-shadow: 0 8px 20px rgba(45, 59, 104, .08); color: #29385b; text-decoration: none; transition: transform .18s ease, box-shadow .18s ease; }
-.adventure-minigame-card:hover { transform: translateY(-3px); box-shadow: 0 12px 24px rgba(45, 59, 104, .14); }
-.adventure-minigame-card > span:first-child { margin-bottom: 12px; font-size: 34px; }
-.adventure-minigame-card small { color: #7765cf; font-size: 10px; font-weight: 900; letter-spacing: .1em; }
-.adventure-minigame-card strong { margin-top: 5px; color: #263a67; font-size: 17px; }
-.adventure-minigame-card p { margin: 8px 0 16px; color: #56617c; font-size: 13px; line-height: 1.5; }
-.adventure-minigame-card .adventure-minigame-link { margin-top: auto; color: #5e4bc4; font-size: 13px; font-weight: 900; }
+.lesson-game-select { max-width: 960px; min-height: 520px; margin: 0 auto 24px; padding: 24px; border: 1px solid #e4e9f5; border-radius: 24px; background: radial-gradient(circle at 85% 4%, #fff4ce 0, transparent 26%), linear-gradient(145deg, #fff 0%, #f6f7ff 100%); box-shadow: 0 16px 42px rgba(45, 59, 104, .14); color: #29385b; }
+.lesson-game-select-content { width: min(100%, 780px); margin: 28px auto 10px; }
+.lesson-game-select-heading { display: flex; align-items: center; gap: 14px; margin-bottom: 14px; }
+.lesson-game-select-heading > span { font-size: 38px; }
+.lesson-game-select-heading small { color: #9c7435; font-size: 10px; font-weight: 900; letter-spacing: .1em; }
+.lesson-game-select-heading h1 { margin: 4px 0; color: #263a67; font-size: clamp(24px, 4vw, 36px); line-height: 1.15; }
+.lesson-game-select-intro { margin: 12px 0 20px; color: #56617c; line-height: 1.65; }
+.lesson-game-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+.lesson-game-card { display: flex; flex-direction: column; align-items: flex-start; min-height: 220px; padding: 18px; border: 1px solid #e4e9f5; border-radius: 18px; background: #fff; box-shadow: 0 8px 20px rgba(45, 59, 104, .08); color: #29385b; text-decoration: none; transition: transform .18s ease, box-shadow .18s ease; }
+.lesson-game-card:hover { transform: translateY(-3px); box-shadow: 0 12px 24px rgba(45, 59, 104, .14); }
+.lesson-game-card:focus-visible { outline: 3px solid #5e4bc4; outline-offset: 3px; }
+.lesson-game-icon { margin-bottom: 12px; font-size: 34px; }
+.lesson-game-card small { color: #7765cf; font-size: 10px; font-weight: 900; letter-spacing: .1em; }
+.lesson-game-card strong { margin-top: 5px; color: #263a67; font-size: 17px; }
+.lesson-game-card p { margin: 8px 0 16px; color: #56617c; font-size: 13px; line-height: 1.5; }
+.lesson-game-link { margin-top: auto; color: #5e4bc4; font-size: 13px; font-weight: 900; }
+.lesson-game-select-actions { display: flex; justify-content: center; flex-wrap: wrap; gap: 12px; margin-top: 22px; }
 .lesson-inline { margin-bottom: 18px; }
 .lesson-inline .panel-heading { align-items: center; }
 .lesson-close { border: 0; background: transparent; color: #d14a1e; font-weight: 800; cursor: pointer; }
@@ -696,7 +703,10 @@ button.ai-option.selected { border-color: #f07835; background: #ffe0a4; }
   .adventure-story-controls { flex-wrap: wrap; }
   .adventure-progress { order: 1; width: 100%; justify-content: center; }
   .adventure-answer-options { grid-template-columns: 1fr; }
-  .adventure-minigame-grid { grid-template-columns: 1fr; }
-  .adventure-minigame-card { min-height: 0; }
+  .lesson-game-select { min-height: 0; margin: 0 0 18px; padding: 14px; border-radius: 17px; }
+  .lesson-game-select .study-adventure-header { align-items: flex-start; }
+  .lesson-game-select .study-adventure-header h2 { font-size: 15px; }
+  .lesson-game-grid { grid-template-columns: 1fr; }
+  .lesson-game-card { min-height: 0; }
   .adventure-primary-button, .adventure-secondary-button { padding: 9px 12px; font-size: 12px; }
 }

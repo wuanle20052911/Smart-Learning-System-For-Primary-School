@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { getLessonDescription } from '../../services/learningMaterials.js';
 import { getLessonSourceCode, renderDocxHtml } from '../../services/learningMaterials.js';
+import LessonMiniGames from './LessonMiniGames.jsx';
 import StudyAdventure from './StudyAdventure.jsx';
 
 function getLessonMaterialEndpoint(lesson) {
@@ -26,11 +27,22 @@ export default function LessonView({ lesson, onBack, onComplete, onStudyActivity
   const [docxLoading, setDocxLoading] = useState(false);
   const [storySlides, setStorySlides] = useState([]);
   const [storyIndex, setStoryIndex] = useState(0);
+  const [visitedStorySlides, setVisitedStorySlides] = useState(() => new Set([0]));
   const [storyLoading, setStoryLoading] = useState(false);
   const [storyError, setStoryError] = useState('');
+  const [showLessonGames, setShowLessonGames] = useState(false);
   const [readingLesson, setReadingLesson] = useState(!lesson.story_slides?.length);
   const isDocx = /\.docx$/i.test(lesson.source_filename || lesson.source_path || '');
   const materialEndpoint = getLessonMaterialEndpoint(lesson);
+  const storyContext = [
+    lesson.title,
+    lesson.topic,
+    lesson.content,
+    getLessonDescription(lesson),
+    ...storySlides.map((slide) => slide.caption)
+  ].filter(Boolean).join(' ');
+  const hasParityTopic = /(?:số\s+chẵn|số\s+lẻ|chẵn.{0,40}lẻ|lẻ.{0,40}chẵn)/i.test(storyContext);
+  const hasReadWholeStory = storySlides.length > 0 && visitedStorySlides.size === storySlides.length;
   useEffect(() => {
     if (!isDocx || !materialEndpoint) {
       setDocxHtml('');
@@ -60,7 +72,9 @@ export default function LessonView({ lesson, onBack, onComplete, onStudyActivity
     let active = true;
     setStorySlides([]);
     setStoryIndex(0);
+    setVisitedStorySlides(new Set([0]));
     setReadingLesson(!lesson.story_slides?.length);
+    setShowLessonGames(false);
     setStoryError('');
     if (!lesson.story_slides?.length) {
       setStoryLoading(false);
@@ -69,7 +83,10 @@ export default function LessonView({ lesson, onBack, onComplete, onStudyActivity
     setStoryLoading(true);
     api(`/api/lessons/${lesson.id}/story-images`)
       .then((data) => {
-        if (active) setStorySlides(data.slides || []);
+        if (active) {
+          setStorySlides(data.slides || []);
+          setVisitedStorySlides(new Set([0]));
+        }
       })
       .catch((error) => {
         if (active) setStoryError(error.message || 'Không thể tải câu chuyện ảnh.');
@@ -108,6 +125,10 @@ export default function LessonView({ lesson, onBack, onComplete, onStudyActivity
     } finally {
       setPracticeLoading(false);
     }
+  };
+  const visitStorySlide = (index) => {
+    setStoryIndex(index);
+    setVisitedStorySlides((visited) => new Set([...visited, index]));
   };
   const startAdventure = async () => {
     setAdventureLoading(true);
@@ -158,6 +179,16 @@ export default function LessonView({ lesson, onBack, onComplete, onStudyActivity
       onStudyActivity={onStudyActivity}
     />;
   }
+  if (showLessonGames) {
+    return <LessonMiniGames
+      lessonTitle={lesson.title}
+      onBack={() => setShowLessonGames(false)}
+      onContinue={() => {
+        setShowLessonGames(false);
+        setReadingLesson(true);
+      }}
+    />;
+  }
   return <section className={`home-panel lesson-inline ${lesson.color || 'blue'}`}>
     <div className="panel-heading">
       <div><h2>{lesson.title}</h2><p>{lesson.subject || 'Toán'} · {lesson.grade || 'Tiểu học'}</p></div>
@@ -167,10 +198,14 @@ export default function LessonView({ lesson, onBack, onComplete, onStudyActivity
       <div className="lesson-story-view-heading"><span>📖</span><div><small>TRƯỚC KHI VÀO BÀI</small><h2>Cùng xem câu chuyện nhé!</h2></div></div>
       {storyLoading ? <p className="lesson-story-status">Đang tải câu chuyện...</p> : storyError ? <p className="ai-error" role="alert">{storyError}</p> : storySlides.length ? <>
         <div className="lesson-story-frame"><img src={storySlides[storyIndex]?.url} alt={storySlides[storyIndex]?.caption || `Ảnh ${storyIndex + 1}`} />{storySlides[storyIndex]?.caption && <p>{storySlides[storyIndex].caption}</p>}</div>
-        <div className="lesson-story-controls"><button type="button" onClick={() => setStoryIndex((current) => Math.max(0, current - 1))} disabled={storyIndex === 0}>← Trước</button><span>Ảnh {storyIndex + 1} / {storySlides.length}</span><button type="button" onClick={() => setStoryIndex((current) => Math.min(storySlides.length - 1, current + 1))} disabled={storyIndex === storySlides.length - 1}>Tiếp →</button></div>
-        <div className="lesson-story-dots" aria-label="Chọn ảnh"><span>{storySlides.map((slide, index) => <button key={`${slide.path}-${index}`} type="button" className={index === storyIndex ? 'active' : ''} aria-label={`Xem ảnh ${index + 1}`} aria-current={index === storyIndex ? 'step' : undefined} onClick={() => setStoryIndex(index)} />)}</span></div>
+        <div className="lesson-story-controls"><button type="button" onClick={() => visitStorySlide(Math.max(0, storyIndex - 1))} disabled={storyIndex === 0}>← Trước</button><span>Ảnh {storyIndex + 1} / {storySlides.length}</span><button type="button" onClick={() => visitStorySlide(Math.min(storySlides.length - 1, storyIndex + 1))} disabled={storyIndex === storySlides.length - 1}>Tiếp →</button></div>
+        <div className="lesson-story-dots" aria-label="Chọn ảnh"><span>{storySlides.map((slide, index) => <button key={`${slide.path}-${index}`} type="button" className={index === storyIndex ? 'active' : ''} aria-label={`Xem ảnh ${index + 1}`} aria-current={index === storyIndex ? 'step' : undefined} onClick={() => visitStorySlide(index)} />)}</span></div>
       </> : !storyLoading && <p className="lesson-story-status">Câu chuyện chưa có ảnh để hiển thị.</p>}
-      <button className="lesson-story-start" type="button" disabled={storyLoading} onClick={() => setReadingLesson(true)}>Bắt đầu đọc bài học →</button>
+      {hasParityTopic && storySlides.length > 0
+        ? <button className="lesson-story-start" type="button" disabled={storyLoading || !hasReadWholeStory} onClick={() => setShowLessonGames(true)}>
+          {hasReadWholeStory ? 'Đọc xong truyện · Chơi game →' : `Đọc hết truyện để mở game (${visitedStorySlides.size}/${storySlides.length})`}
+        </button>
+        : <button className="lesson-story-start" type="button" disabled={storyLoading} onClick={() => setReadingLesson(true)}>Bắt đầu đọc bài học →</button>}
     </section>}
     {readingLesson && lesson.story_slides?.length > 0 && <button className="lesson-story-reopen" type="button" onClick={() => setReadingLesson(false)}>← Xem lại câu chuyện ảnh</button>}
     {readingLesson && <article className="lesson-detail">
