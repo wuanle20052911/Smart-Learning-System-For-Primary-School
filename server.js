@@ -15,6 +15,7 @@ const questionBankRoutes = require('./routes/questionBankRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 const leaderboardRoutes = require('./routes/leaderboardRoutes');
 const parentRoutes = require('./routes/parentRoutes');
+const messageRoutes = require('./routes/messageRoutes');
 const requireAuth = require('./middleware/requireAuth');
 
 const app = express();
@@ -26,6 +27,7 @@ const OLLAMA_MODEL = process.env.OLLAMA_MODEL || DEFAULT_MODEL;
 app.use(express.json({ limit: '10mb' }));
 app.use('/api/auth', authRoutes);
 app.use('/api/parents', parentRoutes);
+app.use('/api/messages', messageRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api', aiRoutes);
 app.get('/api/profile-avatars', async (req, res) => {
