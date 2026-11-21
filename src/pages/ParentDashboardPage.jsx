@@ -1,7 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import ParentIcon from '../components/ParentIcons.jsx';
 import ParentActivity from '../components/ParentActivity.jsx';
 import ChristmasTrim from '../components/ChristmasTrim.jsx';
+import MessagePopup from '../features/messages/MessagePopup.jsx';
 
 function formatPercent(value) {
   return value === null || value === undefined ? '—' : `${value}%`;
@@ -40,7 +41,7 @@ function scrollToSection(id) {
   document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
-function ParentSidebar({ childrenList, selectedChild, onSelectChild, requestCount, loading, onRefresh, onProfile }) {
+function ParentSidebar({ childrenList, selectedChild, onSelectChild, requestCount, unreadMessages, loading, onRefresh, onProfile, onOpenMessages }) {
   const unfinished = selectedChild?.assignments.filter((item) => item.status !== 'submitted').length || 0;
   const overdue = selectedChild?.assignments.some((item) => item.status === 'overdue');
   const items = [
@@ -53,6 +54,7 @@ function ParentSidebar({ childrenList, selectedChild, onSelectChild, requestCoun
     selectedChild && { id: 'parent-sec-assignments', icon: 'books', label: 'Bài tập', badge: unfinished || null, tone: overdue ? 'alert' : 'info' },
     selectedChild && { id: 'parent-sec-attempts', icon: 'pencil', label: 'Luyện tập' },
     selectedChild && { id: 'parent-sec-lessons', icon: 'openBook', label: 'Bài học' },
+    !loading && { id: 'parent-open-messages', icon: 'chat', label: 'Nhắn tin giáo viên', badge: unreadMessages || null, tone: 'alert', action: onOpenMessages },
     !loading && { id: 'parent-sec-links', icon: 'link', label: 'Quản lý liên kết' }
   ].filter(Boolean);
   const [activeId, setActiveId] = useState('');
@@ -99,7 +101,7 @@ function ParentSidebar({ childrenList, selectedChild, onSelectChild, requestCoun
         key={item.id}
         className={activeId === item.id ? 'active' : ''}
         aria-current={activeId === item.id ? 'true' : undefined}
-        onClick={() => { setActiveId(item.id); scrollToSection(item.id); }}
+        onClick={() => { if (item.action) { item.action(); return; } setActiveId(item.id); scrollToSection(item.id); }}
       ><span><ParentIcon name={item.icon} /></span>{item.label}{item.badge ? <b className={item.tone}>{item.badge}</b> : null}</button>)}
     </nav>}
     <div className="parent-sidebar-group parent-sidebar-actions">
@@ -164,6 +166,21 @@ export default function ParentDashboardPage({ api, readSession, Header, Brand, g
   const [refresh, setRefresh] = useState(0);
   const [reviewState, setReviewState] = useState(null);
   const [history, setHistory] = useState([]);
+  const [unreadMessages, setUnreadMessages] = useState(0);
+  const [messagesOpen, setMessagesOpen] = useState(false);
+  const chatButtonRef = useRef(null);
+  const closeMessages = useCallback(() => setMessagesOpen(false), []);
+  // Số tin chưa đọc cho nút trên header, kiểm tra lại mỗi 30 giây
+  useEffect(() => {
+    let active = true;
+    const check = () => {
+      if (document.hidden) return;
+      api('/api/messages/unread').then((data) => { if (active) setUnreadMessages(data.unread || 0); }).catch(() => {});
+    };
+    check();
+    const timer = window.setInterval(check, 30000);
+    return () => { active = false; window.clearInterval(timer); };
+  }, [api]);
   const [unlinkTarget, setUnlinkTarget] = useState(null);
   const [unlinkBusy, setUnlinkBusy] = useState(false);
   const [linkMessage, setLinkMessage] = useState('');
@@ -240,13 +257,37 @@ export default function ParentDashboardPage({ api, readSession, Header, Brand, g
   };
 
   return <>
-    <Header Brand={Brand} readSession={readSession} go={go} logout={logout} />
+    <Header Brand={Brand} readSession={readSession} go={go} logout={logout}>
+      <button
+        ref={chatButtonRef}
+        type="button"
+        className={`header-chat${messagesOpen ? ' open' : ''}`}
+        onClick={() => setMessagesOpen((value) => !value)}
+        aria-label={unreadMessages ? `Nhắn tin với thầy cô, ${unreadMessages} tin chưa đọc` : 'Nhắn tin với thầy cô của con'}
+        aria-expanded={messagesOpen}
+        title="Nhắn tin với thầy cô của con"
+      >
+        <ParentIcon name="chat" size={28} />
+        {unreadMessages > 0 && <b className="header-chat-badge">{unreadMessages > 9 ? '9+' : unreadMessages}</b>}
+      </button>
+    </Header>
+    {messagesOpen && <MessagePopup
+      api={api}
+      viewerRole="parent"
+      title="Thầy cô của con"
+      subtitle="Chọn thầy cô để nhắn tin riêng về việc học của con"
+      onClose={closeMessages}
+      onUnreadChange={setUnreadMessages}
+      returnFocusRef={chatButtonRef}
+    />}
     <div className="parent-layout">
     <ParentSidebar
       childrenList={children}
       selectedChild={selectedChild}
       onSelectChild={(id) => { setSelectedChildId(id); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
       requestCount={loading ? 0 : requests.length}
+      unreadMessages={unreadMessages}
+      onOpenMessages={() => setMessagesOpen(true)}
       loading={loading}
       onRefresh={() => setRefresh((value) => value + 1)}
       onProfile={() => go('/profile')}

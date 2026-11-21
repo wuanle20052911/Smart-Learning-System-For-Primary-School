@@ -108,6 +108,12 @@ const icons = {
     <path d="M16 28c-3 0-4.8-2-4.8-4.6 0-2.6 2-4 3-6.2.8 1.8 2.2 2.4 3.2 2.2.4 1 .9 2 .9 3.6 0 3-1.4 5-2.3 5z" fill="#ffe066" />
     <Face y={20} size={0.75} />
   </>,
+  chat: <>
+    <path d="M5 7.5A4.5 4.5 0 0 1 9.5 3h9A4.5 4.5 0 0 1 23 7.5v5a4.5 4.5 0 0 1-4.5 4.5H12l-4.5 4v-4.2A4.5 4.5 0 0 1 5 12.5z" fill="#7cc5f2" {...stroke} />
+    <path d="M14 14.5h8.5A4.5 4.5 0 0 1 27 19v3.5a4.5 4.5 0 0 1-3 4.25V30l-4-3h-1.5A4.5 4.5 0 0 1 14 22.5z" fill="#ffc94d" {...stroke} />
+    <circle cx="10.5" cy="10" r="1.3" fill={INK} /><circle cx="14" cy="10" r="1.3" fill={INK} /><circle cx="17.5" cy="10" r="1.3" fill={INK} />
+    <path d="M18 21.5q2.5 2 5 0" fill="none" stroke={INK} strokeWidth="1.4" strokeLinecap="round" />
+  </>,
   link: <>
     <g transform="rotate(-45 16 16)">
       <rect x="2" y="11" width="16" height="10" rx="5" fill="none" stroke={INK} strokeWidth="5.2" />

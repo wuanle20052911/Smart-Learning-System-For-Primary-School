@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import MessageCenter from '../features/messages/MessageCenter.jsx';
 
 export default function TeacherPage({ api, logout, AssignmentStudio, TeacherClassManagement, TeacherStudents, TeacherOverview, TeacherAnalytics, TeacherSubmissions, LessonStudio, TeacherQuestionBank }) {
   const [activeView, setActiveView] = useState('overview');
@@ -9,6 +10,17 @@ export default function TeacherPage({ api, logout, AssignmentStudio, TeacherClas
   const [dashboardData, setDashboardData] = useState(null);
   const [overviewLoading, setOverviewLoading] = useState(true);
   const [overviewError, setOverviewError] = useState('');
+  const [unreadMessages, setUnreadMessages] = useState(0);
+  useEffect(() => {
+    let active = true;
+    const check = () => {
+      if (document.hidden) return;
+      api('/api/messages/unread').then((data) => { if (active) setUnreadMessages(data.unread || 0); }).catch(() => {});
+    };
+    check();
+    const timer = window.setInterval(check, 30000);
+    return () => { active = false; window.clearInterval(timer); };
+  }, [api]);
   const loadTeacherData = async () => {
     setOverviewLoading(true);
     setOverviewError('');
@@ -46,13 +58,13 @@ export default function TeacherPage({ api, logout, AssignmentStudio, TeacherClas
   };
   useEffect(() => { loadTeacherData(); }, []);
   const loadAnalytics = () => api('/api/attempts/analytics').then(setAnalytics).catch((error) => setMessage(`Không thể tải phân tích: ${error.message}`));
-  const navItems = [['overview', '⌂', 'Tổng quan'], ['classes', '♧', 'Lớp học'], ['lessons', '▤', 'Bài học'], ['assignments', '▣', 'Bài tập'], ['question-bank', '☷', 'Ngân hàng câu hỏi'], ['students', '♙', 'Học sinh'], ['submissions', '✓', 'Bài nộp & nhận xét'], ['analytics', '▥', 'Phân tích học tập']];
+  const navItems = [['overview', '⌂', 'Tổng quan'], ['classes', '♧', 'Lớp học'], ['lessons', '▤', 'Bài học'], ['assignments', '▣', 'Bài tập'], ['question-bank', '☷', 'Ngân hàng câu hỏi'], ['students', '♙', 'Học sinh'], ['submissions', '✓', 'Bài nộp & nhận xét'], ['messages', '✉', 'Tin nhắn phụ huynh'], ['analytics', '▥', 'Phân tích học tập']];
   const openAction = (text, view = 'assignments') => { setActiveView(view); setMessage(text); };
   const primaryAction = activeView === 'assignments'
         ? { label: '＋ Tạo bài tập', target: 'assignments' }
         : { label: '＋ Tạo bài học', target: 'lessons' };
   return <main className="teacher-dashboard">
-    <aside className="teacher-sidebar"><div className="teacher-logo">▰</div><div className="teacher-brand">MathJoy<small>Teacher</small></div><nav>{navItems.map(([value, icon, label]) => <button key={value} className={activeView === value ? 'active' : ''} onClick={() => setActiveView(value)}><span>{icon}</span>{label}</button>)}</nav><div className="sidebar-help"><b>▣</b><strong>Mẹo hay cho giáo viên</strong><small>Đọc bài tập ngắn, đều đặn sẽ giúp học sinh tiến bộ hơn!</small><button onClick={() => setMessage('Khu vực hướng dẫn đang được chuẩn bị.')}>Xem thêm</button></div></aside>
-    <section className="teacher-main"><header className="teacher-topbar"><div><h1>Dashboard giáo viên</h1><p>Tổng quan tình hình học tập của lớp</p></div><div className="teacher-filters">{activeView !== 'students' && <button className="teacher-create" onClick={() => setActiveView(primaryAction.target)}>{primaryAction.label}</button>}<button className="teacher-logout" onClick={logout}>↪</button></div></header>{message && <div className="teacher-toast">{message}<button onClick={() => setMessage('')}>×</button></div>}{activeView === 'lessons' ? <LessonStudio api={api} onMessage={setMessage} onRefresh={loadTeacherData} /> : activeView === 'assignments' ? <AssignmentStudio api={api} onMessage={setMessage} /> : activeView === 'question-bank' ? <TeacherQuestionBank api={api} onMessage={setMessage} /> : activeView === 'classes' ? <TeacherClassManagement classes={classes} onMessage={setMessage} onRefresh={loadTeacherData} /> : activeView === 'students' ? <TeacherStudents api={api} classes={classes} onMessage={setMessage} /> : activeView === 'submissions' ? <TeacherSubmissions api={api} onMessage={setMessage} /> : activeView === 'overview' ? <TeacherOverview data={dashboardData} loading={overviewLoading} error={overviewError} onRetry={loadTeacherData} onOpenAssignments={() => setActiveView('assignments')} onOpenStudents={() => setActiveView('students')} /> : activeView === 'analytics' ? <TeacherAnalytics analytics={analytics} onRetry={loadAnalytics} /> : <section className="teacher-placeholder teacher-card"><span>✦</span><h2>{navItems.find(([value]) => value === activeView)?.[2]}</h2><p>Khu vực này đang dùng dữ liệu mẫu để bạn xem trước giao diện.</p><button className="teacher-create" onClick={() => setActiveView('overview')}>Về tổng quan</button></section>}</section>
+    <aside className="teacher-sidebar"><div className="teacher-logo">▰</div><div className="teacher-brand">MathJoy<small>Teacher</small></div><nav>{navItems.map(([value, icon, label]) => <button key={value} className={activeView === value ? 'active' : ''} onClick={() => setActiveView(value)}><span>{icon}</span>{label}{value === 'messages' && unreadMessages > 0 && <b className="teacher-nav-badge" aria-label={`${unreadMessages} tin chưa đọc`}>{unreadMessages}</b>}</button>)}</nav><div className="sidebar-help"><b>▣</b><strong>Mẹo hay cho giáo viên</strong><small>Đọc bài tập ngắn, đều đặn sẽ giúp học sinh tiến bộ hơn!</small><button onClick={() => setMessage('Khu vực hướng dẫn đang được chuẩn bị.')}>Xem thêm</button></div></aside>
+    <section className="teacher-main"><header className="teacher-topbar"><div><h1>Dashboard giáo viên</h1><p>Tổng quan tình hình học tập của lớp</p></div><div className="teacher-filters">{activeView !== 'students' && <button className="teacher-create" onClick={() => setActiveView(primaryAction.target)}>{primaryAction.label}</button>}<button className="teacher-logout" onClick={logout}>↪</button></div></header>{message && <div className="teacher-toast">{message}<button onClick={() => setMessage('')}>×</button></div>}{activeView === 'lessons' ? <LessonStudio api={api} onMessage={setMessage} onRefresh={loadTeacherData} /> : activeView === 'assignments' ? <AssignmentStudio api={api} onMessage={setMessage} /> : activeView === 'question-bank' ? <TeacherQuestionBank api={api} onMessage={setMessage} /> : activeView === 'classes' ? <TeacherClassManagement classes={classes} onMessage={setMessage} onRefresh={loadTeacherData} /> : activeView === 'students' ? <TeacherStudents api={api} classes={classes} onMessage={setMessage} /> : activeView === 'submissions' ? <TeacherSubmissions api={api} onMessage={setMessage} /> : activeView === 'messages' ? <section className="teacher-card teacher-messages"><div className="card-heading"><div><h3>Tin nhắn phụ huynh</h3><small>Trao đổi riêng với phụ huynh của học sinh trong các lớp bạn dạy</small></div></div><MessageCenter api={api} viewerRole="teacher" onUnreadChange={setUnreadMessages} /></section> : activeView === 'overview' ? <TeacherOverview data={dashboardData} loading={overviewLoading} error={overviewError} onRetry={loadTeacherData} onOpenAssignments={() => setActiveView('assignments')} onOpenStudents={() => setActiveView('students')} /> : activeView === 'analytics' ? <TeacherAnalytics analytics={analytics} onRetry={loadAnalytics} /> : <section className="teacher-placeholder teacher-card"><span>✦</span><h2>{navItems.find(([value]) => value === activeView)?.[2]}</h2><p>Khu vực này đang dùng dữ liệu mẫu để bạn xem trước giao diện.</p><button className="teacher-create" onClick={() => setActiveView('overview')}>Về tổng quan</button></section>}</section>
   </main>;
 }
