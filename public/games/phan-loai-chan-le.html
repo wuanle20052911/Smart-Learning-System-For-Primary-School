@@ -1,0 +1,536 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Phố Số Chẵn Số Lẻ | MathJoy</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/public/games/phan-loai-chan-le.css">
+</head>
+<body>
+<div class="viewport">
+  <main class="stage" id="stage">
+    <!-- Cảnh nền -->
+    <div class="scene" aria-hidden="true">
+      <span class="cloud c1"></span><span class="cloud c2"></span><span class="cloud c3"></span><span class="cloud c4"></span>
+      <span class="tree t1"></span><span class="tree t2"></span><span class="tree t3"></span><span class="tree t4"></span><span class="tree t5"></span>
+      <span class="fence"></span>
+      <span class="sidewalk"></span>
+      <span class="road"></span>
+      <span class="plaza"></span>
+      <span class="bush b1"></span><span class="bush b2"></span>
+      <span class="flower f1"></span><span class="flower f2"></span><span class="flower f3"></span><span class="flower f4"></span>
+    </div>
+
+    <!-- Bảng điểm treo -->
+    <div class="hud-score" role="status" aria-live="polite">
+      <span class="rope" aria-hidden="true"></span>
+      <div class="wood-board score-board"><span class="star-icon" aria-hidden="true"></span><span>Điểm: <b id="score">0</b></span></div>
+    </div>
+
+    <!-- Bảng tên game -->
+    <header class="title-board">
+      <h1 class="title-plank"><span>Phố Số Chẵn Số Lẻ</span></h1>
+      <p class="instruction" id="instruction" role="status" aria-live="polite">Hãy giúp bạn nhỏ dán các số vào đúng dãy nhà và sắp xếp theo thứ tự từ bé đến lớn nhé!</p>
+    </header>
+
+    <!-- Đồng hồ + tạm dừng -->
+    <div class="hud-timer wood-board" aria-label="Thời gian còn lại">
+      <svg class="stopwatch" viewBox="0 0 64 70" aria-hidden="true">
+        <rect x="26" y="2" width="12" height="8" rx="2" fill="#ff8a3d" stroke="#3a2a1a" stroke-width="3"/>
+        <path d="M48 12l6-5" stroke="#3a2a1a" stroke-width="5" stroke-linecap="round"/>
+        <circle cx="32" cy="40" r="26" fill="#ffd23f" stroke="#3a2a1a" stroke-width="4"/>
+        <circle cx="32" cy="40" r="19" fill="#fffdf6" stroke="#e0b030" stroke-width="2"/>
+        <g stroke="#3a2a1a" stroke-width="2.5" stroke-linecap="round"><path d="M32 23v4M32 53v4M15 40h4M45 40h4"/></g>
+        <g class="watch-hand" id="watch-hand"><path d="M32 40V26" stroke="#e5323f" stroke-width="3.5" stroke-linecap="round"/></g>
+        <circle cx="32" cy="40" r="3" fill="#3a2a1a"/>
+      </svg>
+      <div class="timer-text"><small>Thời gian:</small><b id="timer">01:30</b></div>
+    </div>
+    <button class="pause-btn" id="pause" type="button" aria-label="Tạm dừng"><span></span><span></span></button>
+
+    <!-- Dãy nhà số chẵn -->
+    <section class="row row-even" aria-label="Dãy nhà Số Chẵn">
+      <div class="row-label"><span class="crown" aria-hidden="true"></span><span class="pill pill-blue">Số Chẵn</span></div>
+      <div class="houses" id="houses-even"></div>
+    </section>
+
+    <!-- Bạn nhỏ và hộp số -->
+    <div class="kid-zone">
+      <svg class="kid" id="kid" viewBox="0 0 220 210" aria-hidden="true">
+        <g class="kid-body">
+          <path d="M44 210c4-44 30-66 66-66s62 22 66 66z" fill="#ff5a5f" stroke="#3a2a1a" stroke-width="5"/>
+          <path d="M84 150q26 18 52 0v60H84z" fill="#fff" stroke="#3a2a1a" stroke-width="4"/>
+          <text x="110" y="186" text-anchor="middle" font-family="Baloo 2, sans-serif" font-weight="800" font-size="20" fill="#ff8a3d">123</text>
+          <path d="M60 160c-6 20-6 34-4 50M160 160c6 20 6 34 4 50" stroke="#2f7fd1" stroke-width="12" stroke-linecap="round"/>
+        </g>
+        <g class="kid-head">
+          <ellipse cx="110" cy="92" rx="62" ry="58" fill="#ffdcc0" stroke="#3a2a1a" stroke-width="5"/>
+          <ellipse cx="46" cy="98" rx="11" ry="15" fill="#ffcfac" stroke="#3a2a1a" stroke-width="4"/>
+          <ellipse cx="174" cy="98" rx="11" ry="15" fill="#ffcfac" stroke="#3a2a1a" stroke-width="4"/>
+          <path d="M50 78c4-28 30-46 62-44 30 2 52 20 58 46-14-8-24-16-30-26-10 14-30 22-52 22-14 0-28-4-38 2z" fill="#8a4f2a" stroke="#3a2a1a" stroke-width="4" stroke-linejoin="round"/>
+          <g class="cap">
+            <path d="M46 70c0-34 28-56 64-56s64 22 64 56c-40-10-88-10-128 0z" fill="#fff" stroke="#3a2a1a" stroke-width="5"/>
+            <path d="M110 14c-20 0-38 8-50 22l30 30c8-4 14-6 20-6z" fill="#ef3b45" stroke="#3a2a1a" stroke-width="4" stroke-linejoin="round"/>
+            <path d="M110 14c22 0 40 9 52 24l-32 28c-6-4-12-6-20-6z" fill="#ef3b45" stroke="#3a2a1a" stroke-width="4" stroke-linejoin="round"/>
+            <path d="M150 64c22-6 44 2 56 12-10 6-32 8-52 2z" fill="#ef3b45" stroke="#3a2a1a" stroke-width="4" stroke-linejoin="round"/>
+            <path d="M110 30l4 9 10 1-8 6 3 10-9-6-9 6 3-10-8-6 10-1z" fill="#ffc93c" stroke="#c98a10" stroke-width="1.5"/>
+          </g>
+          <g class="eyes">
+            <ellipse cx="86" cy="100" rx="10" ry="13" fill="#3a2a1a"/><ellipse cx="134" cy="100" rx="10" ry="13" fill="#3a2a1a"/>
+            <circle cx="89" cy="95" r="4" fill="#fff"/><circle cx="137" cy="95" r="4" fill="#fff"/>
+            <circle cx="83" cy="105" r="2" fill="#fff"/><circle cx="131" cy="105" r="2" fill="#fff"/>
+          </g>
+          <ellipse cx="70" cy="120" rx="10" ry="6" fill="#ff9d9d" opacity=".7"/><ellipse cx="150" cy="120" rx="10" ry="6" fill="#ff9d9d" opacity=".7"/>
+          <path class="mouth mouth-happy" d="M96 120q14 18 28 0z" fill="#c2384a" stroke="#3a2a1a" stroke-width="3.5" stroke-linejoin="round"/>
+          <path class="mouth mouth-oops" d="M98 128q12-10 24 0" fill="none" stroke="#3a2a1a" stroke-width="4" stroke-linecap="round"/>
+          <path class="mouth mouth-wow" d="M110 118m-7 0a7 9 0 1 0 14 0a7 9 0 1 0-14 0" fill="#c2384a" stroke="#3a2a1a" stroke-width="3"/>
+        </g>
+      </svg>
+      <div class="box" id="box">
+        <span class="box-lid" aria-hidden="true"></span>
+        <span class="hand hand-l" aria-hidden="true"></span><span class="hand hand-r" aria-hidden="true"></span>
+        <div class="box-face"><span class="box-content" id="box-content">?</span></div>
+      </div>
+    </div>
+
+    <!-- Dãy nhà số lẻ -->
+    <section class="row row-odd" aria-label="Dãy nhà Số Lẻ">
+      <div class="row-label"><span class="crown" aria-hidden="true"></span><span class="pill pill-orange">Số Lẻ</span></div>
+      <div class="houses" id="houses-odd"></div>
+    </section>
+
+    <!-- Hàng thẻ số -->
+    <div class="tray" id="tray" aria-label="Các thẻ số cần dán"></div>
+
+    <!-- Gợi ý -->
+    <button class="hint-sign" id="hint" type="button" aria-label="Gợi ý">
+      <span class="hint-post" aria-hidden="true"></span>
+      <span class="hint-board"><span class="bulb" aria-hidden="true"></span><span>Gợi ý</span><small id="hint-left">3</small></span>
+    </button>
+
+    <div class="round-chip" id="round-chip">Chặng 1/3</div>
+    <div class="confetti" id="confetti" aria-hidden="true"></div>
+
+    <!-- Lớp phủ: bắt đầu / tạm dừng / kết thúc chặng / kết thúc game -->
+    <div class="overlay" id="overlay" hidden>
+      <div class="dialog wood-dialog" role="dialog" aria-modal="true" aria-labelledby="dialog-title">
+        <div class="dialog-stars" id="dialog-stars" aria-hidden="true"></div>
+        <h2 id="dialog-title"></h2>
+        <div id="dialog-body"></div>
+        <div class="dialog-actions" id="dialog-actions"></div>
+      </div>
+    </div>
+  </main>
+</div>
+<div class="drag-ghost" id="ghost" aria-hidden="true" hidden></div>
+
+<script>
+(() => {
+  const ROUNDS = [
+    { label: 'Chặng 1', min: 1, max: 20 },
+    { label: 'Chặng 2', min: 10, max: 99 },
+    { label: 'Chặng 3', min: 100, max: 999 }
+  ];
+  const ROUND_TIME = 90;
+  const HINTS_PER_ROUND = 3;
+  const PER_ROW = 3;
+  const $ = (id) => document.getElementById(id);
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  const state = {
+    round: 0, score: 0, timeLeft: ROUND_TIME, timer: null, paused: false, running: false,
+    token: 0, tiles: [], selected: null, hints: HINTS_PER_ROUND, perfect: 0, fixed: 0, wrong: 0, totalWrong: 0
+  };
+
+  // ---------- Dữ liệu chặng ----------
+  const rand = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
+  function pickNumbers(min, max, even, count, used) {
+    const list = [];
+    let guard = 0;
+    while (list.length < count && guard < 500) {
+      guard += 1;
+      const n = rand(min, max);
+      if ((n % 2 === 0) === even && !used.has(n)) { used.add(n); list.push(n); }
+    }
+    return list;
+  }
+  function buildRound(index) {
+    const { min, max } = ROUNDS[index];
+    const used = new Set();
+    const even = pickNumbers(min, max, true, PER_ROW, used).sort((a, b) => a - b);
+    const odd = pickNumbers(min, max, false, PER_ROW, used).sort((a, b) => a - b);
+    const tiles = [
+      ...even.map((value, slot) => ({ value, row: 'even', slot })),
+      ...odd.map((value, slot) => ({ value, row: 'odd', slot }))
+    ].map((tile, i) => ({ ...tile, id: `t${index}-${i}`, placed: false }));
+    for (let i = tiles.length - 1; i > 0; i -= 1) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [tiles[i], tiles[j]] = [tiles[j], tiles[i]];
+    }
+    return tiles;
+  }
+
+  // ---------- Vẽ nhà và thẻ ----------
+  function renderHouses() {
+    ['even', 'odd'].forEach((row) => {
+      $(`houses-${row}`).innerHTML = Array.from({ length: PER_ROW }, (_, slot) => `
+        <div class="house house-${row === 'even' ? 'blue' : 'orange'}" style="--i:${slot}">
+          <button class="slot" type="button" data-row="${row}" data-slot="${slot}"
+            aria-label="Nhà ${slot + 1} dãy ${row === 'even' ? 'Số Chẵn' : 'Số Lẻ'} (thứ ${slot + 1} từ bé đến lớn), đang trống"></button>
+        </div>`).join('');
+    });
+  }
+  function sizeClass(value) {
+    const len = String(value).length;
+    return len >= 3 ? ' len3' : len === 2 ? ' len2' : '';
+  }
+  function renderTray() {
+    $('tray').innerHTML = state.tiles.map((tile, i) => `
+      <button class="tile${sizeClass(tile.value)}" type="button" data-id="${tile.id}" style="--d:${i}"
+        aria-label="Thẻ số ${tile.value}" aria-pressed="false">${tile.value}</button>`).join('');
+    $('tray').querySelectorAll('.tile').forEach(bindTile);
+  }
+
+  // ---------- Bong bóng lời nói + biểu cảm ----------
+  // Lời nhắn hiện ngay trên bảng hướng dẫn, rồi tự trở lại câu hướng dẫn gốc
+  const instructionText = $('instruction').innerHTML;
+  let bubbleTimer = null;
+  function say(text, mood = 'happy', ms = 2600) {
+    const board = $('instruction');
+    board.innerHTML = text;
+    board.className = `instruction msg msg-${mood}`;
+    void board.offsetWidth;
+    board.classList.add('flash');
+    clearTimeout(bubbleTimer);
+    if (ms) bubbleTimer = setTimeout(() => { board.innerHTML = instructionText; board.className = 'instruction'; }, ms);
+    const kid = $('kid');
+    kid.classList.remove('happy', 'oops', 'wow');
+    void kid.getBoundingClientRect();
+    kid.classList.add(mood);
+  }
+
+  // ---------- Chọn thẻ & đặt vào nhà ----------
+  const tileById = (id) => state.tiles.find((tile) => tile.id === id);
+  function select(id) {
+    state.selected = id;
+    document.querySelectorAll('.tile').forEach((el) => {
+      const on = el.dataset.id === id;
+      el.classList.toggle('selected', on);
+      el.setAttribute('aria-pressed', String(on));
+    });
+    const tile = id && tileById(id);
+    const box = $('box-content');
+    box.textContent = tile ? tile.value : '?';
+    box.className = `box-content${tile ? sizeClass(tile.value) + ' has-number' : ''}`;
+    document.querySelectorAll('.slot').forEach((slot) => slot.classList.toggle('ready', Boolean(tile) && !slot.classList.contains('filled')));
+    if (tile) $('box').classList.add('bump');
+    setTimeout(() => $('box').classList.remove('bump'), 300);
+  }
+
+  function lastDigitText(value) { return `chữ số tận cùng là <b>${value % 10}</b>`; }
+
+  function place(id, row, slotIndex) {
+    if (!state.running || state.paused) return;
+    const tile = tileById(id);
+    if (!tile || tile.placed) return;
+    const tileEl = document.querySelector(`.tile[data-id="${id}"]`);
+    if (row !== tile.row) {
+      state.wrong += 1;
+      state.totalWrong += 1;
+      tileEl?.classList.remove('shake'); void tileEl?.offsetWidth; tileEl?.classList.add('shake');
+      setTimeout(() => tileEl?.classList.remove('shake'), 500);
+      const slotEl = document.querySelector(`.slot[data-row="${row}"][data-slot="${slotIndex}"]`);
+      slotEl?.classList.add('nope'); setTimeout(() => slotEl?.classList.remove('nope'), 500);
+      say(`Ồ không! <b>${tile.value}</b> có ${lastDigitText(tile.value)} nên là <b>${tile.row === 'even' ? 'số chẵn' : 'số lẻ'}</b>.`, 'oops', 3200);
+      return;
+    }
+    const exact = slotIndex === tile.slot;
+    const target = document.querySelector(`.slot[data-row="${tile.row}"][data-slot="${tile.slot}"]`);
+    if (!exact && target.classList.contains('filled')) return;
+    tile.placed = true;
+    const points = exact ? 10 : 5;
+    state.score += points;
+    if (exact) state.perfect += 1; else state.fixed += 1;
+    $('score').textContent = state.score;
+    $('score').parentElement.classList.remove('bump'); void $('score').offsetWidth; $('score').parentElement.classList.add('bump');
+    target.textContent = tile.value;
+    target.className = `slot filled${sizeClass(tile.value)}`;
+    target.setAttribute('aria-label', `Nhà ${tile.slot + 1} dãy ${tile.row === 'even' ? 'Số Chẵn' : 'Số Lẻ'}: số ${tile.value}`);
+    target.closest('.house').classList.add('lit');
+    sparkle(target);
+    tileEl?.classList.add('used');
+    tileEl?.setAttribute('disabled', '');
+    select(null);
+    if (exact) {
+      say(pickPraise(tile), 'happy', 1800);
+    } else {
+      say(`Đúng dãy rồi! Nhưng phải xếp <b>từ bé đến lớn</b> — mình đã dời <b>${tile.value}</b> về đúng nhà nhé.`, 'wow', 3000);
+    }
+    if (state.tiles.every((t) => t.placed)) later(roundComplete, reduceMotion ? 300 : 700);
+  }
+
+  const praises = ['Chính xác!', 'Giỏi quá!', 'Tuyệt vời!', 'Siêu ghê!', 'Đúng rồi!'];
+  function pickPraise(tile) {
+    return `${praises[rand(0, praises.length - 1)]} <b>${tile.value}</b> ${tile.row === 'even' ? 'chẵn' : 'lẻ'} vì ${lastDigitText(tile.value)}.`;
+  }
+
+  function sparkle(target) {
+    if (reduceMotion) return;
+    const rect = target.getBoundingClientRect();
+    const stage = $('stage').getBoundingClientRect();
+    for (let i = 0; i < 8; i += 1) {
+      const s = document.createElement('span');
+      s.className = 'spark';
+      s.style.left = `${rect.left - stage.left + rect.width / 2}px`;
+      s.style.top = `${rect.top - stage.top + rect.height / 2}px`;
+      s.style.setProperty('--a', `${i * 45}deg`);
+      $('stage').appendChild(s);
+      setTimeout(() => s.remove(), 700);
+    }
+  }
+
+  // ---------- Kéo thả bằng con trỏ (chuột, cảm ứng, bút) ----------
+  function bindTile(el) {
+    let start = null;
+    let dragging = false;
+    const ghost = $('ghost');
+    el.addEventListener('pointerdown', (event) => {
+      if (el.disabled || !state.running || state.paused) return;
+      start = { x: event.clientX, y: event.clientY };
+      dragging = false;
+      try { el.setPointerCapture(event.pointerId); } catch (error) { /* bỏ qua */ }
+    });
+    el.addEventListener('pointermove', (event) => {
+      if (!start) return;
+      const dx = event.clientX - start.x;
+      const dy = event.clientY - start.y;
+      if (!dragging && Math.hypot(dx, dy) > 8) {
+        dragging = true;
+        select(el.dataset.id);
+        ghost.textContent = el.textContent;
+        ghost.className = `drag-ghost${sizeClass(Number(el.textContent))}`;
+        const r = el.getBoundingClientRect();
+        ghost.style.width = `${r.width}px`;
+        ghost.style.height = `${r.height}px`;
+        ghost.style.fontSize = getComputedStyle(el).fontSize;
+        ghost.hidden = false;
+        el.classList.add('lifting');
+      }
+      if (dragging) {
+        ghost.style.left = `${event.clientX}px`;
+        ghost.style.top = `${event.clientY}px`;
+        const over = document.elementFromPoint(event.clientX, event.clientY)?.closest('.slot');
+        document.querySelectorAll('.slot.over').forEach((s) => s !== over && s.classList.remove('over'));
+        if (over && !over.classList.contains('filled')) over.classList.add('over');
+      }
+    });
+    const finish = (event) => {
+      if (!start) return;
+      const wasDragging = dragging;
+      start = null;
+      dragging = false;
+      ghost.hidden = true;
+      el.classList.remove('lifting');
+      document.querySelectorAll('.slot.over').forEach((s) => s.classList.remove('over'));
+      if (!wasDragging) return;
+      el.dataset.dragged = '1';
+      const over = document.elementFromPoint(event.clientX, event.clientY)?.closest('.slot');
+      if (over && !over.classList.contains('filled')) place(el.dataset.id, over.dataset.row, Number(over.dataset.slot));
+    };
+    el.addEventListener('pointerup', finish);
+    el.addEventListener('pointercancel', () => { start = null; dragging = false; ghost.hidden = true; el.classList.remove('lifting'); });
+    // Chạm/nhấn để chọn (không kéo)
+    el.addEventListener('click', () => {
+      if (el.dataset.dragged) { delete el.dataset.dragged; return; }
+      if (el.disabled || !state.running || state.paused) return;
+      select(state.selected === el.dataset.id ? null : el.dataset.id);
+      if (state.selected) say(`Con chọn số <b>${el.textContent}</b>. Giờ chạm vào ngôi nhà đúng nhé!`, 'wow', 2200);
+    });
+  }
+
+  document.addEventListener('click', (event) => {
+    const slot = event.target.closest('.slot');
+    if (!slot || slot.classList.contains('filled')) return;
+    if (!state.selected) { say('Chọn một thẻ số ở dưới trước nhé!', 'wow', 2000); return; }
+    place(state.selected, slot.dataset.row, Number(slot.dataset.slot));
+  });
+
+  // ---------- Gợi ý ----------
+  $('hint').addEventListener('click', () => {
+    if (!state.running || state.paused) return;
+    if (state.hints <= 0) { say('Hết lượt gợi ý rồi. Nhớ bí quyết: nhìn chữ số cuối cùng!', 'oops', 2600); return; }
+    state.hints -= 1;
+    $('hint-left').textContent = state.hints;
+    let tile = state.selected && tileById(state.selected);
+    if (!tile) tile = state.tiles.find((t) => !t.placed);
+    if (!tile) return;
+    select(tile.id);
+    const target = document.querySelector(`.slot[data-row="${tile.row}"][data-slot="${tile.slot}"]`);
+    target.classList.add('hinted');
+    setTimeout(() => target.classList.remove('hinted'), 2600);
+    say(`Bí quyết: <b>${tile.value}</b> có ${lastDigitText(tile.value)} → <b>${tile.row === 'even' ? 'Số Chẵn' : 'Số Lẻ'}</b>, ở nhà thứ <b>${tile.slot + 1}</b> vì xếp từ bé đến lớn.`, 'wow', 4200);
+  });
+
+  // ---------- Đồng hồ ----------
+  function formatTime(s) { return `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`; }
+  function renderTime() {
+    $('timer').textContent = formatTime(state.timeLeft);
+    $('watch-hand').style.transform = `rotate(${(ROUND_TIME - state.timeLeft) * 6}deg)`;
+    document.querySelector('.hud-timer').classList.toggle('hurry', state.timeLeft <= 10 && state.running);
+  }
+  function startTimer() {
+    clearInterval(state.timer);
+    state.timer = setInterval(() => {
+      if (state.paused || !state.running) return;
+      state.timeLeft -= 1;
+      renderTime();
+      if (state.timeLeft <= 0) timeUp();
+    }, 1000);
+  }
+
+  // ---------- Chặng & lớp phủ ----------
+  function showOverlay({ title, body, actions, stars = '' }) {
+    $('dialog-title').textContent = title;
+    $('dialog-body').innerHTML = body;
+    $('dialog-stars').textContent = stars;
+    $('dialog-actions').innerHTML = '';
+    actions.forEach(({ label, primary, onClick, href }) => {
+      const el = document.createElement(href ? 'a' : 'button');
+      el.className = `dlg-btn${primary ? ' primary' : ''}`;
+      el.textContent = label;
+      if (href) el.href = href; else { el.type = 'button'; el.addEventListener('click', onClick); }
+      $('dialog-actions').appendChild(el);
+    });
+    $('overlay').hidden = false;
+    $('dialog-actions').firstElementChild?.focus();
+  }
+  const hideOverlay = () => { $('overlay').hidden = true; };
+
+  // Hẹn giờ chỉ chạy nếu vẫn còn ở đúng chặng đã hẹn (tránh hộp thoại cũ bật lên ở chặng mới)
+  function later(fn, ms) {
+    const token = state.token;
+    setTimeout(() => { if (token === state.token) fn(); }, ms);
+  }
+
+  function startRound(index) {
+    state.token += 1;
+    state.round = index;
+    state.tiles = buildRound(index);
+    state.selected = null;
+    state.hints = HINTS_PER_ROUND;
+    state.perfect = 0; state.fixed = 0; state.wrong = 0;
+    state.timeLeft = ROUND_TIME;
+    $('hint-left').textContent = state.hints;
+    $('round-chip').textContent = `${ROUNDS[index].label}/${ROUNDS.length} · số ${ROUNDS[index].min}–${ROUNDS[index].max}`;
+    renderHouses();
+    renderTray();
+    select(null);
+    renderTime();
+    hideOverlay();
+    state.running = true;
+    state.paused = false;
+    startTimer();
+    say(index === 0 ? 'Kéo thẻ số vào đúng dãy nhà nhé! Nhớ xếp từ bé đến lớn.' : `${ROUNDS[index].label}: số lớn hơn rồi, cố lên!`, 'happy', 3200);
+  }
+
+  function roundStars() { return state.wrong === 0 && state.fixed === 0 ? 3 : state.wrong + state.fixed <= 2 ? 2 : 1; }
+
+  function roundComplete() {
+    state.running = false;
+    clearInterval(state.timer);
+    const bonus = Math.floor(state.timeLeft / 3);
+    state.score += bonus;
+    $('score').textContent = state.score;
+    confetti();
+    say('Hoan hô! Cả dãy phố đã có số rồi!', 'happy', 0);
+    const stars = roundStars();
+    const last = state.round === ROUNDS.length - 1;
+    later(() => showOverlay({
+      title: last ? 'Hoàn thành cả 3 chặng!' : `Xong ${ROUNDS[state.round].label}!`,
+      stars: '⭐'.repeat(stars) + '☆'.repeat(3 - stars),
+      body: `<p>Đặt đúng ngay: <b>${state.perfect}</b> · Cần dời chỗ: <b>${state.fixed}</b> · Nhầm dãy: <b>${state.wrong}</b></p>
+             <p>Thưởng thời gian: <b>+${bonus}</b> điểm · Tổng điểm: <b>${state.score}</b></p>`,
+      actions: last
+        ? [{ label: '↺ Chơi lại', primary: true, onClick: newGame }, { label: 'Về bài học', href: '/learn' }]
+        : [{ label: 'Chặng tiếp theo →', primary: true, onClick: () => startRound(state.round + 1) }]
+    }), reduceMotion ? 200 : 1200);
+  }
+
+  function timeUp() {
+    state.running = false;
+    clearInterval(state.timer);
+    // Hiện đáp án cho các nhà còn trống để học sinh nhìn lại
+    state.tiles.filter((t) => !t.placed).forEach((tile) => {
+      const target = document.querySelector(`.slot[data-row="${tile.row}"][data-slot="${tile.slot}"]`);
+      target.textContent = tile.value;
+      target.className = `slot filled revealed${sizeClass(tile.value)}`;
+    });
+    say('Hết giờ rồi! Xem đáp án trên các ngôi nhà nhé.', 'oops', 0);
+    const last = state.round === ROUNDS.length - 1;
+    later(() => showOverlay({
+      title: 'Hết giờ!',
+      stars: '',
+      body: `<p>Các số màu nhạt trên nhà là đáp án đúng. Nhớ: chữ số tận cùng <b>0, 2, 4, 6, 8</b> là số chẵn; <b>1, 3, 5, 7, 9</b> là số lẻ.</p><p>Tổng điểm: <b>${state.score}</b></p>`,
+      actions: [
+        { label: '↺ Chơi lại chặng này', primary: true, onClick: () => startRound(state.round) },
+        ...(last ? [{ label: 'Về bài học', href: '/learn' }] : [{ label: 'Sang chặng sau →', onClick: () => startRound(state.round + 1) }])
+      ]
+    }), 1600);
+  }
+
+  function newGame() {
+    state.score = 0;
+    state.totalWrong = 0;
+    $('score').textContent = '0';
+    startRound(0);
+  }
+
+  $('pause').addEventListener('click', () => {
+    if (!state.running) return;
+    state.paused = true;
+    document.body.classList.add('paused');
+    showOverlay({
+      title: 'Tạm dừng',
+      body: '<p>Nghỉ một chút nhé! Đồng hồ đã dừng lại.</p>',
+      actions: [
+        { label: '▶ Tiếp tục', primary: true, onClick: () => { state.paused = false; document.body.classList.remove('paused'); hideOverlay(); } },
+        { label: '↺ Chơi lại từ đầu', onClick: () => { document.body.classList.remove('paused'); newGame(); } },
+        { label: 'Về bài học', href: '/learn' }
+      ]
+    });
+  });
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && state.running && !state.paused) $('pause').click();
+  });
+
+  function confetti() {
+    if (reduceMotion) return;
+    const colors = ['#ff5a64', '#ffd23f', '#3d8ee6', '#6ee59a', '#ff8a3d', '#b78cff'];
+    const layer = $('confetti');
+    layer.innerHTML = '';
+    for (let i = 0; i < 60; i += 1) {
+      const piece = document.createElement('i');
+      piece.style.left = `${Math.random() * 100}%`;
+      piece.style.background = colors[i % colors.length];
+      piece.style.animationDelay = `${Math.random() * 0.6}s`;
+      piece.style.setProperty('--x', `${(Math.random() - 0.5) * 30}vw`);
+      piece.style.setProperty('--r', `${Math.random() * 720 - 360}deg`);
+      layer.appendChild(piece);
+    }
+    setTimeout(() => { layer.innerHTML = ''; }, 3200);
+  }
+
+  // Màn chào
+  renderHouses();
+  showOverlay({
+    title: 'Phố Số Chẵn Số Lẻ',
+    body: `<p>Kéo (hoặc chạm) từng thẻ số vào dãy nhà <b class="t-blue">Số Chẵn</b> hay <b class="t-orange">Số Lẻ</b>, và xếp <b>từ bé đến lớn</b> từ trái sang phải.</p>
+           <p>Bí quyết: chỉ cần nhìn <b>chữ số tận cùng</b>! 3 chặng · mỗi chặng ${formatTime(ROUND_TIME)}.</p>`,
+    actions: [{ label: '▶ Bắt đầu chơi', primary: true, onClick: newGame }]
+  });
+})();
+</script>
+</body>
+</html>

@@ -89,6 +89,7 @@ Tài liệu thiết kế, user stories, bảng truy vết, sơ đồ kiến trú
   - Chạy `supabase/017_lesson_chapters_storage.sql` để liên kết bài học với chương, tạo bucket riêng tư `lesson-materials` và policy đọc các bucket mẫu `Math4`/`Chapter1`.
   - Tài khoản **Giáo viên** mở `http://localhost:3000/teacher` → **Bài học** để chọn môn, tạo chương, thêm, sửa hoặc xóa bài học và chọn nguồn file từ máy hoặc các bucket chương hiện có (`Math4`, `Chapter1`–`Chapter3`). Nội dung bài được lưu trong `public.lessons`; `source_bucket` và `source_path` giữ địa chỉ file để backend mở lại bằng signed URL.
   - Chạy `supabase/040_lesson_story_slides.sql` để bật truyện ảnh mở đầu bài học. Giáo viên có thể thêm tối đa 20 ảnh (JPG, PNG, WEBP hoặc GIF, tối đa 5 MB/ảnh), sắp xếp bằng kéo-thả hoặc nút mũi tên và thêm chú thích; học sinh xem lần lượt câu chuyện trước khi đọc bài.
+  - Chạy `supabase/041_lesson_games.sql` để gắn trò chơi theo từng bài học (cột `lessons.game_slugs`). Migration tự gắn ba trò chơi số đến 100 000 cho các bài trước đây được nhận diện theo tiêu đề/nội dung.
   - Nếu danh sách môn/chương thiếu dữ liệu từ các bài học đã có, chạy `supabase/019_sync_catalog_from_lessons.sql` trong Supabase SQL Editor để đồng bộ `subjects`, `topics` và `lessons.topic_id` từ `lessons.subject`/`lessons.topic`. Có thể chạy lại an toàn sau khi thêm bài học; tải lại trang **Bài học** sau khi chạy.
   - Chạy `supabase/019_backfill_lesson_source_filenames.sql` để điền `source_filename` còn thiếu từ `source_path` cho bài học thuộc `Chapter1`–`Chapter3`.
   - Chạy `supabase/022_fix_chapter_lesson_material_paths.sql` để sửa liên kết `C2B4.docx`–`C2B6.docx` sang các file thực có `Chapter1/C1B4.docx`–`C1B6.docx`.
@@ -266,7 +267,13 @@ Thời gian chờ mặc định cho cả lượt tạo và rà soát là 5 phút
 
 ### Truyện ảnh bài học và trò chơi nối tiếp
 
-Với bài học ôn tập các số đến 100 000 có truyện ảnh, học sinh lần lượt xem hết các ảnh trước khi mở màn chọn trò chơi. Có ba trò chơi HTML độc lập trong `public/games/`: sắp xếp số tăng dần, so sánh số và giải mã hàng/chữ số. Từ màn chọn game, học sinh có thể quay lại truyện hoặc tiếp tục vào nội dung bài học.
+Mỗi bài học có thể gắn các trò chơi HTML độc lập trong `public/games/`. Giáo viên chọn trò chơi cho bài trong mục **Trò chơi sau bài học** khi soạn bài; lựa chọn được lưu ở cột `lessons.game_slugs` trên Supabase (chạy `supabase/041_lesson_games.sql`). Bài có truyện ảnh: học sinh xem hết các ảnh rồi mới mở màn chọn trò chơi. Bài không có truyện: nút **Chơi trò chơi** nằm cạnh các nút luyện tập.
+
+File game nằm trong repo (không tải lên Supabase) để code chạy trong app luôn được xem qua PR. Thêm một trò chơi mới:
+
+1. Tạo `public/games/<slug>.html` (dùng chung `public/games/game-ui.css`).
+2. Thêm một mục vào `services/lessonGames.json` với `slug`, `href`, `icon`, `title`, `description`. Server chỉ chấp nhận slug có trong danh mục này.
+3. Mở trang soạn bài và tích chọn trò chơi cho bài học.
 
 ### POST /api/download-quiz
 

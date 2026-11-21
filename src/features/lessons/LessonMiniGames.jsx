@@ -1,31 +1,11 @@
 import React from 'react';
 
-const games = [
-  {
-    href: '/public/games/sap-xep-so-tang-dan.html',
-    icon: '🪨',
-    title: 'Đường đua sắp xếp',
-    description: 'Đưa các số từ bé đến lớn để hoàn thành chặng đua.'
-  },
-  {
-    href: '/public/games/so-sanh-so.html',
-    icon: '⚖️',
-    title: 'Ai lớn hơn?',
-    description: 'So sánh các số có nhiều chữ số bằng dấu >, < hoặc =.'
-  },
-  {
-    href: '/public/games/giai-ma-hang-so.html',
-    icon: '🔎',
-    title: 'Giải mã hàng số',
-    description: 'Khám phá giá trị của chữ số và cấu tạo số đến 100 000.'
-  }
-];
-
-export default function LessonMiniGames({ lessonTitle, onBack, onContinue }) {
-  return <section className="lesson-game-select" aria-label="Trò chơi tiếp theo sau câu chuyện">
+export default function LessonMiniGames({ lessonTitle, games, hasStory, onBack, onContinue }) {
+  const backLabel = hasStory ? '← Xem lại truyện' : '← Quay lại bài học';
+  return <section className="lesson-game-select" aria-label="Trò chơi của bài học">
     <header className="study-adventure-header">
-      <div><span className="study-adventure-kicker">CÂU CHUYỆN ĐÃ KẾT THÚC</span><h2>{lessonTitle}</h2></div>
-      <button className="lesson-close" type="button" onClick={onBack}>← Xem lại truyện</button>
+      <div><span className="study-adventure-kicker">{hasStory ? 'CÂU CHUYỆN ĐÃ KẾT THÚC' : 'TRÒ CHƠI CỦA BÀI HỌC'}</span><h2>{lessonTitle}</h2></div>
+      <button className="lesson-close" type="button" onClick={onBack}>{backLabel}</button>
     </header>
     <div className="lesson-game-select-content">
       <div className="lesson-game-banner">
@@ -33,10 +13,10 @@ export default function LessonMiniGames({ lessonTitle, onBack, onContinue }) {
           <span aria-hidden="true">🎮</span>
           <div>
             <small>CHẶNG TIẾP THEO</small>
-            <h1><span>Cùng chinh phục</span><strong>các số đến 100 000!</strong></h1>
+            <h1><span>Cùng chinh phục</span><strong>{lessonTitle}!</strong></h1>
           </div>
         </div>
-        <p className="lesson-game-select-intro">Mỗi trò chơi là một trang riêng. Sắp xếp, so sánh và giải mã các số để hoàn thành thử thách nhé.</p>
+        <p className="lesson-game-select-intro">Mỗi trò chơi là một trang riêng. Hoàn thành các thử thách để ôn lại kiến thức của bài nhé.</p>
       </div>
       <div className="lesson-game-grid">
         {games.map((game, index) => <a
@@ -44,7 +24,7 @@ export default function LessonMiniGames({ lessonTitle, onBack, onContinue }) {
           href={game.href}
           target="_blank"
           rel="noopener noreferrer"
-          key={game.href}
+          key={game.slug}
         >
           <span className="lesson-game-icon" aria-hidden="true">{game.icon}</span>
           <small>TRÒ CHƠI {index + 1}</small>
@@ -54,7 +34,7 @@ export default function LessonMiniGames({ lessonTitle, onBack, onContinue }) {
         </a>)}
       </div>
       <div className="lesson-game-select-actions">
-        <button className="adventure-secondary-button" type="button" onClick={onBack}>← Xem lại truyện</button>
+        <button className="adventure-secondary-button" type="button" onClick={onBack}>{backLabel}</button>
         <button className="adventure-primary-button" type="button" onClick={onContinue}>Vào bài học →</button>
       </div>
     </div>
