@@ -131,6 +131,29 @@ async function respondToRequest(req, res) {
   }
 }
 
+async function requestHistory(req, res) {
+  res.set('Cache-Control', 'no-store');
+  try {
+    return res.json({ requests: await parentModel.getRequestHistory(req.user.id) });
+  } catch (error) {
+    console.error('Could not load parent request history:', error);
+    return res.status(500).json({ error: 'Không thể tải lịch sử yêu cầu liên kết.' });
+  }
+}
+
+async function unlinkChild(req, res) {
+  const { studentId } = req.params;
+  if (!uuidPattern.test(studentId)) return res.status(400).json({ error: 'Học sinh không hợp lệ.' });
+  try {
+    await parentModel.unlinkChild(req.user.id, studentId);
+    return res.json({ ok: true });
+  } catch (error) {
+    if (error.code === 'LINK_NOT_FOUND') return res.status(404).json({ error: 'Không tìm thấy liên kết với học sinh này.' });
+    console.error('Could not unlink child:', error);
+    return res.status(500).json({ error: 'Không thể hủy liên kết lúc này.' });
+  }
+}
+
 function reviewHandler(loadReview) {
   return async (req, res) => {
     res.set('Cache-Control', 'no-store');
@@ -153,5 +176,5 @@ const attemptReview = reviewHandler((...args) => parentModel.getAttemptReview(..
 
 module.exports = {
   parentOnly, studentOnly, adminOnly, dashboard, submissionReview, attemptReview, listLinks, createLink, removeLink,
-  incomingRequests, myRequests, createRequest, respondToRequest
+  incomingRequests, requestHistory, unlinkChild, myRequests, createRequest, respondToRequest
 };

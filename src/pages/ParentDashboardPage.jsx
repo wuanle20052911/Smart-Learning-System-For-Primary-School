@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import ParentIcon from '../components/ParentIcons.jsx';
+import ParentActivity from '../components/ParentActivity.jsx';
+import ChristmasTrim from '../components/ChristmasTrim.jsx';
 
 function formatPercent(value) {
   return value === null || value === undefined ? '—' : `${value}%`;
@@ -45,11 +47,13 @@ function ParentSidebar({ childrenList, selectedChild, onSelectChild, requestCoun
     requestCount > 0 && { id: 'parent-sec-requests', icon: 'envelope', label: 'Yêu cầu liên kết', badge: requestCount, tone: 'alert' },
     selectedChild && { id: 'parent-sec-overview', icon: 'overview', label: 'Tổng quan' },
     selectedChild?.attention && { id: 'parent-sec-attention', icon: 'heart', label: 'Cần quan tâm', badge: '!', tone: 'alert' },
+    selectedChild && { id: 'parent-sec-activity', icon: 'calendar', label: 'Tiến bộ & lịch học', badge: selectedChild.activity?.streak.current || null, tone: 'streak' },
     selectedChild && { id: 'parent-sec-competency', icon: 'target', label: 'Năng lực' },
     selectedChild && { id: 'parent-sec-recommendations', icon: 'bulb', label: 'Khuyến nghị' },
     selectedChild && { id: 'parent-sec-assignments', icon: 'books', label: 'Bài tập', badge: unfinished || null, tone: overdue ? 'alert' : 'info' },
     selectedChild && { id: 'parent-sec-attempts', icon: 'pencil', label: 'Luyện tập' },
-    selectedChild && { id: 'parent-sec-lessons', icon: 'openBook', label: 'Bài học' }
+    selectedChild && { id: 'parent-sec-lessons', icon: 'openBook', label: 'Bài học' },
+    !loading && { id: 'parent-sec-links', icon: 'link', label: 'Quản lý liên kết' }
   ].filter(Boolean);
   const [activeId, setActiveId] = useState('');
   const itemKey = items.map((item) => item.id).join('|');
@@ -61,13 +65,21 @@ function ParentSidebar({ childrenList, selectedChild, onSelectChild, requestCoun
     const observer = new IntersectionObserver((entries) => {
       const visible = entries.filter((entry) => entry.isIntersecting)
         .sort((left, right) => left.boundingClientRect.top - right.boundingClientRect.top);
-      if (visible[0]) setActiveId(visible[0].target.id);
+      if (visible[0] && !atPageBottom()) setActiveId(visible[0].target.id);
     }, { rootMargin: '-15% 0px -65% 0px' });
     elements.forEach((element) => observer.observe(element));
-    return () => observer.disconnect();
+    const atPageBottom = () => window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 4;
+    const onScroll = () => { if (atPageBottom()) setActiveId(elements[elements.length - 1].id); };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => {
+      observer.disconnect();
+      window.removeEventListener('scroll', onScroll);
+    };
   }, [itemKey, selectedChild?.student.id]);
 
   return <aside className="parent-sidebar" aria-label="Điều hướng nhanh">
+    <ChristmasTrim variant="sidebar" />
+    <div className="parent-sidebar-scroll">
     {childrenList.length > 1 && <div className="parent-sidebar-group">
       <span className="parent-sidebar-label">CON CỦA BẠN</span>
       <div className="parent-child-switch">{childrenList.map((child) => <button
@@ -93,6 +105,7 @@ function ParentSidebar({ childrenList, selectedChild, onSelectChild, requestCoun
     <div className="parent-sidebar-group parent-sidebar-actions">
       <button type="button" onClick={onRefresh} disabled={loading}><span><ParentIcon name="refresh" /></span>{loading ? 'Đang tải...' : 'Làm mới'}</button>
       <button type="button" onClick={onProfile}><span><ParentIcon name="profile" /></span>Thông tin cá nhân</button>
+    </div>
     </div>
     </div>
   </aside>;
@@ -150,6 +163,10 @@ export default function ParentDashboardPage({ api, readSession, Header, Brand, g
   const [requestBusy, setRequestBusy] = useState('');
   const [refresh, setRefresh] = useState(0);
   const [reviewState, setReviewState] = useState(null);
+  const [history, setHistory] = useState([]);
+  const [unlinkTarget, setUnlinkTarget] = useState(null);
+  const [unlinkBusy, setUnlinkBusy] = useState(false);
+  const [linkMessage, setLinkMessage] = useState('');
   const [selectedChildId, setSelectedChildId] = useState('');
   const selectedChild = children.find((child) => child.student.id === selectedChildId) || children[0] || null;
 
@@ -181,10 +198,30 @@ export default function ParentDashboardPage({ api, readSession, Header, Brand, g
         setRequestError('');
       })
       .catch((loadError) => { if (active) setRequestError(loadError.message || 'Không thể tải yêu cầu liên kết.'); });
-    Promise.all([dashboardLoad, requestLoad])
+    const historyLoad = api('/api/parents/requests/history')
+      .then((data) => { if (active) setHistory(data.requests || []); })
+      .catch(() => { if (active) setHistory([]); });
+    Promise.all([dashboardLoad, requestLoad, historyLoad])
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
   }, [api, refresh]);
+
+  const confirmUnlink = async () => {
+    if (!unlinkTarget) return;
+    setUnlinkBusy(true);
+    setLinkMessage('');
+    try {
+      await api(`/api/parents/children/${unlinkTarget.id}`, { method: 'DELETE' });
+      setLinkMessage(`Đã hủy liên kết với ${unlinkTarget.full_name || 'học sinh'}.`);
+      setUnlinkTarget(null);
+      if (selectedChildId === unlinkTarget.id) setSelectedChildId('');
+      setRefresh((value) => value + 1);
+    } catch (unlinkError) {
+      setLinkMessage(unlinkError.message || 'Không thể hủy liên kết lúc này.');
+    } finally {
+      setUnlinkBusy(false);
+    }
+  };
 
   const respondToRequest = async (requestId, action) => {
     setRequestBusy(requestId);
@@ -215,21 +252,12 @@ export default function ParentDashboardPage({ api, readSession, Header, Brand, g
       onProfile={() => go('/profile')}
     />
     <main className="parent-dashboard">
-      <div className="parent-dashboard-heading">
-        <div>
-          <span className="parent-eyebrow">GÓC GIA ĐÌNH MATHJOY</span>
-          <h1>Cùng con lớn lên mỗi ngày!</h1>
-          <p>Xin chào {session?.profile?.full_name || 'phụ huynh'}! Hãy cùng khám phá hành trình và những tiến bộ của con nhé.</p>
-        </div>
-        <div className="parent-heading-actions">
-          <span className="parent-hero-mascot"><ParentIcon name="family" size={64} /></span>
-        </div>
-      </div>
-
+      <h1 className="parent-sr-only">Theo dõi học tập của con</h1>
       {error && <div className="parent-alert" role="alert">{error}</div>}
       {!session?.profile?.phone_number && <div className="parent-alert parent-phone-reminder">Hãy thêm số điện thoại trong <a href="/profile" onClick={(event) => { event.preventDefault(); go('/profile'); }}>Thông tin cá nhân</a> để học sinh có thể gửi yêu cầu liên kết.</div>}
       {requestError && <div className="parent-alert" role="alert">{requestError}</div>}
       {!loading && requests.length > 0 && <section className="parent-request-card" id="parent-sec-requests">
+        <ChristmasTrim variant="request" />
         <div className="parent-section-heading"><div><span className="parent-eyebrow">CẦN XÁC NHẬN</span><h2>Yêu cầu liên kết từ học sinh</h2></div><span className="parent-request-count">{requests.length}</span></div>
         <p>Chỉ chấp nhận nếu bạn nhận ra học sinh này. Khi xác nhận, tài khoản sẽ được liên kết và tiến độ học tập sẽ hiển thị trong dashboard.</p>
         <div className="parent-request-list">{requests.map((request) => <article key={request.id}>
@@ -254,6 +282,7 @@ export default function ParentDashboardPage({ api, readSession, Header, Brand, g
         </section>
           : <div className="parent-children">
             {(selectedChild ? [selectedChild] : []).map((child) => <article className="parent-child-card" key={child.student.id}>
+              <ChristmasTrim variant="card" />
               <header className="parent-child-heading">
                 <div>
                   <span className="parent-eyebrow">HỒ SƠ HỌC TẬP</span>
@@ -272,6 +301,11 @@ export default function ParentDashboardPage({ api, readSession, Header, Brand, g
                 <article><span><ParentIcon name="target" size={30} /></span><strong>{formatPercent(child.summary.accuracy)}</strong><small>Độ chính xác luyện tập</small><em>{child.summary.correct_answers}/{child.summary.total_answers} câu đúng</em></article>
                 <article><span><ParentIcon name="pencil" size={30} /></span><strong>{child.summary.attempt_count}</strong><small>Lượt luyện tập</small><em>{trendLabel(child.trend)}</em></article>
                 <article><span><ParentIcon name="openBook" size={30} /></span><strong>{child.summary.completed_lesson_count ?? 0}</strong><small>Bài học đã hoàn thành</small><em>{child.completed_lessons?.[0] ? `Gần nhất ${formatDate(child.completed_lessons[0].completed_at)}` : 'Chưa có bài học hoàn thành'}</em></article>
+              </section>
+
+              <section className="parent-section" id="parent-sec-activity">
+                <div className="parent-section-heading"><div><span className="parent-eyebrow">THEO DÕI THEO THỜI GIAN</span><h3>Tiến bộ và lịch học</h3></div></div>
+                <ParentActivity key={child.student.id} activity={child.activity} />
               </section>
 
               <section className="parent-section" id="parent-sec-competency">
@@ -334,6 +368,33 @@ export default function ParentDashboardPage({ api, readSession, Header, Brand, g
               </section>
             </article>)}
           </div>}
+      {!loading && <section className="parent-links-card" id="parent-sec-links">
+        <ChristmasTrim variant="links" />
+        <div className="parent-section-heading"><div><span className="parent-eyebrow">TÀI KHOẢN GIA ĐÌNH</span><h3>Quản lý liên kết</h3></div><ParentIcon name="link" size={34} /></div>
+        {linkMessage && <p className="parent-link-message" role="status">{linkMessage}</p>}
+        <h4>Đang liên kết</h4>
+        {children.length ? <div className="parent-link-list">{children.map((child) => <article key={child.student.id}>
+          <ParentIcon name="backpack" size={28} />
+          <div><strong>{child.student.full_name || 'Học sinh'}</strong><small>{child.student.classes.map((item) => item.name).join(', ') || 'Chưa được xếp lớp'}</small></div>
+          <button type="button" className="parent-unlink" onClick={() => setUnlinkTarget({ id: child.student.id, full_name: child.student.full_name })}>Hủy liên kết</button>
+        </article>)}</div> : <p className="parent-muted">Chưa có học sinh nào được liên kết.</p>}
+        <h4>Lịch sử yêu cầu</h4>
+        {history.length ? <ul className="parent-history-list">{history.map((item) => <li key={item.id}>
+          <span className={`parent-history-status ${item.status}`}>{item.status === 'accepted' ? 'Đã xác nhận' : 'Đã từ chối'}</span>
+          <strong>{item.student?.full_name || 'Học sinh'}</strong>
+          <small>Gửi {formatDate(item.created_at)} · xử lý {formatDate(item.updated_at)}</small>
+        </li>)}</ul> : <p className="parent-muted">Chưa có yêu cầu nào đã được xử lý.</p>}
+      </section>}
+      {unlinkTarget && <div className="parent-review-backdrop" onClick={() => !unlinkBusy && setUnlinkTarget(null)}>
+        <section className="parent-review parent-confirm" role="alertdialog" aria-modal="true" aria-labelledby="parent-unlink-title" onClick={(event) => event.stopPropagation()}>
+          <h3 id="parent-unlink-title">Hủy liên kết với {unlinkTarget.full_name || 'học sinh'}?</h3>
+          <p>Bạn sẽ không xem được tiến độ học tập của con nữa. Muốn liên kết lại, con cần gửi yêu cầu mới tới số điện thoại của bạn hoặc nhờ nhà trường kết nối.</p>
+          <div className="parent-confirm-actions">
+            <button type="button" className="parent-request-reject" onClick={confirmUnlink} disabled={unlinkBusy}>{unlinkBusy ? 'Đang hủy...' : 'Hủy liên kết'}</button>
+            <button type="button" className="parent-confirm-cancel" onClick={() => setUnlinkTarget(null)} disabled={unlinkBusy} autoFocus>Giữ liên kết</button>
+          </div>
+        </section>
+      </div>}
       {reviewState && <ReviewPanel state={reviewState} onClose={closeReview} />}
     </main>
     </div>

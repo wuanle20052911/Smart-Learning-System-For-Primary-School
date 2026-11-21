@@ -303,6 +303,35 @@ async function getIncomingRequests(parentId) {
   return requests.map((request) => ({ ...request, student: studentsById.get(request.student_id) || null }));
 }
 
+async function getRequestHistory(parentId) {
+  const client = getSupabaseAdminClient();
+  const { data: requests, error } = await client
+    .from('parent_link_requests')
+    .select('id,student_id,status,created_at,updated_at')
+    .eq('parent_id', parentId)
+    .neq('status', 'pending')
+    .order('updated_at', { ascending: false })
+    .limit(30);
+  if (error) throw error;
+  if (!requests?.length) return [];
+
+  const studentIds = [...new Set(requests.map((request) => request.student_id))];
+  const { data: students, error: studentError } = await client
+    .from('users')
+    .select('id,full_name')
+    .in('id', studentIds);
+  if (studentError) throw studentError;
+  const studentsById = new Map((students || []).map((student) => [student.id, student]));
+  return requests.map(({ student_id: studentId, ...request }) => ({
+    ...request,
+    student: { full_name: studentsById.get(studentId)?.full_name || null }
+  }));
+}
+
+async function unlinkChild(parentId, studentId) {
+  return removeLink(parentId, studentId);
+}
+
 async function getStudentRequests(studentId) {
   const { data, error } = await getSupabaseAdminClient()
     .from('parent_link_requests')
@@ -373,5 +402,5 @@ async function respondToRequest(parentId, requestId, action) {
 
 module.exports = {
   getDashboard, getSubmissionReview, getAttemptReview, listLinks, createLink, removeLink,
-  getIncomingRequests, getStudentRequests, createLinkRequest, respondToRequest
+  getIncomingRequests, getRequestHistory, unlinkChild, getStudentRequests, createLinkRequest, respondToRequest
 };
