@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from 'react';
+import StoryReader from './StoryReader.jsx';
 import { getLessonDescription } from '../../services/learningMaterials.js';
 import { getLessonSourceCode, renderDocxHtml } from '../../services/learningMaterials.js';
 import LessonMiniGames from './LessonMiniGames.jsx';
+import { getLessonGames } from './lessonGames.js';
 import StudyAdventure from './StudyAdventure.jsx';
 
 function getLessonMaterialEndpoint(lesson) {
@@ -34,14 +36,8 @@ export default function LessonView({ lesson, onBack, onComplete, onStudyActivity
   const [readingLesson, setReadingLesson] = useState(!lesson.story_slides?.length);
   const isDocx = /\.docx$/i.test(lesson.source_filename || lesson.source_path || '');
   const materialEndpoint = getLessonMaterialEndpoint(lesson);
-  const storyContext = [
-    lesson.title,
-    lesson.topic,
-    lesson.content,
-    getLessonDescription(lesson),
-    ...storySlides.map((slide) => slide.caption)
-  ].filter(Boolean).join(' ');
-  const hasNumbersTo100000Topic = /100[\s.]?000|trăm\s+nghìn/i.test(storyContext);
+  const lessonGames = getLessonGames(lesson.game_slugs);
+  const hasStory = lesson.story_slides?.length > 0;
   const hasReadWholeStory = storySlides.length > 0 && visitedStorySlides.size === storySlides.length;
   useEffect(() => {
     if (!isDocx || !materialEndpoint) {
@@ -182,7 +178,12 @@ export default function LessonView({ lesson, onBack, onComplete, onStudyActivity
   if (showLessonGames) {
     return <LessonMiniGames
       lessonTitle={lesson.title}
-      onBack={() => setShowLessonGames(false)}
+      games={lessonGames}
+      hasStory={hasStory}
+      onBack={() => {
+        setShowLessonGames(false);
+        if (!hasStory) setReadingLesson(true);
+      }}
       onContinue={() => {
         setShowLessonGames(false);
         setReadingLesson(true);
@@ -197,11 +198,9 @@ export default function LessonView({ lesson, onBack, onComplete, onStudyActivity
     {!readingLesson && <section className="lesson-story-view" aria-label="Câu chuyện mở đầu bài học">
       <div className="lesson-story-view-heading"><span>📖</span><div><small>TRƯỚC KHI VÀO BÀI</small><h2>Cùng xem câu chuyện nhé!</h2></div></div>
       {storyLoading ? <p className="lesson-story-status">Đang tải câu chuyện...</p> : storyError ? <p className="ai-error" role="alert">{storyError}</p> : storySlides.length ? <>
-        <div className="lesson-story-frame"><img src={storySlides[storyIndex]?.url} alt={storySlides[storyIndex]?.caption || `Ảnh ${storyIndex + 1}`} />{storySlides[storyIndex]?.caption && <p>{storySlides[storyIndex].caption}</p>}</div>
-        <div className="lesson-story-controls"><button type="button" onClick={() => visitStorySlide(Math.max(0, storyIndex - 1))} disabled={storyIndex === 0}>← Trước</button><span>Ảnh {storyIndex + 1} / {storySlides.length}</span><button type="button" onClick={() => visitStorySlide(Math.min(storySlides.length - 1, storyIndex + 1))} disabled={storyIndex === storySlides.length - 1}>Tiếp →</button></div>
-        <div className="lesson-story-dots" aria-label="Chọn ảnh"><span>{storySlides.map((slide, index) => <button key={`${slide.path}-${index}`} type="button" className={index === storyIndex ? 'active' : ''} aria-label={`Xem ảnh ${index + 1}`} aria-current={index === storyIndex ? 'step' : undefined} onClick={() => visitStorySlide(index)} />)}</span></div>
+        <StoryReader slides={storySlides} index={storyIndex} visited={visitedStorySlides} onSelect={visitStorySlide} />
       </> : !storyLoading && <p className="lesson-story-status">Câu chuyện chưa có ảnh để hiển thị.</p>}
-      {hasNumbersTo100000Topic && storySlides.length > 0
+      {lessonGames.length > 0 && storySlides.length > 0
         ? <button className="lesson-story-start" type="button" disabled={storyLoading || !hasReadWholeStory} onClick={() => setShowLessonGames(true)}>
           {hasReadWholeStory ? 'Đọc xong truyện · Chơi game →' : `Đọc hết truyện để mở game (${visitedStorySlides.size}/${storySlides.length})`}
         </button>
@@ -214,6 +213,7 @@ export default function LessonView({ lesson, onBack, onComplete, onStudyActivity
       <div className="lesson-actions">
         <button className="lesson-action-button lesson-start" type="button" onClick={onComplete}><img src="/public/img/medal.png" alt="" />ĐÃ HỌC XONG BÀI NÀY ✓</button>
         <button className="lesson-action-button lesson-ai" type="button" onClick={startPractice} disabled={practiceLoading}><img src="/public/img/star.png" alt="" />{practiceLoading ? 'ĐANG TẢI CÂU HỎI...' : 'LUYỆN TẬP NGAY'}</button>
+        {lessonGames.length > 0 && <button className="lesson-action-button lesson-games" type="button" onClick={() => setShowLessonGames(true)}><img src="/public/img/star.png" alt="" />CHƠI TRÒ CHƠI ({lessonGames.length})</button>}
         <button className="lesson-action-button lesson-adventure" type="button" onClick={startAdventure} disabled={adventureLoading}><img src="/public/img/star.png" alt="" />{adventureLoading ? 'ĐANG DỰNG TRUYỆN...' : 'TRUYỆN & MINIGAME AI'}</button>
       </div>
       {adventureLoading && <p className="adventure-loading-message" role="status">AI đang tạo truyện và kiểm tra thử thách. Có thể mất vài phút trên máy chạy Ollama.</p>}

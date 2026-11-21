@@ -2,6 +2,7 @@ const lessonModel = require('../models/lessonModel');
 const { getSupabaseClient } = require('../models/supabaseClient');
 const { randomUUID } = require('crypto');
 const path = require('path');
+const { normalizeGameSlugs } = require('../services/lessonGames');
 
 const colors = new Set(['blue', 'yellow', 'green', 'pink']);
 const materialBucket = 'lesson-materials';
@@ -57,6 +58,8 @@ function normalizeLesson(body = {}, userId) {
     color: colors.has(body.color) ? body.color : 'blue',
     published: body.published === true
   };
+  const gameSlugs = normalizeGameSlugs(body.game_slugs);
+  if (gameSlugs !== undefined) lesson.game_slugs = gameSlugs;
   if (lesson.title.length < 2 || lesson.title.length > 120) {
     throw new Error('Tên bài học phải dài từ 2 đến 120 ký tự.');
   }

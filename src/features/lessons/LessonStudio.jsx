@@ -1,5 +1,6 @@
 import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { deduplicateLessonsBySourceNumber, extractLearningText, getLessonChapterName, getLessonDisplayTitle, getLessonSourceCode } from '../../services/learningMaterials.js';
+import { LESSON_GAMES, MAX_LESSON_GAMES } from './lessonGames.js';
 
 const MAX_FILE_BYTES = 6 * 1024 * 1024;
 const MAX_STORY_IMAGE_BYTES = 5 * 1024 * 1024;
@@ -57,6 +58,7 @@ export default function LessonStudio({ api, onMessage, onRefresh }) {
   const [description, setDescription] = useState('');
   const [content, setContent] = useState('');
   const [storySlides, setStorySlides] = useState([]);
+  const [gameSlugs, setGameSlugs] = useState([]);
   const [dropSlideId, setDropSlideId] = useState(null);
   const [draggedSlide, setDraggedSlide] = useState(null);
   const storySlidesContainerRef = useRef(null);
@@ -298,6 +300,7 @@ export default function LessonStudio({ api, onMessage, onRefresh }) {
     setDescription('');
     setContent('');
     setStorySlides([]);
+    setGameSlugs([]);
     setDraggedSlide(null);
     setFile(null);
     setSampleFilePath('');
@@ -339,6 +342,7 @@ export default function LessonStudio({ api, onMessage, onRefresh }) {
       previewUrl: slide.url,
       localPreview: false
     })));
+    setGameSlugs(Array.isArray(lesson.game_slugs) ? lesson.game_slugs : []);
     setFile(null);
     setSampleFilePath('');
     setSampleSource(null);
@@ -426,6 +430,7 @@ export default function LessonStudio({ api, onMessage, onRefresh }) {
           topic_id: chapter.topicId,
           content: content.trim(),
           story_slides: savedStorySlides,
+          game_slugs: gameSlugs,
           source_filename: material.source_filename || null,
           source_bucket: material.source_bucket || null,
           source_path: material.source_path || null,
@@ -487,6 +492,20 @@ export default function LessonStudio({ api, onMessage, onRefresh }) {
             <img src={slide.previewUrl} alt={`Ảnh ${index + 1}: ${slide.file?.name || 'trong câu chuyện'}`} />
             <div className="lesson-story-slide-details"><input aria-label={`Chú thích ảnh ${index + 1}`} value={slide.caption} maxLength="300" onChange={(event) => setStorySlides((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, caption: event.target.value } : item))} placeholder="Chú thích (không bắt buộc)" /></div>
           </article>)}</div>}
+        </section>
+        <section className="lesson-game-editor">
+          <div className="lesson-story-editor-heading"><div><strong>Trò chơi sau bài học</strong><small>Chọn trò chơi học sinh được chơi sau khi đọc truyện. Thứ tự bấm chọn là thứ tự hiển thị.</small></div><span>{gameSlugs.length}/{MAX_LESSON_GAMES}</span></div>
+          <div className="lesson-game-options">{LESSON_GAMES.map((game) => {
+            const order = gameSlugs.indexOf(game.slug);
+            const checked = order >= 0;
+            return <label className={`lesson-game-option${checked ? ' checked' : ''}`} key={game.slug}>
+              <input type="checkbox" checked={checked} disabled={busy || (!checked && gameSlugs.length >= MAX_LESSON_GAMES)} onChange={() => setGameSlugs((current) => (current.includes(game.slug) ? current.filter((slug) => slug !== game.slug) : [...current, game.slug]))} />
+              <span className="lesson-game-option-icon" aria-hidden="true">{game.icon}</span>
+              <span className="lesson-game-option-text"><b>{game.title}</b><small>{game.description}</small></span>
+              {checked && <span className="lesson-game-option-order" aria-label={`Thứ tự ${order + 1}`}>{order + 1}</span>}
+              <a href={game.href} target="_blank" rel="noopener noreferrer" onClick={(event) => event.stopPropagation()}>Xem thử ↗</a>
+            </label>;
+          })}</div>
         </section>
         <button className="teacher-create lesson-save" type="submit" disabled={busy || !chapterId}>{busy ? 'Đang lưu lên Supabase...' : editingLesson ? 'Cập nhật bài học' : 'Lưu bài học vào chương'}</button>
         {editingLesson && <button className="lesson-cancel-edit" type="button" disabled={busy} onClick={() => clearLessonForm()}>Hủy chỉnh sửa</button>}
