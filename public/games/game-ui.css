@@ -1,7 +1,7 @@
 :root {
   color: #1d2d55;
   background: #f2f8ff;
-  font-family: "Trebuchet MS", Arial, sans-serif;
+  font-family: "Quicksand", "Trebuchet MS", Arial, sans-serif;
   --game-purple: #8058ed;
   --game-blue: #55a9ed;
   --game-gold: #ffbd45;
@@ -104,7 +104,7 @@ main {
 .game-hero::after { right: 42px; bottom: -96px; width: 230px; height: 230px; }
 .hero-copy { position: relative; z-index: 1; }
 .hero-label { color: #fff5a8; font-size: 11px; font-weight: 900; letter-spacing: .15em; }
-.hero-copy h1 { margin: 8px 0 6px; color: white; font-size: clamp(29px, 4.5vw, 44px); line-height: 1.08; }
+.hero-copy h1 { margin: 8px 0 6px; color: white; font-family: "Baloo 2", "Quicksand", sans-serif; font-size: clamp(29px, 4.5vw, 44px); font-weight: 800; line-height: 1.08; }
 .hero-copy p { max-width: 580px; margin: 9px 0 0; color: rgba(255,255,255,.94); font-size: 15px; line-height: 1.55; }
 
 .hero-art {
@@ -151,6 +151,9 @@ main {
 .game-panel { min-width: 0; padding: clamp(19px, 3vw, 30px); }
 .game-panel-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
 .game-panel-heading h2 { margin: 5px 0 0; color: #1d3d8f; font-size: clamp(19px, 3vw, 24px); }
+.game-panel-heading h2,
+.side-panel h3,
+.finish h2 { font-family: "Baloo 2", "Quicksand", sans-serif; font-weight: 800; }
 .panel-kicker { color: #8d75e9; font-size: 10px; font-weight: 900; letter-spacing: .13em; }
 
 .counter {
@@ -215,9 +218,22 @@ main {
 .item:hover { border-color: #c9d4ff; transform: translateY(-1px); }
 .number { background: #ecebff; color: #6554c7; }
 .value { color: #283e70; }
-.moves { gap: 6px; }
+.moves {
+  display: flex;
+  align-items: center;
+  justify-self: end;
+  align-self: center;
+  flex-wrap: nowrap;
+  gap: 6px;
+}
 
 button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  line-height: 1.2;
+  text-align: center;
   border: 1px solid #e1e7f2;
   border-radius: 13px;
   background: #f8faff;
@@ -233,6 +249,11 @@ button:focus-visible { outline: 3px solid #5575e8; outline-offset: 3px; }
 button:disabled { cursor: default; opacity: .48; }
 
 .primary {
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  line-height: 1.2;
+  text-align: center;
   min-height: 48px;
   padding: 10px 18px;
   border: 0;
@@ -243,8 +264,9 @@ button:disabled { cursor: default; opacity: .48; }
   font-size: 14px;
 }
 
+.actions .primary { min-width: 150px; }
 .primary:hover:not(:disabled) { background: linear-gradient(100deg, #684fe2, #4166db); }
-.actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 15px; }
+.actions { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 12px; margin-top: 15px; }
 
 .feedback {
   min-height: 46px;
@@ -374,6 +396,8 @@ main { position: relative; z-index: 1; width: min(100%, 1440px); margin: 0 auto;
 .back-button {
   display: grid;
   place-items: center;
+  align-items: center;
+  justify-items: center;
   width: 48px;
   min-height: 46px;
   padding: 0;
@@ -381,10 +405,13 @@ main { position: relative; z-index: 1; width: min(100%, 1440px); margin: 0 auto;
   border-radius: 16px;
   background: linear-gradient(#ffe97e, #f8aa28);
   box-shadow: 0 4px 0 #b96c18;
-  color: #fff;
-  font-size: 25px;
-  text-shadow: 0 2px #bd6b16;
+  color: transparent;
+  font-family: Arial, sans-serif;
+  font-size: 0;
+  line-height: 1;
+  text-shadow: none;
 }
+.back-button > span { color: #754611; font: 800 27px/1 Arial, sans-serif; text-shadow: 0 1px rgba(255,255,255,.55); transform: translateY(-3px); }
 
 .brand {
   min-height: 46px;
@@ -700,15 +727,24 @@ main { position: relative; z-index: 1; width: min(100%, 1440px); margin: 0 auto;
 }
 .item:hover { border-color: #e7c58f; transform: translateY(-2px); box-shadow: 0 6px 0 #c7a16e; }
 .moves button {
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
   width: 44px;
   height: 44px;
   min-width: 44px;
   min-height: 44px;
+  padding: 0;
+  margin: 0;
+  font-family: Arial, sans-serif;
+  line-height: 1;
+  text-align: center;
   border: 3px solid #fff;
   border-radius: 18px;
   box-shadow: 0 4px 0 #b8c8df;
   font-size: 22px;
 }
+.moves .move-arrow { display: block; transform: translateY(-2px); }
 .moves button:first-child { background: linear-gradient(#9cf58e, #50c957); color: #237d34; }
 .moves button:last-child { background: linear-gradient(#91b9ff, #497af0); color: white; }
 .moves button:hover:not(:disabled) { border-color: #fff; background: linear-gradient(#b3ffa8, #65d66b); filter: brightness(1.05); }
@@ -750,7 +786,7 @@ body::before { display: none; }
   main { padding: 8px 10px 24px; }
   .topbar { align-items: center; gap: 6px; }
   .topbar-left { gap: 7px; }
-  .back-button { width: 38px; min-height: 38px; border-radius: 12px; font-size: 20px; }
+  .back-button { width: 38px; min-height: 38px; border-radius: 12px; }
   .brand { min-height: 38px; padding: 5px 8px; border-width: 2px; }
   .brand-copy strong { font-size: 11px; }
   .brand-copy small { font-size: 7px; }
@@ -775,6 +811,10 @@ body::before { display: none; }
   .moves button { width: 33px; height: 33px; font-size: 17px; }
   .value { font-size: 17px; }
   .primary { min-height: 43px; padding: 8px 12px; font-size: 12px; }
+  .actions { justify-content: center; }
+  .actions .primary { flex: 1 1 140px; min-width: 0; max-width: 220px; }
+  .moves { display: flex; align-items: center; justify-content: center; gap: 6px; }
+  .moves button { width: 36px; height: 36px; min-width: 36px; min-height: 36px; padding: 0; }
   .side-panel { padding: 14px; border-width: 4px; }
   .game-sidebar { grid-template-columns: 1fr; }
 }

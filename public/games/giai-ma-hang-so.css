@@ -17,10 +17,10 @@
 .decoding-game .game-stats { display: none; }
 .decoding-game .topbar-left { gap: 0; }
 .decoding-game .game-hero { margin-top: 4px; }
-.decoding-game .hero-label { font-family: Arial, Tahoma, sans-serif; letter-spacing: .03em; }
+.decoding-game .hero-label { font-family: "Quicksand", sans-serif; letter-spacing: .03em; }
 .decoding-game .hero-copy h1 {
   color: #fff;
-  font-family: Arial, Tahoma, sans-serif;
+  font-family: "Baloo 2", "Quicksand", sans-serif;
   font-size: clamp(29px, 4vw, 37px);
   font-weight: 800;
   line-height: 1.15;
@@ -29,7 +29,7 @@
 }
 .decoding-game .hero-copy p {
   color: #fff9e9;
-  font-family: Arial, Tahoma, sans-serif;
+  font-family: "Quicksand", sans-serif;
   font-size: 15px;
   font-weight: 700;
   line-height: 1.45;
@@ -62,6 +62,11 @@
 .decoding-game .game-panel > .question { min-height: 0; margin: 10px 0; color: #563719; font-size: 16px; }
 .decoding-game .answers { gap: 9px; }
 .decoding-game .answers button {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: center;
+  line-height: 1.25;
   min-height: 46px;
   border: 2px solid #dfb46f;
   border-radius: 14px;

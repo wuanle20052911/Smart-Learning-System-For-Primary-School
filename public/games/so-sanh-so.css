@@ -33,7 +33,7 @@
 }
 .comparison-game .game-hero::after { right: 155px; }
 .comparison-game .hero-label {
-  font-family: Arial, Tahoma, sans-serif;
+  font-family: "Quicksand", sans-serif;
   letter-spacing: .03em;
 }
 .comparison-game .hero-copy {
@@ -47,7 +47,7 @@
 .comparison-game .hero-copy h1 {
   margin: 4px 0;
   color: #fff;
-  font-family: Arial, Tahoma, sans-serif;
+  font-family: "Baloo 2", "Quicksand", sans-serif;
   font-size: clamp(29px, 4vw, 37px);
   font-weight: 800;
   line-height: 1.15;
@@ -57,7 +57,7 @@
 .comparison-game .hero-copy p {
   margin: 0 auto;
   color: #fff9e9;
-  font-family: Arial, Tahoma, sans-serif;
+  font-family: "Quicksand", sans-serif;
   font-size: 15px;
   font-weight: 700;
   line-height: 1.45;
@@ -113,9 +113,12 @@
 .comparison-game .operators { gap: 10px; }
 .comparison-game .operators button {
   display: grid;
+  width: 100%;
   min-height: 76px;
   place-content: center;
+  justify-items: center;
   gap: 0;
+  line-height: 1;
   border: 2px solid #e3c18c;
   border-radius: 16px;
   background: linear-gradient(#fff5df, #ffe8bf);

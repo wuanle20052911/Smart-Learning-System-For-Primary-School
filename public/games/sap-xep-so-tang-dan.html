@@ -3,6 +3,9 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Quicksand:wght@500;600;700&display=swap" rel="stylesheet">
   <title>Đường đua sắp xếp | MathJoy</title>
   <style>
     :root { font-family: "Trebuchet MS", Arial, sans-serif; color: #293857; background: #f2f7ff; }
@@ -39,7 +42,7 @@
 <body class="sorting-game">
   <main>
     <header class="topbar">
-      <div class="topbar-left"><a class="home back-button" href="/learn" aria-label="Về bài học">←</a><a class="brand" href="/learn"><span class="brand-copy"><strong>Toán Học Siêu Tốc</strong><small>MATHJOY · TOÁN LỚP 4</small></span></a></div>
+      <div class="topbar-left"><a class="home back-button" href="/learn" aria-label="Về bài học"><span aria-hidden="true">←</span></a><a class="brand" href="/learn"><span class="brand-copy"><strong>Toán Học Siêu Tốc</strong><small>MATHJOY · TOÁN LỚP 4</small></span></a></div>
       <div class="game-stats"><span class="stat-pill">⭐ <strong id="top-score">0</strong></span><span class="stat-pill">💎 <strong>100K</strong></span><span class="stat-pill">📘 <strong>TOÁN 4</strong></span></div>
     </header>
     <section class="game-hero">
@@ -106,8 +109,11 @@
         moves.className = 'moves';
         [-1, 1].forEach((direction) => {
           const button = document.createElement('button');
+          const arrow = document.createElement('span');
+          arrow.className = 'move-arrow';
+          arrow.textContent = direction < 0 ? '↑' : '↓';
           button.type = 'button';
-          button.textContent = direction < 0 ? '↑' : '↓';
+          button.append(arrow);
           button.setAttribute('aria-label', `${direction < 0 ? 'Đưa lên' : 'Đưa xuống'} số ${value.toLocaleString('vi-VN')}`);
           button.disabled = completed || position + direction < 0 || position + direction >= numbers.length;
           button.addEventListener('click', () => move(position, direction));
