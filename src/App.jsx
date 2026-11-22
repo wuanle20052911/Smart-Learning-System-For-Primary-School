@@ -58,7 +58,7 @@ function App() {
   useEffect(() => {
     if (!session?.access_token && !isPublicPath) go('/');
   }, [isPublicPath, session?.access_token]);
-  if (isPublicPath || !session?.access_token)   return <AuthPage api={api} Brand={Brand} go={go} sessionKey={sessionKey} />;
+  if (isPublicPath || !session?.access_token)   return <AuthPage api={api} go={go} sessionKey={sessionKey} />;
   const role = session.profile?.role;
   const homePath = roleHomePath(role);
   if (path === '/admin') {
