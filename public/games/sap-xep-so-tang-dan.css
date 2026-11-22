@@ -6,12 +6,12 @@
 
 .sorting-game::before { display: none; }
 .sorting-game .hero-label {
-  font-family: Arial, Tahoma, sans-serif;
+  font-family: "Quicksand", sans-serif;
   letter-spacing: .03em;
 }
 .sorting-game .hero-copy h1 {
   color: #fff;
-  font-family: Arial, Tahoma, sans-serif;
+  font-family: "Baloo 2", "Quicksand", sans-serif;
   font-size: clamp(29px, 4vw, 37px);
   font-weight: 800;
   line-height: 1.15;
@@ -20,7 +20,7 @@
 }
 .sorting-game .hero-copy p {
   color: #fff9e9;
-  font-family: Arial, Tahoma, sans-serif;
+  font-family: "Quicksand", sans-serif;
   font-size: 15px;
   font-weight: 700;
   line-height: 1.45;
@@ -44,6 +44,8 @@
 }
 .sorting-game .moves button:first-child { background: linear-gradient(#9cf58e, #63c94e); color: #237d34; }
 .sorting-game .moves button:last-child { background: linear-gradient(#91b9ff, #55a9ed); color: white; }
+.sorting-game .moves button { display: grid; flex: 0 0 44px; place-items: center; padding: 0; line-height: 1; }
+.sorting-game .actions .primary { flex: 1 1 180px; }
 .sorting-game .primary { background: linear-gradient(180deg, #ffd275, #ffbd45); color: #754611; }
 .sorting-game .side-panel:first-child { background: linear-gradient(#fffdf5, #fff1d8); }
 .sorting-game .side-panel:nth-child(2) { background: linear-gradient(#c9e6ff, #55a9ed); }
@@ -54,4 +56,6 @@
   .sorting-game .hero-copy h1 { font-size: 27px; }
   .sorting-game .hero-copy p { font-size: 14px; }
   .sorting-game .game-hero { grid-template-rows: minmax(160px, auto) auto; height: auto; }
+  .sorting-game .moves button { flex-basis: 36px; width: 36px; height: 36px; min-width: 36px; min-height: 36px; }
+  .sorting-game .actions .primary { flex-basis: 140px; }
 }
