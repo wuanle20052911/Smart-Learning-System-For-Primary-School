@@ -1,0 +1,265 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Thẻ ghi nhớ | MathJoy</title>
+  <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@700;800&family=Quicksand:wght@600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/public/games/mathjoy-math-game.css?v=5">
+  <style>
+    :root {
+      --brown-dark:#4d3822;
+      --brown:#9a7042;
+      --gold:#f2ce69;
+    }
+
+    body {
+      margin:0;
+      min-height:100vh;
+      background-color:#e9e4c8;
+      background-image:
+        linear-gradient(rgba(255,252,235,.18),rgba(255,252,235,.18)),
+        image-set(
+          url('/public/img/nen-ban-hoc.jpg?v=3') 1x,
+          url('/public/img/nen-ban-hoc@2x.jpg?v=3') 2x
+        );
+      background-image:
+        linear-gradient(rgba(255,252,235,.18),rgba(255,252,235,.18)),
+        -webkit-image-set(
+          url('/public/img/nen-ban-hoc.jpg?v=3') 1x,
+          url('/public/img/nen-ban-hoc@2x.jpg?v=3') 2x
+        );
+      background-size:cover;
+      background-position:center bottom;
+      background-repeat:no-repeat;
+      background-attachment:fixed;
+    }
+
+    .mj-game {
+      position:relative;
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      min-height:calc(100vh - 40px);
+      padding-top:130px;
+      border:0;
+      border-radius:0;
+      background:transparent;
+      box-shadow:none;
+    }
+
+    .mj-character {
+      position:absolute;
+      z-index:6;
+      right:5%;
+      bottom:7%;
+      width:clamp(110px,13vw,190px);
+      height:auto;
+      background:none;
+      border:0;
+      filter:drop-shadow(0 8px 10px rgba(60,40,10,.35));
+      animation:mj-float 3.2s ease-in-out infinite;
+      pointer-events:none;
+    }
+    @keyframes mj-float {
+      0%,100% { transform:translateY(0); }
+      50% { transform:translateY(-8px); }
+    }
+
+    .flash-layout {
+      width:min(820px,76%);
+      margin:auto;
+      padding:20px 24px 24px;
+      border-radius:28px;
+      background:linear-gradient(180deg,#fffbe8 0%,#fbecc0 100%);
+      border:5px solid #b9824f;
+      box-shadow:0 8px 0 #8d5f35,0 20px 34px rgba(50,30,10,.35);
+    }
+
+    .flash-card {
+      position:relative;
+      display:block;
+      width:100%;
+      min-height:300px;
+      margin-top:16px;
+      padding:0;
+      border:5px solid #fff;
+      border-radius:20px;
+      background:transparent;
+      box-shadow:0 9px 0 var(--brown),0 16px 26px rgba(68,45,24,.22);
+      perspective:1000px;
+      cursor:pointer;
+      transition:transform .15s ease;
+      -webkit-tap-highlight-color:transparent;
+    }
+    .flash-card:hover { transform:translateY(-3px); }
+    .flash-card:active { transform:translateY(2px); }
+    .flash-inner {
+      position:absolute;
+      inset:0;
+      display:block;
+      transform-style:preserve-3d;
+      transition:transform .55s cubic-bezier(.4,.2,.2,1);
+    }
+    .flash-card.flipped .flash-inner { transform:rotateY(180deg); }
+    .flash-face {
+      position:absolute;
+      inset:0;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:center;
+      gap:14px;
+      padding:24px;
+      text-align:center;
+      border-radius:14px;
+      background:linear-gradient(145deg,#fffdf0,#ecdcae);
+      -webkit-backface-visibility:hidden;
+      backface-visibility:hidden;
+    }
+    .flash-face small {
+      padding:4px 14px;
+      border-radius:999px;
+      background:rgba(154,112,66,.14);
+      color:var(--brown);
+      font:900 13px "Quicksand",sans-serif;
+      letter-spacing:.14em;
+    }
+    .flash-face strong {
+      max-width:700px;
+      color:var(--brown-dark);
+      font:800 clamp(26px,5vw,46px)/1.2 "Baloo 2",sans-serif;
+      text-shadow:0 1px 0 #fff;
+    }
+    .flash-face em {
+      color:#806f58;
+      font:800 15px "Quicksand",sans-serif;
+      font-style:normal;
+    }
+    .flash-back {
+      transform:rotateY(180deg);
+      background:linear-gradient(145deg,#f1fae2,#d3e7a8);
+    }
+    .flash-back small {
+      background:rgba(71,122,56,.16);
+      color:#477a38;
+    }
+
+    .flash-nav {
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap:16px;
+      margin-top:26px;
+    }
+    .flash-nav span {
+      min-width:90px;
+      text-align:center;
+      color:var(--brown-dark);
+      font:900 17px "Quicksand",sans-serif;
+    }
+    .flash-tools {
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:12px;
+      margin-top:14px;
+    }
+    #review {
+      background:linear-gradient(180deg,#ffd9a0,#f5a85a);
+      color:#6a3a10;
+    }
+    #remember {
+      background:linear-gradient(180deg,#a6dd8c,#70b65a);
+      color:#fff;
+      text-shadow:0 1px 0 rgba(0,0,0,.2);
+    }
+    .flash-tools .mj-button:hover:not(:disabled),
+    .flash-nav .mj-button:hover:not(:disabled) { filter:brightness(1.06); }
+    .flash-nav .mj-button:disabled { opacity:.45; }
+
+    @media(max-width:760px) {
+      .mj-game { padding-top:104px; }
+      .flash-layout { width:92%; padding:14px 12px 18px; }
+      .flash-card { min-height:250px; }
+      .flash-tools { grid-template-columns:1fr; }
+      .mj-character { right:2%; bottom:1%; width:92px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="mj-shell">
+    <header class="mj-topbar">
+      <a class="mj-back" href="/learn" aria-label="Quay lại bài học">‹</a>
+      <div class="mj-score">✓ <b id="known">0</b></div>
+    </header>
+    <div class="mj-title"><small></small><strong>Thẻ ghi nhớ</strong></div>
+
+    <section class="mj-game">
+      <div class="mj-panel flash-layout">
+        <div class="mj-progress"><i id="progress"></i></div>
+        <button class="flash-card" id="card" type="button" aria-label="Lật thẻ">
+          <span class="flash-inner">
+            <span class="flash-face"><small>MẶT TRƯỚC</small><strong id="front"></strong><em>Chạm để xem đáp án</em></span>
+            <span class="flash-face flash-back"><small>MẶT SAU</small><strong id="back"></strong><em>Con đã thuộc thẻ này chưa?</em></span>
+          </span>
+        </button>
+        <div class="flash-nav">
+          <button class="mj-button" id="prev" type="button" aria-label="Thẻ trước">←</button>
+          <span id="position">1 / 8</span>
+          <button class="mj-button" id="next" type="button" aria-label="Thẻ sau">→</button>
+        </div>
+        <div class="flash-tools">
+          <button class="mj-button" id="review" type="button">Cần ôn thêm</button>
+          <button class="mj-button" id="remember" type="button">Đã thuộc</button>
+        </div>
+      </div>
+      <img class="mj-character" src="/public/img/nhan-vat-hoc-sinh.png?v=2" alt="" draggable="false">
+    </section>
+  </main>
+
+  <script>
+  (function () {
+    const cards=[
+      ['7 × 8','56'],
+      ['450 × 20','9 000'],
+      ['Trung bình cộng','Tổng các số chia cho số số hạng'],
+      ['1 tấn','1 000 kg'],
+      ['3 thế kỉ','300 năm'],
+      ['Số chẵn','Số tận cùng 0,2,4,6,8'],
+      ['Góc tù','Lớn hơn 90° và nhỏ hơn 180°'],
+      ['Chu vi hình vuông','Độ dài một cạnh × 4']
+    ];
+    const $=id=>document.getElementById(id);
+    let order=cards.map((_,i)=>i), index=0, known=new Set();
+
+    function render() {
+      const [q,a]=cards[order[index]];
+      $('card').classList.remove('flipped');
+      $('front').textContent=q;
+      $('back').textContent=a;
+      $('position').textContent=(index+1)+' / '+order.length;
+      $('progress').style.width=((index+1)/order.length*100)+'%';
+      $('prev').disabled=index===0;
+      $('next').disabled=index===order.length-1;
+      $('known').textContent=known.size;
+    }
+    function go(step) {
+      const n=index+step;
+      if(n>=0&&n<order.length){ index=n; render(); }
+    }
+
+    $('card').onclick=()=>$('card').classList.toggle('flipped');
+    $('prev').onclick=()=>go(-1);
+    $('next').onclick=()=>go(1);
+    $('remember').onclick=()=>{ known.add(order[index]); index<order.length-1?go(1):render(); };
+    $('review').onclick=()=>{ known.delete(order[index]); index<order.length-1?go(1):render(); };
+
+    document.addEventListener('keydown',e=>{
+      if(e.key==='ArrowLeft') go(-1);
+      else if(e.key==='ArrowRight') go(1);
+    });
+    render();
+  })();
+  </script>
+</body>
+</html>

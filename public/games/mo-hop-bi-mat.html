@@ -1,0 +1,257 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Mở hộp bí mật | MathJoy</title>
+  <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@700;800&family=Quicksand:wght@600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/public/games/mathjoy-math-game.css?v=6">
+  <style>
+    :root {
+      --brown-dark:#65402a;
+      --brown:#9a7042;
+      --blue:#69b6e5;
+      --blue-dark:#4e82a8;
+    }
+    body {
+      margin:0;
+      min-height:100vh;
+      background-color:#3fb8c9;
+      background-image:image-set(
+        url('/public/img/nen-ruong-kho-bau.jpg?v=3') 1x,
+        url('/public/img/nen-ruong-kho-bau@2x.jpg?v=3') 2x
+      );
+      background-size:cover;
+      background-position:center bottom;
+      background-repeat:no-repeat;
+      background-attachment:fixed;
+    }
+    .mj-game {
+      position:relative;
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      min-height:calc(100vh - 40px);
+      padding-top:128px;
+      border:0;
+      border-radius:0;
+      background:transparent;
+      box-shadow:none;
+    }
+    .mj-character {
+      position:absolute;
+      z-index:6;
+      right:5%;
+      bottom:6%;
+      width:clamp(110px,13vw,190px);
+      height:auto;
+      background:none;
+      border:0;
+      filter:drop-shadow(0 10px 8px rgba(30,60,70,.35));
+      animation:mj-float 3.2s ease-in-out infinite;
+      pointer-events:none;
+    }
+    @keyframes mj-float {
+      0%,100% { transform:translateY(0); }
+      50% { transform:translateY(-8px); }
+    }
+    .mj-game .mj-panel {
+      width:min(920px,76%);
+      margin:auto;
+      padding:22px 28px 26px;
+      border-radius:28px;
+      background:linear-gradient(180deg,rgba(255,251,232,.96) 0%,rgba(251,236,192,.96) 100%);
+      border:5px solid #b9824f;
+      box-shadow:0 8px 0 #8d5f35,0 20px 34px rgba(30,40,40,.35);
+    }
+    .box-grid {
+      display:grid;
+      grid-template-columns:repeat(4,1fr);
+      gap:18px 14px;
+      margin-top:18px;
+    }
+    .gift {
+      position:relative;
+      min-height:150px;
+      border:0;
+      background:url('/public/img/hop-qua-transparent.png') center/contain no-repeat;
+      color:#fff;
+      font:900 30px "Baloo 2",sans-serif;
+      text-shadow:0 2px 0 rgba(120,20,50,.55);
+      cursor:pointer;
+      filter:drop-shadow(0 8px 6px rgba(80,40,20,.28));
+      transition:transform .15s ease,filter .2s,opacity .2s;
+      animation:gift-in .4s ease-out backwards;
+      -webkit-tap-highlight-color:transparent;
+    }
+    .gift:nth-child(2){animation-delay:.05s}
+    .gift:nth-child(3){animation-delay:.10s}
+    .gift:nth-child(4){animation-delay:.15s}
+    .gift:nth-child(5){animation-delay:.20s}
+    .gift:nth-child(6){animation-delay:.25s}
+    .gift:nth-child(7){animation-delay:.30s}
+    .gift:nth-child(8){animation-delay:.35s}
+    @keyframes gift-in {
+      from { opacity:0; transform:translateY(14px) scale(.85); }
+      to { opacity:1; transform:none; }
+    }
+    .gift:hover:not(.opened){ transform:translateY(-6px) rotate(-3deg) scale(1.04); }
+    .gift:active:not(.opened){ transform:scale(.96); }
+    .gift.opened {
+      cursor:default;
+      filter:saturate(.55) drop-shadow(0 4px 3px rgba(80,40,20,.2));
+      opacity:.75;
+    }
+    .gift.wrong {
+      filter:hue-rotate(130deg) saturate(.7) drop-shadow(0 4px 3px rgba(80,40,20,.2));
+    }
+    .box-modal {
+      width:min(620px,100%);
+      display:grid;
+      gap:14px;
+    }
+    .box-modal h3 {
+      margin:4px 0 2px;
+      text-align:center;
+      color:var(--brown-dark);
+      font:800 clamp(22px,3.4vw,30px)/1.25 "Baloo 2",sans-serif;
+    }
+    .box-options {
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:12px;
+    }
+    .box-options button {
+      min-height:62px;
+      border:3px solid #fff;
+      border-radius:14px;
+      background:linear-gradient(180deg,#86cbf0,var(--blue));
+      box-shadow:0 5px 0 var(--blue-dark);
+      color:#fff;
+      font:800 20px "Quicksand",sans-serif;
+      text-shadow:0 1px 0 rgba(0,0,0,.2);
+      cursor:pointer;
+      transition:transform .12s ease,box-shadow .12s ease,filter .15s;
+    }
+    .box-options button:hover { filter:brightness(1.07); transform:translateY(-2px); }
+    .box-options button:active { transform:translateY(3px); box-shadow:0 2px 0 var(--blue-dark); }
+
+    @media(max-width:760px) {
+      .mj-game { padding-top:104px; }
+      .mj-game .mj-panel { width:92%; padding:16px 14px 20px; }
+      .box-grid { grid-template-columns:repeat(2,1fr); gap:12px 10px; }
+      .gift { min-height:118px; font-size:26px; }
+      .box-options { grid-template-columns:1fr; }
+      .mj-character { right:2%; bottom:1%; width:92px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="mj-shell">
+    <header class="mj-topbar">
+      <a class="mj-back" href="/learn" aria-label="Quay lại bài học">‹</a>
+      <div class="mj-score">⭐ <b id="score">0</b></div>
+    </header>
+    <div class="mj-title"><small></small><strong>Mở hộp bí mật</strong></div>
+
+    <section class="mj-game">
+      <div class="mj-panel">
+        <div class="mj-progress"><i id="progress"></i></div>
+        <div class="box-grid" id="boxes"></div>
+        <p class="mj-status" id="status"></p>
+      </div>
+      <img class="mj-character" src="/public/img/adventure-boy-safari.png?v=2" alt="" draggable="false">
+    </section>
+
+    <div class="mj-modal" id="questionModal" hidden>
+      <div class="mj-modal-card box-modal">
+        <h3 id="question"></h3>
+        <div class="box-options" id="options"></div>
+        <button class="mj-button" id="close" type="button">Đóng hộp</button>
+      </div>
+    </div>
+
+    <div class="mj-modal" id="finish" hidden>
+      <div class="mj-modal-card">
+        <img src="/public/img/cúp.jpg" alt="">
+        <h2>Đã mở hết hộp!</h2>
+        <p id="finishText"></p>
+        <button class="mj-button" id="again" type="button">Chơi lại</button>
+      </div>
+    </div>
+  </main>
+
+  <script>
+  (function () {
+    const qs=[
+      ['Số liền sau của 99 999 là?',['100 000','99 998','10 000','999 999'],0],
+      ['Góc tù là góc có số đo?',['Nhỏ hơn 90°','Lớn hơn 90° và nhỏ hơn 180°','Đúng 180°','Nhỏ hơn 180°'],1],
+      ['1 tấn bằng bao nhiêu kg?',['100','1 000','10','10 000'],1],
+      ['x + 25 = 40 thì x bằng?',['10','15','25','65'],1],
+      ['450 × 20 = ?',['900','9 000','90 000','4 500'],1],
+      ['Số nào chia hết cho 5?',['27','35','46','82'],1],
+      ['1/2 của 30 là?',['10','12','15','20'],2],
+      ['Số nào là số chẵn?',['101','235','468','999'],2]
+    ];
+    const $=id=>document.getElementById(id), boxes=$('boxes');
+    let score=0, opened=0, active=-1;
+
+    function shuffle(a) {
+      const r=[...a];
+      for(let i=r.length-1;i>0;i--) {
+        const j=Math.floor(Math.random()*(i+1));
+        [r[i],r[j]]=[r[j],r[i]];
+      }
+      return r;
+    }
+
+    qs.forEach((q,i)=>{
+      const b=document.createElement('button');
+      b.type='button';
+      b.className='gift';
+      b.textContent=i+1;
+      b.setAttribute('aria-label','Hộp số '+(i+1));
+      b.onclick=()=>openBox(i);
+      boxes.appendChild(b);
+    });
+
+    function openBox(i) {
+      if(boxes.children[i].classList.contains('opened')) return;
+      active=i;
+      $('question').textContent=qs[i][0];
+      $('options').innerHTML='';
+      const opts=shuffle(qs[i][1].map((text,j)=>({text,right:j===qs[i][2]})));
+      opts.forEach(o=>{
+        const b=document.createElement('button');
+        b.type='button';
+        b.textContent=o.text;
+        b.onclick=()=>answer(o.right);
+        $('options').appendChild(b);
+      });
+      $('questionModal').hidden=false;
+    }
+
+    function answer(right) {
+      const b=boxes.children[active];
+      b.classList.add('opened');
+      if(!right)b.classList.add('wrong');
+      b.textContent=right?'⭐':'✖';
+      if(right)score+=10;
+      opened++;
+      $('score').textContent=score;
+      $('progress').style.width=(opened/qs.length*100)+'%';
+      $('status').textContent=right?'Chính xác! Hộp đã mở ra phần thưởng.':'Sai rồi! Hộp vẫn đã được mở.';
+      $('status').className='mj-status '+(right?'good':'bad');
+      $('questionModal').hidden=true;
+      if(opened===qs.length)setTimeout(()=>{
+        $('finishText').textContent='Con đã mở '+qs.length+' hộp và đạt '+score+' điểm.';
+        $('finish').hidden=false;
+      },500);
+    }
+
+    $('close').onclick=()=>$('questionModal').hidden=true;
+    $('again').onclick=()=>location.reload();
+  })();
+  </script>
+</body>
+</html>

@@ -1,6 +1,12 @@
 // Danh mục mẫu trò chơi bài tập Toán. Giáo viên tự soạn nội dung; ví dụ chỉ để gợi ý.
 export const BLANK = '___';
 
+export const FLASH_CARD_THEMES = [
+  { id: 'garden', name: 'Vườn vui', emoji: '🌿' },
+  { id: 'ocean', name: 'Đại dương', emoji: '🌊' },
+  { id: 'space', name: 'Vũ trụ', emoji: '🚀' }
+];
+
 export const GAME_TEMPLATES = [
   {
     id: 'quiz',
@@ -15,7 +21,7 @@ export const GAME_TEMPLATES = [
   },
   {
     id: 'match-up',
-    name: 'Nối cặp',
+    name: 'Tìm cặp',
     description: 'Kéo mỗi thẻ đáp án đặt cạnh phép tính hoặc khái niệm phù hợp.',
     hint: 'Phép tính ↔ kết quả, đổi đơn vị, phân số ↔ cách đọc.',
     itemLabel: 'cặp',
@@ -101,13 +107,25 @@ export const GAME_TEMPLATES = [
   },
   {
     id: 'digit-arrange',
-    name: 'Xếp chữ số',
+    name: 'Xếp chữ số tạo số',
     description: 'Kéo các thẻ chữ số vào đúng vị trí để tạo thành số theo yêu cầu.',
     hint: 'Lập số lớn nhất / bé nhất, viết số theo cách đọc.',
     itemLabel: 'câu',
     sample: () => [
       { question: 'Dùng các chữ số 3, 0, 7, 5 lập số lớn nhất', answer: '7530' },
       { question: 'Viết số: Hai mươi nghìn không trăm linh sáu', answer: '20006' }
+    ]
+  },
+  {
+    id: 'flash-cards',
+    name: 'Thẻ ghi nhớ',
+    description: 'Lật thẻ để xem đáp án rồi tự đánh dấu đã nhớ hoặc cần ôn thêm.',
+    hint: 'Ôn bảng nhân, từ vựng Toán và các quy tắc quan trọng.',
+    itemLabel: 'thẻ',
+    sample: () => [
+      { question: '7 × 8', answer: '56' },
+      { question: '1 km', answer: '1 000 m' },
+      { question: 'Chu vi hình vuông', answer: 'Độ dài một cạnh × 4' }
     ]
   }
 ];

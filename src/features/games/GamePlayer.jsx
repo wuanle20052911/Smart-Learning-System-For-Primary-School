@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { BLANK, GAME_BY_ID, shuffle, shuffleAway } from './gameCatalog.js';
+import { BLANK, FLASH_CARD_THEMES, GAME_BY_ID, shuffle, shuffleAway } from './gameCatalog.js';
 import { isAnswerCorrect } from './gameAnswers.js';
+import FlashCardThemePicker from './FlashCardThemePicker.jsx';
 import './games.css';
 
 const FEEDBACK_MS = 1100;
@@ -390,6 +391,65 @@ function DigitArrangePlayer({ questions, onComplete }) {
   </>;
 }
 
+function FlashCardsPlayer({ questions, settings, onComplete }) {
+  const [index, setIndex] = useState(0);
+  const [answers, setAnswers] = useState([]);
+  const [flipped, setFlipped] = useState(false);
+  const [remembered, setRemembered] = useState(null);
+  const later = useLater();
+  const question = questions[index];
+  const theme = FLASH_CARD_THEMES.some((item) => item.id === settings?.theme) ? settings.theme : 'garden';
+
+  const rateCard = (didRemember) => {
+    if (remembered !== null) return;
+    const answer = didRemember ? question.answer : 'Cần ôn thêm';
+    const next = [...answers, answer];
+    setAnswers(next);
+    setRemembered(didRemember);
+    later(() => {
+      if (index + 1 >= questions.length) {
+        onComplete(next);
+        return;
+      }
+      setIndex(index + 1);
+      setFlipped(false);
+      setRemembered(null);
+    }, 650);
+  };
+
+  return <div className={`gm-flashcards gm-flashcards-${theme}`}>
+    <Progress current={index + (remembered !== null ? 1 : 0)} total={questions.length} extra={<span className="gm-flash-theme-label">{FLASH_CARD_THEMES.find((item) => item.id === theme)?.emoji} {FLASH_CARD_THEMES.find((item) => item.id === theme)?.name}</span>} />
+    <button
+      type="button"
+      className={`gm-flashcard ${flipped ? 'is-flipped' : ''}`}
+      onClick={() => setFlipped((value) => !value)}
+      aria-pressed={flipped}
+      aria-label={flipped ? `Mặt sau: ${question.answer}. Chạm để lật lại.` : `Mặt trước: ${question.question}. Chạm để xem đáp án.`}
+    >
+      <span className="gm-flashcard-inner">
+        <span className="gm-flashcard-face gm-flashcard-front">
+          <small>MẶT TRƯỚC · THẺ {index + 1}</small>
+          <strong>{question.question}</strong>
+          <em>Chạm thẻ để lật ↻</em>
+        </span>
+        <span className="gm-flashcard-face gm-flashcard-back">
+          <small>ĐÁP ÁN</small>
+          <strong>{question.answer}</strong>
+          <em>Con đã nhớ chưa?</em>
+        </span>
+      </span>
+    </button>
+    {flipped && <div className="gm-flashcard-actions" aria-live="polite">
+      {remembered === null
+        ? <>
+          <button type="button" className="gm-flashcard-review" onClick={() => rateCard(false)}>↻ Cần ôn thêm</button>
+          <button type="button" className="gm-flashcard-known" onClick={() => rateCard(true)}>✓ Con đã nhớ</button>
+        </>
+        : <p>{remembered ? 'Giỏi lắm, mình đã nhớ thẻ này!' : 'Không sao, thẻ này sẽ cần ôn thêm nhé.'}</p>}
+    </div>}
+  </div>;
+}
+
 const PLAYERS = {
   quiz: QuizPlayer,
   gameshow: GameshowPlayer,
@@ -399,12 +459,14 @@ const PLAYERS = {
   ordering: OrderingPlayer,
   cloze: ClozePlayer,
   'find-match': FindMatchPlayer,
-  'digit-arrange': DigitArrangePlayer
+  'digit-arrange': DigitArrangePlayer,
+  'flash-cards': FlashCardsPlayer
 };
 
 export default function GamePlayer({ gameType, questions, settings, onComplete }) {
   const Player = PLAYERS[gameType];
   const [started, setStarted] = useState(false);
+  const [theme, setTheme] = useState(FLASH_CARD_THEMES.some((item) => item.id === settings?.theme) ? settings.theme : 'garden');
   const game = GAME_BY_ID[gameType];
   if (!Player || !questions?.length) return <p className="gm-note">Trò chơi này chưa có nội dung.</p>;
   if (!started) {
@@ -412,8 +474,12 @@ export default function GamePlayer({ gameType, questions, settings, onComplete }
       <span className="gm-start-badge">{game?.name}</span>
       <p>{game?.description}</p>
       <small>{questions.length} {game?.itemLabel}{gameType === 'gameshow' ? ` · ${settings?.time_limit || 20} giây mỗi câu` : ''}</small>
+      {gameType === 'flash-cards' && <div className="gm-start-themes">
+        <strong>Chọn chủ đề yêu thích</strong>
+        <FlashCardThemePicker value={theme} onChange={setTheme} />
+      </div>}
       <button className="gm-primary gm-start-button" type="button" onClick={() => setStarted(true)}>▶ Bắt đầu chơi</button>
     </div>;
   }
-  return <div className={`gm-stage gm-stage-${gameType}`}><Player questions={questions} settings={settings} onComplete={onComplete} /></div>;
+  return <div className={`gm-stage gm-stage-${gameType}`}><Player questions={questions} settings={{ ...settings, theme }} onComplete={onComplete} /></div>;
 }

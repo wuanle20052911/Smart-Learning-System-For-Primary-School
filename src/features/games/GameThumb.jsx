@@ -69,6 +69,13 @@ const art = {
     <Tile x={62} y={33} w={20} h={20} dashed /><Tile x={85} y={33} w={20} h={20} dashed />
     <path d="M40 76 C 54 90, 80 88, 86 64" stroke={C.red} strokeWidth="2" fill="none" markerEnd="url(#arrow)" />
     <Tile x={14} y={66} w={18} h={18} fill={C.gold} label="3" /><Tile x={36} y={66} w={18} h={18} fill={C.gold} label="0" />
+  </>,
+  'flash-cards': <>
+    <rect x="22" y="16" width="70" height="66" rx="9" fill="#e7f7ee" stroke={C.green} strokeWidth="2" transform="rotate(-8 57 49)" />
+    <rect x="30" y="18" width="70" height="66" rx="9" fill={C.paper} stroke={C.line} strokeWidth="2" transform="rotate(7 65 51)" />
+    <text x="65" y="43" textAnchor="middle" fontSize="10" fontWeight="800" fill={C.blue} fontFamily="sans-serif">7 × 8</text>
+    <path d="M48 54 L82 54" stroke={C.line} strokeWidth="2" strokeDasharray="3 3" />
+    <text x="65" y="72" textAnchor="middle" fontSize="14" fontWeight="900" fill={C.green} fontFamily="sans-serif">56</text>
   </>
 };
 

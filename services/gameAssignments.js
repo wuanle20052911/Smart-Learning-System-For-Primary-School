@@ -1,9 +1,10 @@
 // Kiểm tra nội dung giáo viên soạn cho từng mẫu trò chơi bài tập.
 // Mỗi mục hợp lệ trở thành một dòng assignment_questions và được chấm điểm riêng.
 
-const GAME_TYPES = ['quiz', 'match-up', 'group-sort', 'ordering', 'cloze', 'find-match', 'open-box', 'gameshow', 'digit-arrange'];
+const GAME_TYPES = ['quiz', 'match-up', 'group-sort', 'ordering', 'cloze', 'find-match', 'open-box', 'gameshow', 'digit-arrange', 'flash-cards'];
 const BLANK = '___';
 const MAX_ITEMS = 40;
+const FLASH_CARD_THEMES = ['garden', 'ocean', 'space'];
 
 function text(value, max = 300) {
   return typeof value === 'string' ? value.trim().slice(0, max) : '';
@@ -45,6 +46,7 @@ function normalizeItem(gameType, item, index) {
       return choiceItem(item, index, { min: 2, max: 4 });
     case 'match-up':
     case 'find-match':
+    case 'flash-cards':
       return pairItem(item, index);
     case 'digit-arrange': {
       const question = text(item.question, 300);
@@ -78,6 +80,7 @@ function normalizeItem(gameType, item, index) {
 
 function minimumItems(gameType) {
   if (['match-up', 'find-match'].includes(gameType)) return 3;
+  if (gameType === 'flash-cards') return 2;
   if (gameType === 'group-sort') return 4;
   return 1;
 }
@@ -104,9 +107,16 @@ function normalizeGameQuestions(gameType, questions) {
 }
 
 function normalizeGameSettings(gameType, settings = {}) {
-  if (gameType !== 'gameshow') return {};
-  const timeLimit = Number(settings?.time_limit);
-  return { time_limit: Number.isInteger(timeLimit) && timeLimit >= 10 && timeLimit <= 120 ? timeLimit : 20 };
+  if (gameType === 'gameshow') {
+    const timeLimit = Number(settings?.time_limit);
+    return { time_limit: Number.isInteger(timeLimit) && timeLimit >= 10 && timeLimit <= 120 ? timeLimit : 20 };
+  }
+  if (gameType === 'flash-cards') {
+    const theme = settings?.theme || 'garden';
+    if (!FLASH_CARD_THEMES.includes(theme)) throw new Error('Chủ đề thẻ ghi nhớ không hợp lệ.');
+    return { theme };
+  }
+  return {};
 }
 
 module.exports = { GAME_TYPES, BLANK, normalizeGameQuestions, normalizeGameSettings };

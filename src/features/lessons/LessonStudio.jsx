@@ -1,6 +1,7 @@
 import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { deduplicateLessonsBySourceNumber, extractLearningText, getLessonChapterName, getLessonDisplayTitle, getLessonSourceCode } from '../../services/learningMaterials.js';
 import { LESSON_GAMES, MAX_LESSON_GAMES } from './lessonGames.js';
+import LessonGameSession from './LessonGameSession.jsx';
 
 const MAX_FILE_BYTES = 6 * 1024 * 1024;
 const MAX_STORY_IMAGE_BYTES = 5 * 1024 * 1024;
@@ -59,6 +60,7 @@ export default function LessonStudio({ api, onMessage, onRefresh }) {
   const [content, setContent] = useState('');
   const [storySlides, setStorySlides] = useState([]);
   const [gameSlugs, setGameSlugs] = useState([]);
+  const [previewGameType, setPreviewGameType] = useState('');
   const [dropSlideId, setDropSlideId] = useState(null);
   const [draggedSlide, setDraggedSlide] = useState(null);
   const storySlidesContainerRef = useRef(null);
@@ -301,6 +303,7 @@ export default function LessonStudio({ api, onMessage, onRefresh }) {
     setContent('');
     setStorySlides([]);
     setGameSlugs([]);
+    setPreviewGameType('');
     setDraggedSlide(null);
     setFile(null);
     setSampleFilePath('');
@@ -498,19 +501,30 @@ export default function LessonStudio({ api, onMessage, onRefresh }) {
           <div className="lesson-game-options">{LESSON_GAMES.map((game) => {
             const order = gameSlugs.indexOf(game.slug);
             const checked = order >= 0;
-            return <label className={`lesson-game-option${checked ? ' checked' : ''}`} key={game.slug}>
-              <input type="checkbox" checked={checked} disabled={busy || (!checked && gameSlugs.length >= MAX_LESSON_GAMES)} onChange={() => setGameSlugs((current) => (current.includes(game.slug) ? current.filter((slug) => slug !== game.slug) : [...current, game.slug]))} />
-              <span className="lesson-game-option-icon" aria-hidden="true">{game.icon}</span>
-              <span className="lesson-game-option-text"><b>{game.title}</b><small>{game.description}</small></span>
-              {checked && <span className="lesson-game-option-order" aria-label={`Thứ tự ${order + 1}`}>{order + 1}</span>}
-              <a href={game.href} target="_blank" rel="noopener noreferrer" onClick={(event) => event.stopPropagation()}>Xem thử ↗</a>
-            </label>;
+            const inputId = `lesson-game-${game.slug}`;
+            return <div className={`lesson-game-option${checked ? ' checked' : ''}`} key={game.slug}>
+              <input id={inputId} type="checkbox" aria-label={game.title} checked={checked} disabled={busy || (!checked && gameSlugs.length >= MAX_LESSON_GAMES)} onChange={() => setGameSlugs((current) => (current.includes(game.slug) ? current.filter((slug) => slug !== game.slug) : [...current, game.slug]))} />
+              <label htmlFor={inputId} className="lesson-game-option-label">
+                <span className="lesson-game-option-icon" aria-hidden="true">{game.icon}</span>
+                <span className="lesson-game-option-text"><b>{game.title}</b><small>{game.description}</small></span>
+                {checked && <span className="lesson-game-option-order" aria-label={`Thứ tự ${order + 1}`}>{order + 1}</span>}
+              </label>
+              {game.gameType
+                ? <button type="button" className="lesson-game-preview" onClick={() => setPreviewGameType(game.gameType)}>Xem thử</button>
+                : <a href={game.href} target="_blank" rel="noopener noreferrer">Xem thử ↗</a>}
+            </div>;
           })}</div>
         </section>
         <button className="teacher-create lesson-save" type="submit" disabled={busy || !chapterId}>{busy ? 'Đang lưu lên Supabase...' : editingLesson ? 'Cập nhật bài học' : 'Lưu bài học vào chương'}</button>
         {editingLesson && <button className="lesson-cancel-edit" type="button" disabled={busy} onClick={() => clearLessonForm()}>Hủy chỉnh sửa</button>}
       </form>
       <section className="teacher-card lesson-studio-list"><div className="card-heading"><div><h3>Bài học đã tạo</h3><small>Dữ liệu lấy từ bảng lessons trên Supabase</small></div></div>{lessonGroups.length ? lessonGroups.map((group) => <section className="lesson-storage-chapter" key={group.id}><div className="lesson-storage-chapter-heading"><strong>{group.name}</strong><small>{group.subject || 'Môn học'} · {group.lessons.length} bài</small></div>{group.lessons.map((lesson) => <article className="lesson-storage-row" key={lesson.id}><div><strong>{getLessonDisplayTitle(lesson)}</strong><small>{lesson.subject} · {lesson.grade}</small>{lesson.source_path && <small className="lesson-storage-path">Tài liệu: {lesson.source_filename || `${lesson.source_bucket}/${lesson.source_path}`}</small>}</div><div className="lesson-storage-actions"><span className={lesson.published ? 'published' : ''}>{lesson.published ? 'Đã xuất bản' : 'Bản nháp'}</span><button type="button" disabled={busy} onClick={() => editLesson(lesson)}>Sửa</button><button className="lesson-delete" type="button" disabled={busy} onClick={() => deleteLesson(lesson)}>Xóa</button></div></article>)}</section>) : <p className="lesson-studio-empty">Chưa có bài học. Tạo chương rồi thêm bài đầu tiên nhé.</p>}</section>
+    </div>}
+    {previewGameType && <div className="gm-modal" role="dialog" aria-modal="true" aria-label="Xem thử trò chơi">
+      <div className="gm-modal-card is-wide">
+        <div className="gm-panel-head"><span className="gm-kicker">XEM THỬ · BỘ CÂU HỎI MẪU</span><button type="button" className="gm-icon-button" aria-label="Đóng xem thử" onClick={() => setPreviewGameType('')}>×</button></div>
+        <LessonGameSession gameType={previewGameType} onBack={() => setPreviewGameType('')} />
+      </div>
     </div>}
   </section>;
 }

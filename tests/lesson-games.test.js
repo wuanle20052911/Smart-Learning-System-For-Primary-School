@@ -8,10 +8,16 @@ test('every catalog game has a unique slug and an existing HTML file', () => {
   const slugs = catalog.map((game) => game.slug);
   assert.equal(new Set(slugs).size, slugs.length);
   catalog.forEach((game) => {
+    assert.ok(game.title && game.description);
     assert.match(game.href, /^\/public\/games\/[a-z0-9-]+\.html$/);
     assert.ok(fs.existsSync(path.join(__dirname, '..', game.href)), `${game.href} is missing`);
-    assert.ok(game.title && game.description);
   });
+});
+
+test('lesson catalog includes five standalone assignment-style games', () => {
+  assert.deepEqual(catalog.filter((game) => ['match-up','gameshow','open-box','digit-arrange','flash-cards'].includes(game.slug)).map((game) => game.slug), [
+    'match-up', 'gameshow', 'open-box', 'digit-arrange', 'flash-cards'
+  ]);
 });
 
 test('missing game_slugs leaves the stored value untouched', () => {

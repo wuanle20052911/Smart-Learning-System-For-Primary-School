@@ -68,9 +68,23 @@ test('digit-arrange strips spaces from the answer', () => {
   assert.equal(isCorrect(item, '7530'), true);
 });
 
+test('flash cards grade the learner self-rating and require a usable deck', () => {
+  const items = normalizeGameQuestions('flash-cards', [
+    { question: '7 × 8', answer: '56' },
+    { question: '1 km', answer: '1 000 m' }
+  ]);
+  assert.equal(items[0].type, 'fill-blank');
+  assert.equal(isCorrect(items[0], '56'), true);
+  assert.equal(isCorrect(items[0], 'Cần ôn thêm'), false);
+  assert.throws(() => normalizeGameQuestions('flash-cards', [{ question: '7 × 8', answer: '56' }]), /ít nhất 2 mục/);
+});
+
 test('unknown game types are rejected and gameshow time limits are clamped', () => {
   assert.throws(() => normalizeGameQuestions('spin-wheel', [{}]), /không hợp lệ/);
   assert.deepEqual(normalizeGameSettings('gameshow', { time_limit: 5 }), { time_limit: 20 });
   assert.deepEqual(normalizeGameSettings('gameshow', { time_limit: 30 }), { time_limit: 30 });
   assert.deepEqual(normalizeGameSettings('quiz', { time_limit: 30 }), {});
+  assert.deepEqual(normalizeGameSettings('flash-cards', { theme: 'ocean' }), { theme: 'ocean' });
+  assert.deepEqual(normalizeGameSettings('flash-cards'), { theme: 'garden' });
+  assert.throws(() => normalizeGameSettings('flash-cards', { theme: 'unknown' }), /Chủ đề/);
 });

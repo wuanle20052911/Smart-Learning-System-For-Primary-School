@@ -26,5 +26,40 @@
     "icon": "🛣️",
     "title": "Phố Số Chẵn Số Lẻ",
     "description": "Dán thẻ số vào đúng dãy nhà Số Chẵn hoặc Số Lẻ và xếp từ bé đến lớn."
+  },
+  {
+    "slug": "match-up",
+    "href": "/public/games/tim-cap.html",
+    "icon": "🧩",
+    "title": "Tìm cặp",
+    "description": "Ghép phép tính hoặc khái niệm với đáp án phù hợp."
+  },
+  {
+    "slug": "gameshow",
+    "href": "/public/games/gameshow-tinh-gio.html",
+    "icon": "🎤",
+    "title": "Gameshow tính giờ",
+    "description": "Trả lời câu hỏi trắc nghiệm trước khi đồng hồ đếm ngược."
+  },
+  {
+    "slug": "open-box",
+    "href": "/public/games/mo-hop-bi-mat.html",
+    "icon": "🎁",
+    "title": "Mở hộp bí mật",
+    "description": "Mở từng hộp để khám phá câu hỏi bất ngờ."
+  },
+  {
+    "slug": "digit-arrange",
+    "href": "/public/games/xep-chu-so-tao-so.html",
+    "icon": "🔢",
+    "title": "Xếp chữ số tạo số",
+    "description": "Sắp xếp các chữ số để tạo thành số đúng yêu cầu."
+  },
+  {
+    "slug": "flash-cards",
+    "href": "/public/games/the-ghi-nho.html",
+    "icon": "🃏",
+    "title": "Thẻ ghi nhớ",
+    "description": "Lật thẻ để ôn đáp án, chọn một trong ba chủ đề."
   }
 ]

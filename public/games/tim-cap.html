@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Tìm cặp | MathJoy</title>
+  <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@700;800&family=Quicksand:wght@600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/public/games/mathjoy-math-game.css">
+  <style>
+    body{background-image:url('/public/img/puzzle wood.jpg')}
+    .match-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+    .match-card{position:relative;min-height:128px;border:4px solid #fff;border-radius:10px;background:linear-gradient(145deg,#fffdf3,#ead9a9);box-shadow:0 6px 0 #9a7042,0 10px 16px rgba(68,45,24,.18);color:#4b3823;font:800 clamp(16px,2.4vw,26px) "Patrick Hand","Quicksand",sans-serif;cursor:pointer}
+    .match-card.answer{font-size:clamp(38px,6vw,72px)}
+    .match-card.selected{background:#fff0a6;box-shadow:0 0 0 4px #f0bd45,0 6px 0 #9a7042}
+    .match-card.done{opacity:.28;transform:scale(.88);cursor:default}
+    .match-card.bad{animation:mj-shake .38s;border-color:#efaaa1;background:#fff0ed}
+    .match-copy{margin:0 0 12px;text-align:center;color:#806245;font-size:13px;font-weight:800}
+    @media(max-width:760px){.match-grid{gap:6px}.match-card{min-height:92px;border-width:3px}.match-card.answer{font-size:40px}}
+  </style>
+</head>
+<body>
+<main class="mj-shell">
+  <header class="mj-topbar"><a class="mj-back" href="/learn" aria-label="Quay lại bài học">‹</a><div class="mj-score">⭐ <b id="score">0</b></div></header>
+  <div class="mj-title"><small>TÌM CẶP TOÁN HỌC</small><strong id="roundTitle">Tìm cặp</strong></div>
+  <section class="mj-game">
+    <img class="mj-character" src="/public/img/adventure-boy-safari.png" alt="">
+    <div class="mj-panel">
+      <div class="mj-progress"><i id="progress"></i></div>
+      <p class="match-copy">Chọn thẻ số rồi ghép với phép tính có kết quả đúng.</p>
+      <div class="match-grid" id="answers"></div>
+      <div class="match-grid" id="equations" style="margin-top:12px"></div>
+      <p class="mj-status" id="status" aria-live="polite"></p>
+      <div class="mj-actions"><button class="mj-button" type="button" id="hint">Gợi ý</button></div>
+    </div>
+  </section>
+  <div class="mj-modal" id="finish" hidden><div class="mj-modal-card"><img src="/public/img/cúp.jpg" alt=""><h2>Tìm cặp siêu giỏi!</h2><p id="finishText"></p><button class="mj-button" type="button" id="again">Chơi lại</button></div></div>
+</main>
+<script>
+(function(){
+  const rounds=[
+    {answers:[5,4,3,2],pairs:[['1 + ___ = 6',5],['1 + ___ = 4',3],['5 + ___ = 9',4],['7 + ___ = 9',2]]},
+    {answers:[141,244,471,120],pairs:[['x − 10 = 131',141],['x − 10 = 234',244],['x − 10 = 461',471],['x ÷ 10 = 12',120]]},
+    {answers:[6,8,7,9],pairs:[['x + 4 = 10',6],['x − 3 = 5',8],['56 ÷ x = 8',7],['x × 3 = 27',9]]},
+    {answers:[15,20,25,30],pairs:[['x + 25 = 40',15],['45 − x = 25',20],['5 × x = 125',25],['x ÷ 3 = 10',30]]}
+  ];
+  const $=id=>document.getElementById(id),answers=$('answers'),equations=$('equations'),status=$('status'),progress=$('progress');
+  let round=0,selected=null,matched=0,score=0;
+  function shuffle(a){return [...a].sort(()=>Math.random-.5)}
+  function render(){
+    matched=0;selected=null;progress.style.width='0';status.textContent='Chọn một thẻ số rồi ghép với phép tính phù hợp.';status.className='mj-status';
+    answers.innerHTML='';equations.innerHTML='';
+    shuffle(rounds[round].answers).forEach(v=>{const b=document.createElement('button');b.type='button';b.className='match-card answer';b.dataset.answer=v;b.textContent=v;b.onclick=()=>select(b);answers.appendChild(b)});
+    shuffle(rounds[round].pairs).forEach(pair=>{const b=document.createElement('button');b.type='button';b.className='match-card';b.dataset.answer=pair[1];b.textContent=pair[0];b.onclick=()=>match(b);equations.appendChild(b)});
+  }
+  function select(b){if(b.classList.contains('done'))return;answers.querySelectorAll('.selected').forEach(x=>x.classList.remove('selected'));b.classList.add('selected');selected=b}
+  function match(b){if(!selected)return;if(b.classList.contains('done'))return;if(selected.dataset.answer===b.dataset.answer){selected.className='match-card answer done';selected.disabled=true;b.className='match-card done';b.disabled=true;selected=null;matched++;score+=10;$('score').textContent=score;progress.style.width=(matched/4*100)+'%';status.textContent='Ghép đúng! Tiếp tục nhé.';status.className='mj-status good';if(matched===4)setTimeout(next,650)}else{b.classList.add('bad');selected.classList.remove('selected');selected=null;status.textContent='Chưa đúng. Hãy thử cặp khác.';status.className='mj-status bad';setTimeout(()=>b.classList.remove('bad'),450)}}
+  function next(){if(round+1<rounds.length){round++;render();$('roundTitle').textContent='Chặng '+(round+1)}else{$('finish').hidden=false;$('finishText').textContent='Con đã hoàn thành '+rounds.length+' chặng và đạt '+score+' điểm.'}}
+  $('hint').onclick=()=>{const right=[...equations.children].find(b=>!b.disabled&&[...answers.children].some(a=>!a.disabled&&a.dataset.answer===b.dataset.answer));if(!right)return;const a=[...answers.children].find(x=>x.dataset.answer===right.dataset.answer);a.style.boxShadow='0 0 0 5px #ffe26b,0 6px 0 #9a7042';right.style.boxShadow='0 0 0 5px #ffe26b,0 6px 0 #9a7042';setTimeout(()=>{a.style.boxShadow='';right.style.boxShadow=''},1500)};
+  $('again').onclick=()=>{round=0;score=0;$('score').textContent='0';$('finish').hidden=true;$('roundTitle').textContent='Tìm cặp';render()};
+  render();
+})();
+</script>
+</body>
+</html>

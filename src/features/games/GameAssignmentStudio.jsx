@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { BLANK, GAME_BY_ID, GAME_TEMPLATES } from './gameCatalog.js';
+import FlashCardThemePicker from './FlashCardThemePicker.jsx';
 import GameThumb from './GameThumb.jsx';
 import GamePlayer from './GamePlayer.jsx';
 import GameResult from './GameResult.jsx';
@@ -7,7 +8,7 @@ import { isAnswerCorrect } from './gameAnswers.js';
 import './games.css';
 
 const CHOICE_GAMES = ['quiz', 'open-box', 'gameshow'];
-const PAIR_GAMES = ['match-up', 'find-match'];
+const PAIR_GAMES = ['match-up', 'find-match', 'flash-cards'];
 
 // Chuyển dữ liệu mẫu sang dạng giáo viên chỉnh sửa (điền chỗ trống viết bằng [ngoặc vuông]).
 function toDraft(gameType, items) {
@@ -47,7 +48,7 @@ function toPayload(gameType, items, groups) {
 }
 
 function findProblem(gameType, payload, groups) {
-  const min = PAIR_GAMES.includes(gameType) ? 3 : gameType === 'group-sort' ? 4 : 1;
+  const min = gameType === 'flash-cards' ? 2 : PAIR_GAMES.includes(gameType) ? 3 : gameType === 'group-sort' ? 4 : 1;
   if (payload.length < min) return `Trò chơi này cần ít nhất ${min} ${GAME_BY_ID[gameType].itemLabel}.`;
   if (gameType === 'group-sort' && (groups.length < 2 || groups.some((group) => !group.trim()))) return 'Hãy đặt tên cho tất cả các nhóm (2–4 nhóm).';
   for (const [index, item] of payload.entries()) {
@@ -59,7 +60,7 @@ function findProblem(gameType, payload, groups) {
     if (item.type === 'fill-blank' && !item.answer) return `${label}: chưa nhập đáp án.`;
     if (gameType === 'digit-arrange' && item.answer.length < 2) return `${label}: đáp án cần ít nhất 2 kí tự.`;
   }
-  if (PAIR_GAMES.includes(gameType) && new Set(payload.map((item) => item.answer.toLocaleLowerCase('vi-VN'))).size !== payload.length) return 'Các đáp án ghép cặp không được trùng nhau.';
+  if (['match-up', 'find-match'].includes(gameType) && new Set(payload.map((item) => item.answer.toLocaleLowerCase('vi-VN'))).size !== payload.length) return 'Các đáp án ghép cặp không được trùng nhau.';
   return '';
 }
 
@@ -84,9 +85,9 @@ function ItemEditor({ gameType, item, groups, onChange }) {
   if (CHOICE_GAMES.includes(gameType)) return <ChoiceEditor item={item} onChange={onChange} />;
   if (PAIR_GAMES.includes(gameType)) {
     return <div className="gm-pair-editor">
-      <input className="gm-input" value={item.question} placeholder={gameType === 'match-up' ? 'Vế trái, ví dụ: 1 tấn' : 'Câu hỏi, ví dụ: 36 : 4'} onChange={(event) => onChange({ ...item, question: event.target.value })} />
+      <input className="gm-input" value={item.question} placeholder={gameType === 'flash-cards' ? 'Mặt trước, ví dụ: 7 × 8' : gameType === 'match-up' ? 'Vế trái, ví dụ: 1 tấn' : 'Câu hỏi, ví dụ: 36 : 4'} onChange={(event) => onChange({ ...item, question: event.target.value })} />
       <span aria-hidden="true">↔</span>
-      <input className="gm-input" value={item.answer} placeholder={gameType === 'match-up' ? 'Vế phải, ví dụ: 1 000 kg' : 'Đáp án, ví dụ: 9'} onChange={(event) => onChange({ ...item, answer: event.target.value })} />
+      <input className="gm-input" value={item.answer} placeholder={gameType === 'flash-cards' ? 'Mặt sau, ví dụ: 56' : gameType === 'match-up' ? 'Vế phải, ví dụ: 1 000 kg' : 'Đáp án, ví dụ: 9'} onChange={(event) => onChange({ ...item, answer: event.target.value })} />
     </div>;
   }
   if (gameType === 'group-sort') {
@@ -146,6 +147,7 @@ export default function GameAssignmentStudio({ api, onMessage }) {
   const [items, setItems] = useState([]);
   const [groups, setGroups] = useState(['', '']);
   const [timeLimit, setTimeLimit] = useState(20);
+  const [theme, setTheme] = useState('garden');
   const [title, setTitle] = useState('');
   const [classes, setClasses] = useState([]);
   const [classId, setClassId] = useState('');
@@ -164,6 +166,7 @@ export default function GameAssignmentStudio({ api, onMessage }) {
     setItems(toDraft(type, sample));
     setGroups(type === 'group-sort' ? [...sample[0].options] : ['', '']);
     setTitle(GAME_BY_ID[type].name);
+    setTheme('garden');
     setProblem('');
   };
   if (!gameType) return <TemplatePicker onPick={pick} />;
@@ -195,7 +198,7 @@ export default function GameAssignmentStudio({ api, onMessage }) {
         title: title.trim(),
         description: `Bài tập trò chơi “${game.name}” do giáo viên soạn.`,
         game_type: gameType,
-        game_settings: gameType === 'gameshow' ? { time_limit: Number(timeLimit) } : {},
+        game_settings: gameType === 'gameshow' ? { time_limit: Number(timeLimit) } : gameType === 'flash-cards' ? { theme } : {},
         class_id: classId,
         due_at: dueAt ? new Date(dueAt).toISOString() : null,
         published: true,
@@ -256,6 +259,11 @@ export default function GameAssignmentStudio({ api, onMessage }) {
       <aside className="gm-panel gm-publish">
         <h3>Giao bài</h3>
         <label>Tên bài tập<input className="gm-input" value={title} onChange={(event) => setTitle(event.target.value)} placeholder="Ví dụ: Ôn đổi đơn vị khối lượng" /></label>
+        {gameType === 'flash-cards' && <fieldset className="gm-theme-fieldset">
+          <legend>Chủ đề mặc định</legend>
+          <FlashCardThemePicker value={theme} onChange={setTheme} />
+          <small>Học sinh vẫn có thể chọn chủ đề khác khi bắt đầu chơi.</small>
+        </fieldset>}
         <label>Lớp<select className="gm-input" value={classId} onChange={(event) => setClassId(event.target.value)}>
           <option value="">— Chọn lớp —</option>
           {classes.map((item) => <option key={item.id} value={item.id}>{item.name}{item.grade ? ` · ${item.grade}` : ''}</option>)}
@@ -278,7 +286,7 @@ export default function GameAssignmentStudio({ api, onMessage }) {
               <button type="button" className="gm-secondary" onClick={() => setPreview({ answers: null, round: (preview.round || 0) + 1 })}>Chơi lại</button>
             </GameResult>;
           })()
-          : <GamePlayer key={preview.round || 0} gameType={gameType} questions={payload} settings={{ time_limit: Number(timeLimit) || 20 }} onComplete={(answers) => setPreview((current) => ({ ...current, answers }))} />}
+          : <GamePlayer key={preview.round || 0} gameType={gameType} questions={payload} settings={{ time_limit: Number(timeLimit) || 20, theme }} onComplete={(answers) => setPreview((current) => ({ ...current, answers }))} />}
       </div>
     </div>}
   </section>;

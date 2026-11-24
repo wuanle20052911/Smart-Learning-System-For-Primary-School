@@ -1,5 +1,5 @@
--- Gắn trò chơi HTML (public/games/*.html) vào từng bài học.
--- File game nằm trong repo; cột này chỉ lưu slug theo danh mục services/lessonGames.json.
+-- Gắn trò chơi sau bài học (HTML tĩnh hoặc mẫu game trong ứng dụng) vào từng bài học.
+-- Cột này chỉ lưu slug theo danh mục services/lessonGames.json.
 alter table public.lessons
   add column if not exists game_slugs text[] not null default '{}';
 
