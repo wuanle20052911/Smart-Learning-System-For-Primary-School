@@ -1,6 +1,12 @@
 import React, { useEffect, useState } from 'react';
+import GameAssignmentView from '../games/GameAssignmentView.jsx';
 
-export default function AssignedWorkView({ assignment, onBack, onStudyActivity, api }) {
+export default function AssignedWorkView(props) {
+  if (props.assignment?.game_type && props.assignment.isPractice !== true) return <GameAssignmentView {...props} />;
+  return <QuestionWorkView {...props} />;
+}
+
+function QuestionWorkView({ assignment, onBack, onStudyActivity, api }) {
   const isPractice = assignment.isPractice === true;
   const [answers, setAnswers] = useState({});
   const [busy, setBusy] = useState(false);

@@ -2,7 +2,21 @@ function normalizeAnswer(value) {
   return String(value ?? '').trim().toLocaleLowerCase('vi-VN').replace(/\s+/g, ' ');
 }
 
+function orderedLabels(question, answer) {
+  const options = Array.isArray(question.options) ? question.options : [];
+  return Array.isArray(answer) ? answer.map((index) => options[index]) : [];
+}
+
 function isCorrect(question, answer) {
+  if (question.type === 'ordering') {
+    const chosen = orderedLabels(question, answer);
+    return chosen.length === question.options?.length && chosen.every((label, index) => normalizeAnswer(label) === normalizeAnswer(question.options[index]));
+  }
+  if (question.type === 'cloze') {
+    const expected = Array.isArray(question.answer) ? question.answer : [];
+    return Array.isArray(answer) && answer.length === expected.length
+      && expected.every((value, index) => normalizeAnswer(value) === normalizeAnswer(answer[index]));
+  }
   if (question.type === 'multiple-choice' || question.type === 'true-false') return Number(answer) === Number(question.answer);
   if (question.type === 'matching') return JSON.stringify(answer) === JSON.stringify(question.answer);
   const accepted = [question.answer, ...(Array.isArray(question.answer) ? question.answer : [])]
@@ -24,6 +38,12 @@ function displayAnswer(question, answer) {
     return options
       .map((pair, index) => `${pair?.left ?? ''} → ${options[answer[index]]?.right ?? 'Chưa chọn'}`)
       .join('; ');
+  }
+  if (question.type === 'ordering') {
+    return Array.isArray(answer) ? orderedLabels(question, answer).map((label) => label ?? '?').join(' → ') : 'Chưa trả lời';
+  }
+  if (question.type === 'cloze') {
+    return Array.isArray(answer) ? answer.map((value) => value || '…').join(', ') : 'Chưa trả lời';
   }
   if (question.type === 'multiple-choice' || question.type === 'true-false') {
     const option = options[Number(answer)];

@@ -1,18 +1,8 @@
 import React, { useEffect, useState } from 'react';
+import { answerText, isAnswerCorrect } from '../games/gameAnswers.js';
 
-function answerLabel(question, answer) {
-  if (answer === undefined || answer === null || answer === '') return 'Chưa trả lời';
-  if (question.type === 'matching' && Array.isArray(answer)) {
-    return question.options.map((pair, index) => `${pair.left} → ${question.options[answer[index]]?.right || 'Chưa chọn'}`).join('; ');
-  }
-  return Array.isArray(question.options) ? question.options[answer] || String(answer) : String(answer);
-}
-
-function isCorrect(question, answer) {
-  if (question.type === 'matching') return JSON.stringify(answer) === JSON.stringify(question.answer);
-  if (question.type === 'multiple-choice' || question.type === 'true-false') return Number(answer) === Number(question.answer);
-  return String(answer ?? '').trim().toLocaleLowerCase('vi-VN') === String(question.answer ?? '').trim().toLocaleLowerCase('vi-VN');
-}
+const answerLabel = answerText;
+const isCorrect = isAnswerCorrect;
 
 export default function TeacherSubmissions({ api, onMessage }) {
   const [submissions, setSubmissions] = useState([]);
