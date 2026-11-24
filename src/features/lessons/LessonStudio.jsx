@@ -1,6 +1,7 @@
 import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { deduplicateLessonsBySourceNumber, extractLearningText, getLessonChapterName, getLessonDisplayTitle, getLessonSourceCode } from '../../services/learningMaterials.js';
 import { LESSON_GAMES, MAX_LESSON_GAMES } from './lessonGames.js';
+import { compressStoryImage } from '../../services/imageCompression.js';
 
 const MAX_FILE_BYTES = 6 * 1024 * 1024;
 const MAX_STORY_IMAGE_BYTES = 5 * 1024 * 1024;
@@ -407,12 +408,13 @@ export default function LessonStudio({ api, onMessage, onRefresh }) {
       for (const slide of storySlides) {
         let objectPath = slide.path;
         if (slide.file) {
+          const image = await compressStoryImage(slide.file);
           const uploaded = await api('/api/lessons/story-images', {
             method: 'POST',
             body: JSON.stringify({
-              fileName: slide.file.name,
-              contentType: slide.file.type,
-              contentBase64: await toBase64(slide.file)
+              fileName: image.name,
+              contentType: image.type,
+              contentBase64: await toBase64(image)
             })
           });
           objectPath = uploaded.path;
