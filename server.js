@@ -119,7 +119,7 @@ app.get('/teacher', (req, res) => {
   res.sendFile(path.join(__dirname, 'dist', 'index.html'));
 });
 
-app.get('/admin', (req, res) => {
+app.get(['/admin', '/admin/settings'], (req, res) => {
   res.sendFile(path.join(__dirname, 'dist', 'index.html'));
 });
 

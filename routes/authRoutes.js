@@ -1,5 +1,5 @@
 const express = require('express');
-const { login, registerStudent, registerParent, createTeacher, listManagedUsers, setManagedUserDisabled, updateProfile, getProfile, getOAuthConfig } = require('../controllers/authController');
+const { login, registerStudent, registerParent, createTeacher, listManagedUsers, setManagedUserDisabled, updateProfile, getProfile, getOAuthConfig, changePassword } = require('../controllers/authController');
 const requireAuth = require('../middleware/requireAuth');
 
 const router = express.Router();
@@ -13,5 +13,6 @@ router.get('/users', requireAuth, listManagedUsers);
 router.patch('/users/:id/status', requireAuth, setManagedUserDisabled);
 router.put('/profile', requireAuth, updateProfile);
 router.get('/profile', requireAuth, getProfile);
+router.put('/password', requireAuth, changePassword);
 
 module.exports = router;

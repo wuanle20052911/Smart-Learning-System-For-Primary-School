@@ -28,6 +28,13 @@ async function updateProfile(accessToken, userId, profile) {
   return data;
 }
 
+async function changePassword(accessToken, newPassword) {
+  const { data, error } = await getSupabaseClient(accessToken)
+    .auth.updateUser({ password: newPassword });
+  if (error) throw error;
+  return data.user;
+}
+
 async function getClass(accessToken, studentId) {
   const { data, error } = await getSupabaseClient(accessToken)
     .from('class_members')
@@ -158,4 +165,4 @@ async function registerStudent(email, password, fullName) {
   return data;
 }
 
-module.exports = { signIn, registerStudent, registerParent, createTeacher, listManagedUsers, setManagedUserDisabled, updateProfile, getClass };
+module.exports = { signIn, registerStudent, registerParent, createTeacher, listManagedUsers, setManagedUserDisabled, updateProfile, changePassword, getClass };
