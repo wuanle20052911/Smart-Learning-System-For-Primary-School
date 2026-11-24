@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import LessonView from '../features/lessons/LessonView.jsx';
 import StudentLessonCatalog from '../features/lessons/StudentLessonCatalog.jsx';
 import AIStudyChat from '../features/assignments/AIStudyChat.jsx';
+import { GAME_BY_ID } from '../features/games/gameCatalog.js';
 import { deduplicateLessonsBySourceNumber, getLessonChapterName, getLessonDisplayTitle, getLessonSourceCode } from '../services/learningMaterials.js';
 import fireGif from '../assets/Fire.gif';
 import winterScene from '../assets/mathjoy-winter.gif';
@@ -385,8 +386,8 @@ export default function StudentHomePage({ api, readSession, Header, Brand, Lesso
             const isClosed = item.due_at && new Date(item.due_at).getTime() <= Date.now();
             const canReview = Boolean(item.submission);
             return <button className={`assigned-work-item ${item.submission ? 'is-done' : ''} ${isClosed && !canReview ? 'is-closed' : ''}`} key={item.id} onClick={() => openAssignment(item)} disabled={isClosed && !canReview}>
-              <span className="assigned-work-icon">{item.submission ? '✅' : isClosed ? '🔒' : '📝'}</span>
-              <span className="assigned-work-content"><strong>{item.title}</strong><small>{item.submission ? `Đã làm · ${item.submission.score}/100${item.submission.feedback?.length ? ' · Cô đã nhận xét' : ''} · Bấm để xem lại` : isClosed ? 'Đã hết hạn nộp' : `${item.question_count || 0} câu · ${item.difficulty === 'hard' ? 'Khó' : item.difficulty === 'medium' ? 'Vừa' : 'Dễ'}`}{item.due_at ? ` · Hạn: ${new Date(item.due_at).toLocaleString('vi-VN')}` : ''}</small></span>
+              <span className="assigned-work-icon">{item.submission ? '✅' : isClosed ? '🔒' : item.game_type ? '🎮' : '📝'}</span>
+              <span className="assigned-work-content"><strong>{item.title}</strong><small>{item.submission ? `Đã làm · ${item.submission.score}/100${item.submission.feedback?.length ? ' · Cô đã nhận xét' : ''} · Bấm để xem lại` : isClosed ? 'Đã hết hạn nộp' : item.game_type ? `Trò chơi: ${GAME_BY_ID[item.game_type]?.name || 'Bài tập trò chơi'} · ${item.question_count || 0} mục` : `${item.question_count || 0} câu · ${item.difficulty === 'hard' ? 'Khó' : item.difficulty === 'medium' ? 'Vừa' : 'Dễ'}`}{item.due_at ? ` · Hạn: ${new Date(item.due_at).toLocaleString('vi-VN')}` : ''}</small></span>
               <span className="assigned-work-arrow">{isClosed && !canReview ? 'Đã đóng' : '›'}</span>
             </button>;
           })}</div> : <div className="assigned-work-empty">Hiện chưa có bài tập cô giao. 🎉</div>}<Stocking className="stocking-bl" /></section>

@@ -5,6 +5,7 @@ const quizAttemptModel = require('../models/quizAttemptModel');
 const { getSupabaseClient } = require('../models/supabaseClient');
 const { normalizeDueAt } = require('../services/assignmentDeadline');
 const { buildPersonalizedDraft } = require('../services/personalizedAssignment');
+const { GAME_TYPES, normalizeGameQuestions, normalizeGameSettings } = require('../services/gameAssignments');
 
 function normalize(body = {}) {
   const questions = Array.isArray(body.questions) ? body.questions : [];
@@ -16,6 +17,8 @@ function normalize(body = {}) {
   }
   const targetStudentId = typeof body.target_student_id === 'string' && body.target_student_id ? body.target_student_id : null;
   const learningGoal = typeof body.learning_goal === 'string' ? body.learning_goal.trim().slice(0, 500) : '';
+  const gameType = GAME_TYPES.includes(body.game_type) ? body.game_type : null;
+  if (body.game_type && !gameType) throw new Error('Mẫu trò chơi không hợp lệ.');
   if (targetStudentId && (!body.class_id || !learningGoal)) {
     throw new Error('Bài tập cá nhân hóa cần lớp học và mục tiêu học tập.');
   }
@@ -32,9 +35,11 @@ function normalize(body = {}) {
       learning_goal: learningGoal,
       difficulty: ['easy', 'medium', 'hard'].includes(body.difficulty) ? body.difficulty : 'easy',
       due_at: normalizeDueAt(body.due_at, body.published === true),
-      published: body.published === true
+      published: body.published === true,
+      game_type: gameType,
+      game_settings: gameType ? normalizeGameSettings(gameType, body.game_settings) : {}
     },
-    questions: questions.map((question, index) => {
+    questions: gameType ? normalizeGameQuestions(gameType, questions) : questions.map((question, index) => {
       if (question.type !== 'multiple-choice' || typeof question.question !== 'string' || !question.question.trim()) {
         throw new Error(`Câu hỏi ${index + 1}: chỉ hỗ trợ câu trắc nghiệm.`);
       }

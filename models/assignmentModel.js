@@ -1,6 +1,6 @@
 const { getSupabaseClient } = require('./supabaseClient');
 
-const assignmentFields = 'id,title,description,lesson_id,subject_id,topic_id,skill_id,class_id,target_student_id,learning_goal,created_by,difficulty,question_count,due_at,published,created_at,updated_at';
+const assignmentFields = 'id,title,description,lesson_id,subject_id,topic_id,skill_id,class_id,target_student_id,learning_goal,created_by,difficulty,question_count,due_at,published,game_type,game_settings,created_at,updated_at';
 const questionFields = 'id,assignment_id,lesson_id,skill_id,position,type,question,options,answer,explanation,points';
 
 async function listForTeacher(accessToken, teacherId) {
