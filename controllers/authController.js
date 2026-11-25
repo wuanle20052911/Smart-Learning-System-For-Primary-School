@@ -1,4 +1,5 @@
 const userModel = require('../models/userModel');
+const { clearAuthCache } = require('../middleware/requireAuth');
 const { normalizeVietnameseMobilePhone } = require('../services/phoneNumber');
 
 function isMissingParentPhoneMigration(error) {
@@ -152,6 +153,7 @@ async function setManagedUserDisabled(req, res) {
   }
   try {
     const user = await userModel.setManagedUserDisabled(req.params.id, req.body.disabled);
+    clearAuthCache(req.params.id);
     return res.json({ user });
   } catch (error) {
     console.error('Could not update managed user account status:', error);
@@ -168,6 +170,7 @@ async function updateProfile(req, res) {
   }
   try {
     const profile = await userModel.updateProfile(req.accessToken, req.user.id, updatedFields);
+    clearAuthCache(req.user.id);
     return res.json({ profile });
   } catch (error) {
     if (error.code === '23505') {

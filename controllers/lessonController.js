@@ -188,7 +188,7 @@ async function uploadMaterial(req, res) {
     const { data, error } = await getSupabaseClient(req.accessToken)
       .storage
       .from(materialBucket)
-      .upload(objectPath, buffer, { contentType, upsert: false });
+      .upload(objectPath, buffer, { contentType, upsert: false, cacheControl: '31536000' });
     if (error) throw error;
     return res.status(201).json({
       source_bucket: materialBucket,
@@ -230,7 +230,7 @@ async function uploadStoryImage(req, res) {
     const { data, error } = await getSupabaseClient(req.accessToken)
       .storage
       .from(materialBucket)
-      .upload(objectPath, buffer, { contentType, upsert: false });
+      .upload(objectPath, buffer, { contentType, upsert: false, cacheControl: '31536000' });
     if (error) throw error;
     return res.status(201).json({ path: data.path });
   } catch (error) {
@@ -282,6 +282,37 @@ async function getMaterial(req, res) {
   }
 }
 
+// Link ảnh có chữ ký sống 1 giờ. Server nhớ link trong 50 phút, nên mỗi lần mở bài
+// cùng một ảnh vẫn có cùng link và trình duyệt dùng lại bản đã tải thay vì tải lại từ Supabase.
+const STORY_URL_TTL_SECONDS = 60 * 60;
+const STORY_URL_REUSE_MS = 50 * 60 * 1000;
+const storyUrlCache = new Map();
+
+async function signStoryImages(accessToken, paths) {
+  const now = Date.now();
+  const urls = new Map();
+  const missing = [];
+  for (const objectPath of new Set(paths)) {
+    const cached = storyUrlCache.get(objectPath);
+    if (cached && cached.reuseUntil > now) urls.set(objectPath, cached.url);
+    else missing.push(objectPath);
+  }
+  if (missing.length) {
+    const { data, error } = await getSupabaseClient(accessToken)
+      .storage
+      .from(materialBucket)
+      .createSignedUrls(missing, STORY_URL_TTL_SECONDS);
+    if (error) throw error;
+    for (const item of data || []) {
+      if (item.error || !item.signedUrl) throw new Error(item.error || `Không tạo được link cho ảnh ${item.path}.`);
+      urls.set(item.path, item.signedUrl);
+      if (storyUrlCache.size >= 2000) storyUrlCache.delete(storyUrlCache.keys().next().value);
+      storyUrlCache.set(item.path, { url: item.signedUrl, reuseUntil: now + STORY_URL_REUSE_MS });
+    }
+  }
+  return urls;
+}
+
 async function getStoryImages(req, res) {
   try {
     const lesson = await lessonModel.getById(req.accessToken, req.params.id);
@@ -289,14 +320,9 @@ async function getStoryImages(req, res) {
     if (!lesson.published && lesson.created_by !== req.user.id && req.profile?.role !== 'admin') {
       return res.status(403).json({ error: 'Bạn không có quyền xem câu chuyện ảnh này.' });
     }
-    const slides = await Promise.all((lesson.story_slides || []).map(async (slide) => {
-      const { data, error } = await getSupabaseClient(req.accessToken)
-        .storage
-        .from(materialBucket)
-        .createSignedUrl(slide.path, 60 * 60);
-      if (error) throw error;
-      return { path: slide.path, caption: slide.caption || '', url: data.signedUrl };
-    }));
+    const storySlides = lesson.story_slides || [];
+    const urls = await signStoryImages(req.accessToken, storySlides.map((slide) => slide.path));
+    const slides = storySlides.map((slide) => ({ path: slide.path, caption: slide.caption || '', url: urls.get(slide.path) }));
     return res.json({ slides });
   } catch (error) {
     console.error('Could not create lesson story image URLs:', error);
