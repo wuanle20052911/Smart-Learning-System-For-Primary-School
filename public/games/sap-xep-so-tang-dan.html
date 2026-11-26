@@ -26,7 +26,7 @@
     button { min-width: 40px; min-height: 40px; padding: 8px; border: 0; border-radius: 10px; background: #e9edfa; color: #48577e; font: inherit; font-size: 18px; font-weight: 900; cursor: pointer; }
     button:hover:not(:disabled) { background: #dce4ff; }
     button:focus-visible { outline: 3px solid #3626bd; outline-offset: 2px; }
-    button:disabled { cursor: default; opacity: .5; }
+    button:disabled { cursor: default; opacity: .7; }
     .primary { min-height: 50px; padding: 10px 18px; border: 0; background: #5d69c8; color: white; font-size: 15px; }
     .primary:hover:not(:disabled) { background: #4a54ac; }
     .actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 16px; }
@@ -41,33 +41,52 @@
 </head>
 <body class="sorting-game">
   <main>
-    <header class="topbar">
-      <div class="topbar-left"><a class="home back-button" href="/learn" aria-label="Về bài học"><span aria-hidden="true">←</span></a><a class="brand" href="/learn"><span class="brand-copy"><strong>Toán Học Siêu Tốc</strong><small>MATHJOY · TOÁN LỚP 4</small></span></a></div>
-      <div class="game-stats"><span class="stat-pill">⭐ <strong id="top-score">0</strong></span><span class="stat-pill">💎 <strong>100K</strong></span><span class="stat-pill">📘 <strong>TOÁN 4</strong></span></div>
-    </header>
     <section class="game-hero">
       <div class="hero-copy"><span class="hero-label">TRÒ CHƠI 1</span><h1>Đường đua sắp xếp</h1><p>Xếp các số theo thứ tự từ bé đến lớn để giúp nhân vật về đích nhé!</p></div>
-      <div class="hero-art" aria-hidden="true">🪨</div>
+      <div class="hero-art" aria-hidden="true"><img src="/public/img/la%20co%20duong%20dua.png" alt=""></div>
       <div class="hero-kid" aria-hidden="true"><img src="/public/img/adventure-boy-safari.png" alt=""></div>
       <div class="hero-status"><div class="counter"><span id="round"></span><span id="score"></span></div><div class="game-progress" aria-label="Tiến độ"><span id="progress"></span></div></div>
     </section>
+
+    <section class="race-track" aria-label="Đường đua">
+      <div class="road">
+        <div class="lane" id="playerLane">
+          <span class="driver">Bạn</span>
+          <svg class="race-car" viewBox="0 0 96 52" aria-hidden="true">
+            <path d="M6 36V26q0-6 8-7l14-2 10-11q3-3 8-3h14q5 0 8 4l8 11 10 3q6 2 6 8v7q0 4-4 4H10q-4 0-4-4z" fill="#ff5a4f" stroke="#a8221c" stroke-width="3"/>
+            <path d="M37 18l8-9h7v9zM57 9h6l7 9H57z" fill="#e4f7ff"/>
+            <g fill="#26304a" stroke="#fff" stroke-width="3"><circle cx="25" cy="40" r="9"/><circle cx="73" cy="40" r="9"/></g>
+          </svg>
+        </div>
+        <div class="lane rival" id="rivalLane">
+          <span class="driver">Đối thủ</span>
+          <svg class="race-car" viewBox="0 0 96 52" aria-hidden="true">
+            <path d="M6 36V26q0-6 8-7l14-2 10-11q3-3 8-3h14q5 0 8 4l8 11 10 3q6 2 6 8v7q0 4-4 4H10q-4 0-4-4z" fill="#4aa3ff" stroke="#1d5fa8" stroke-width="3"/>
+            <path d="M37 18l8-9h7v9zM57 9h6l7 9H57z" fill="#e4f7ff"/>
+            <g fill="#26304a" stroke="#fff" stroke-width="3"><circle cx="25" cy="40" r="9"/><circle cx="73" cy="40" r="9"/></g>
+          </svg>
+        </div>
+        <div class="finish-line" aria-label="Vạch đích"></div>
+      </div>
+    </section>
+
     <div class="game-layout">
       <section id="play" class="game-panel">
-        <div class="game-panel-heading"><div><span class="panel-kicker">THỬ THÁCH TĂNG DẦN</span><h2>Xếp các số theo thứ tự</h2></div></div>
+        <div class="game-panel-heading"><div><h2>Xếp các số theo thứ tự</h2></div></div>
         <div id="prompt" class="prompt"></div>
         <ol id="items" class="items" aria-label="Các số cần sắp xếp tăng dần"></ol>
         <p id="feedback" class="feedback" role="status" aria-live="polite"></p>
         <div class="actions"><button id="check" class="primary" type="button">Kiểm tra thứ tự</button><button id="next" class="primary" type="button" hidden>Chặng tiếp →</button></div>
       </section>
       <aside class="game-sidebar">
-        <section class="side-panel"><span class="side-icon">💡</span><span class="side-label">MẸO HAY</span><h3>So sánh từ hàng lớn nhất</h3><p>Nhìn hàng chục nghìn trước. Nếu bằng nhau, so tiếp hàng nghìn, hàng trăm rồi đến hàng chục.</p><div class="quick-tip">Số có ít chữ số hơn luôn bé hơn số có nhiều chữ số.</div></section>
-        <section class="side-panel"><div class="side-stat"><span class="side-stat-icon">🏁</span><div><strong>3 chặng vui</strong><small>Mỗi chặng có 4 số cần xếp</small></div></div></section>
+        <section class="side-panel"><span class="side-icon"></span><span class="side-label">MẸO HAY</span><h3>So sánh từ hàng lớn nhất</h3><p>Nhìn hàng chục nghìn trước. Nếu bằng nhau, so tiếp hàng nghìn, hàng trăm rồi đến hàng chục.</p><div class="quick-tip">Số có ít chữ số hơn luôn bé hơn số có nhiều chữ số.</div></section>
       </aside>
     </div>
     <section id="finish" class="finish" aria-live="polite"><div style="font-size:64px">🏁</div><h2 id="finish-title"></h2><p id="finish-score"></p><button class="primary" type="button" onclick="location.reload()">Chơi lại</button></section>
   </main>
+  <script src="/public/games/assignment-preview.js"></script>
   <script>
-    const rounds = [
+    let rounds = [
       { numbers: [45100, 8999, 67400, 15230] },
       { numbers: [75000, 10001, 40000, 19999] },
       { numbers: [55050, 99999, 5505, 30500] }
@@ -75,46 +94,66 @@
     let index = 0;
     let score = 0;
     let numbers = [];
+    let selected = -1;
     let completed = false;
     const items = document.getElementById('items');
     const feedback = document.getElementById('feedback');
     const check = document.getElementById('check');
     const next = document.getElementById('next');
+    const formatNumber = value => typeof value === 'number' ? value.toLocaleString('vi-VN') : value;
+    const correctOrder = round => round.orderedNumbers || [...round.numbers].sort((a, b) => a - b);
+    const shuffledOrder = values => {
+      const result = [...values];
+      for (let position = result.length - 1; position > 0; position--) {
+        const swap = Math.floor(Math.random() * (position + 1));
+        [result[position], result[swap]] = [result[swap], result[position]];
+      }
+      if (result.length > 1 && result.every((value, position) => value === values[position])) {
+        [result[0], result[1]] = [result[1], result[0]];
+      }
+      return result;
+    };
+
     function render() {
-      numbers = [...rounds[index].numbers];
+      const round = rounds[index];
+      numbers = round.isCustom ? shuffledOrder(correctOrder(round)) : [...round.numbers];
+      selected = -1;
       completed = false;
       document.getElementById('round').textContent = `Chặng ${index + 1}/${rounds.length}`;
       document.getElementById('score').textContent = `⭐ ${score} điểm`;
-      document.getElementById('top-score').textContent = String(score);
-      document.getElementById('progress').style.width = `${((index + 1) / rounds.length) * 100}%`;
-      document.getElementById('prompt').textContent = 'Dùng mũi tên để xếp các số theo thứ tự tăng dần.';
+      document.getElementById('progress').style.width = `${(index / rounds.length) * 100}%`;
+      document.getElementById('prompt').textContent = `${round.question ? `${round.question} ` : ''}Dùng mũi tên trái/phải hoặc chọn hai số để đổi chỗ, rồi xếp theo thứ tự tăng dần.`;
       feedback.textContent = '';
       feedback.className = 'feedback';
       check.hidden = false;
       check.disabled = false;
       next.hidden = true;
       drawItems();
+      updateRace();
     }
+
     function drawItems() {
       items.replaceChildren(...numbers.map((value, position) => {
         const row = document.createElement('li');
-        row.className = 'item';
+        row.className = `item${position === selected ? ' selected' : ''}${completed ? ' done' : ''}`;
         const order = document.createElement('span');
         order.className = 'number';
         order.textContent = String(position + 1);
-        const number = document.createElement('span');
+        const number = document.createElement('button');
         number.className = 'value';
-        number.textContent = value.toLocaleString('vi-VN');
+        number.type = 'button';
+        number.textContent = formatNumber(value);
+        number.disabled = completed;
+        number.setAttribute('aria-pressed', String(position === selected));
+        number.setAttribute('aria-label', `Chọn số ${formatNumber(value)} để đổi chỗ`);
+        number.addEventListener('click', () => select(position));
         const moves = document.createElement('span');
         moves.className = 'moves';
-        [-1, 1].forEach((direction) => {
+        [-1, 1].forEach(direction => {
           const button = document.createElement('button');
-          const arrow = document.createElement('span');
-          arrow.className = 'move-arrow';
-          arrow.textContent = direction < 0 ? '↑' : '↓';
           button.type = 'button';
-          button.append(arrow);
-          button.setAttribute('aria-label', `${direction < 0 ? 'Đưa lên' : 'Đưa xuống'} số ${value.toLocaleString('vi-VN')}`);
+          button.textContent = direction < 0 ? '◀' : '▶';
+          button.setAttribute('aria-label', `${direction < 0 ? 'Chuyển sang trái' : 'Chuyển sang phải'} số ${formatNumber(value)}`);
           button.disabled = completed || position + direction < 0 || position + direction >= numbers.length;
           button.addEventListener('click', () => move(position, direction));
           moves.append(button);
@@ -123,15 +162,47 @@
         return row;
       }));
     }
+
+    function updateRace() {
+      const sorted = correctOrder(rounds[index]);
+      const correctPlaces = numbers.filter((value, position) => String(value) === String(sorted[position])).length;
+      const progress = completed ? 1 : correctPlaces / numbers.length;
+      const playerPosition = Math.min(78, ((index + progress) / rounds.length) * 78);
+      const rivalPosition = Math.min(70, (index / rounds.length) * 70);
+      document.getElementById('playerLane').style.setProperty('--pos', `${playerPosition}%`);
+      document.getElementById('rivalLane').style.setProperty('--pos', `${rivalPosition}%`);
+    }
+
+    function swap(from, to) {
+      [numbers[from], numbers[to]] = [numbers[to], numbers[from]];
+      selected = -1;
+      drawItems();
+      updateRace();
+      items.children[to].querySelector('.value').focus();
+    }
+
+    function select(position) {
+      if (completed) return;
+      if (selected >= 0 && selected !== position) {
+        swap(selected, position);
+        return;
+      }
+      selected = selected === position ? -1 : position;
+      drawItems();
+      items.children[position].querySelector('.value').focus();
+    }
+
     function move(position, direction) {
       if (completed) return;
       const target = position + direction;
       if (target < 0 || target >= numbers.length) return;
-      [numbers[position], numbers[target]] = [numbers[target], numbers[position]];
-      drawItems();
+      swap(position, target);
     }
+
     check.addEventListener('click', () => {
-      const correct = numbers.every((value, position) => position === 0 || numbers[position - 1] < value);
+      if (completed) return;
+      const expected = correctOrder(rounds[index]);
+      const correct = numbers.every((value, position) => String(value) === String(expected[position]));
       if (!correct) {
         feedback.textContent = 'Chưa đúng thứ tự. So sánh từng cặp số liền nhau rồi thử lại nhé.';
         feedback.className = 'feedback bad';
@@ -139,20 +210,42 @@
       }
       completed = true;
       score += 1;
-      feedback.textContent = 'Chính xác! Các số đã được xếp từ bé đến lớn.';
+      selected = -1;
+      feedback.textContent = 'Chính xác! Các số đã được xếp từ bé đến lớn, xe của con tiến lên phía trước!';
       feedback.className = 'feedback good';
       document.getElementById('score').textContent = `⭐ ${score} điểm`;
-      document.getElementById('top-score').textContent = String(score);
+      document.getElementById('progress').style.width = `${((index + 1) / rounds.length) * 100}%`;
       check.hidden = true;
       if (index === rounds.length - 1) {
         document.getElementById('play').hidden = true;
         document.getElementById('finish-title').textContent = 'Con đã về đích!';
         document.getElementById('finish-score').textContent = `Con sắp xếp đúng ${score}/${rounds.length} chặng.`;
         document.getElementById('finish').style.display = 'block';
-      } else next.hidden = false;
+      } else {
+        next.hidden = false;
+      }
       drawItems();
+      updateRace();
     });
-    next.addEventListener('click', () => { index += 1; render(); });
+
+    next.addEventListener('click', () => {
+      index += 1;
+      render();
+    });
+
+    window.addEventListener('mathjoy-assignment-preview', event => {
+      const { gameType, questions } = event.detail;
+      if (gameType !== 'sort-numbers') return;
+      const customRounds = questions
+        .filter(question => question.question && Array.isArray(question.options) && question.options.length >= 3)
+        .map(question => ({ question: question.question, orderedNumbers: question.options.map(String), isCustom: true }));
+      if (!customRounds.length) return;
+      rounds = customRounds;
+      index = 0;
+      score = 0;
+      render();
+    });
+
     render();
   </script>
 </body>

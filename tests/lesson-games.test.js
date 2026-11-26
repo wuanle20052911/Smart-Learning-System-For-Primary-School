@@ -14,10 +14,16 @@ test('every catalog game has a unique slug and an existing HTML file', () => {
   });
 });
 
-test('lesson catalog includes five standalone assignment-style games', () => {
-  assert.deepEqual(catalog.filter((game) => ['match-up','gameshow','open-box','digit-arrange','flash-cards'].includes(game.slug)).map((game) => game.slug), [
-    'match-up', 'gameshow', 'open-box', 'digit-arrange', 'flash-cards'
-  ]);
+test('only even-odd street and number comparison remain attached to lessons', () => {
+  const lessonGames = ['phan-loai-chan-le', 'so-sanh-so'];
+  assert.deepEqual(catalog.map((game) => game.slug), lessonGames);
+  assert.deepEqual(normalizeGameSlugs(lessonGames), lessonGames);
+  const assignmentGames = [
+    'sap-xep-so-tang-dan', 'giai-ma-hang-so', 'match-up', 'gameshow',
+    'open-box', 'digit-arrange', 'flash-cards'
+  ];
+  assert.ok(assignmentGames.every((slug) => !catalog.some((game) => game.slug === slug)));
+  assignmentGames.forEach((slug) => assert.throws(() => normalizeGameSlugs([slug]), /không tồn tại/));
 });
 
 test('missing game_slugs leaves the stored value untouched', () => {
@@ -25,7 +31,7 @@ test('missing game_slugs leaves the stored value untouched', () => {
 });
 
 test('game_slugs are trimmed, de-duplicated and keep the chosen order', () => {
-  assert.deepEqual(normalizeGameSlugs([' so-sanh-so', 'sap-xep-so-tang-dan', 'so-sanh-so']), ['so-sanh-so', 'sap-xep-so-tang-dan']);
+  assert.deepEqual(normalizeGameSlugs([' so-sanh-so', 'phan-loai-chan-le', 'so-sanh-so']), ['so-sanh-so', 'phan-loai-chan-le']);
   assert.deepEqual(normalizeGameSlugs([]), []);
 });
 

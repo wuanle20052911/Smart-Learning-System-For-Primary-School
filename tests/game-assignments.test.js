@@ -62,6 +62,44 @@ test('quiz accepts two to four options', () => {
   assert.throws(() => normalizeGameQuestions('quiz', [{ question: 'Q', options: ['1'], answer: 0 }]), /lựa chọn/);
 });
 
+test('detective pattern validates a numeric sequence with one missing value', () => {
+  const [item] = normalizeGameQuestions('detective-pattern', [
+    { question: '2, 4, ?, 8', options: ['6', '7', '9'], answer: 0, explanation: 'Cộng 2.' }
+  ]);
+  assert.equal(item.type, 'multiple-choice');
+  assert.equal(isCorrect(item, 0), true);
+  assert.throws(() => normalizeGameQuestions('detective-pattern', [
+    { question: '2, 4, 6, 8', options: ['10', '12'], answer: 0 }
+  ]), /dấu hỏi/);
+  assert.throws(() => normalizeGameQuestions('detective-pattern', [
+    { question: '2, ?, ?, 8', options: ['6', '7'], answer: 0 }
+  ]), /dấu hỏi/);
+  assert.throws(() => normalizeGameQuestions('detective-pattern', [
+    { question: '2, ?, 8', options: ['6', '06'], answer: 0 }
+  ]), /không trùng nhau/);
+});
+
+test('new math game assignments normalize to supported question types', () => {
+  const [sortQuestion] = normalizeGameQuestions('sort-numbers', [
+    { question: 'Xếp tăng dần', options: ['8 999', '15 230', '45 100'] }
+  ]);
+  assert.equal(sortQuestion.type, 'ordering');
+  assert.equal(isCorrect(sortQuestion, [0, 1, 2]), true);
+  assert.equal(isCorrect(sortQuestion, [2, 1, 0]), false);
+
+  const [comparisonQuestion] = normalizeGameQuestions('compare-numbers', [
+    { question: '45 678 ___ 45 687', options: ['>', '<', '='], answer: 1 }
+  ]);
+  assert.equal(comparisonQuestion.type, 'multiple-choice');
+  assert.equal(isCorrect(comparisonQuestion, 1), true);
+
+  const [placeValueQuestion] = normalizeGameQuestions('decode-place-value', [
+    { question: 'Trong số 48 215, chữ số 8 thuộc hàng nào?', options: ['Hàng trăm', 'Hàng nghìn'], answer: 1 }
+  ]);
+  assert.equal(placeValueQuestion.type, 'multiple-choice');
+  assert.equal(isCorrect(placeValueQuestion, 1), true);
+});
+
 test('digit-arrange strips spaces from the answer', () => {
   const [item] = normalizeGameQuestions('digit-arrange', [{ question: 'Lập số lớn nhất từ 3, 0, 7, 5', answer: '7 530' }]);
   assert.equal(item.answer, '7530');
