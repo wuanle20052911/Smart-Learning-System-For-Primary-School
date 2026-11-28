@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { BLANK, GAME_BY_ID, GAME_TEMPLATES } from './gameCatalog.js';
 import FlashCardThemePicker from './FlashCardThemePicker.jsx';
 import GameThumb from './GameThumb.jsx';
@@ -7,8 +7,17 @@ import GameResult from './GameResult.jsx';
 import { isAnswerCorrect } from './gameAnswers.js';
 import './games.css';
 
-const CHOICE_GAMES = ['quiz', 'open-box', 'gameshow'];
+const CHOICE_GAMES = ['quiz', 'compare-numbers', 'decode-place-value', 'open-box', 'gameshow', 'detective-pattern'];
 const PAIR_GAMES = ['match-up', 'find-match', 'flash-cards'];
+const ORDERING_GAMES = ['ordering', 'sort-numbers'];
+const PREVIEW_GAME_PAGES = {
+  'sort-numbers': '/public/games/sap-xep-so-tang-dan.html',
+  'compare-numbers': '/public/games/so-sanh-so.html',
+  'decode-place-value': '/public/games/giai-ma-hang-so.html',
+  'match-up': '/public/games/lat-the.html',
+  gameshow: '/public/games/gameshow-tinh-gio.html',
+  'detective-pattern': '/public/games/tham-tu-tim-quy-luat.html'
+};
 
 // Chuyển dữ liệu mẫu sang dạng giáo viên chỉnh sửa (điền chỗ trống viết bằng [ngoặc vuông]).
 function toDraft(gameType, items) {
@@ -26,7 +35,7 @@ function emptyItem(gameType, groups) {
   if (CHOICE_GAMES.includes(gameType)) return { question: '', options: ['', '', '', ''], answer: 0 };
   if (PAIR_GAMES.includes(gameType)) return { question: '', answer: '' };
   if (gameType === 'group-sort') return { question: '', answer: 0 };
-  if (gameType === 'ordering') return { question: 'Xếp các số theo thứ tự từ bé đến lớn', options: ['', '', ''] };
+  if (ORDERING_GAMES.includes(gameType)) return { question: 'Xếp các số theo thứ tự từ bé đến lớn', options: ['', '', ''] };
   if (gameType === 'cloze') return { source: '', extras: '' };
   return { question: '', answer: '' };
 }
@@ -38,7 +47,7 @@ function toPayload(gameType, items, groups) {
   return items.map((item) => {
     if (CHOICE_GAMES.includes(gameType)) return { type: 'multiple-choice', question: item.question.trim(), options: item.options.map((option) => option.trim()), answer: item.answer, explanation: item.explanation || '' };
     if (gameType === 'group-sort') return { type: 'multiple-choice', question: item.question.trim(), options: groups.map((group) => group.trim()), answer: Number(item.answer) };
-    if (gameType === 'ordering') return { type: 'ordering', question: item.question.trim(), options: item.options.map((option) => option.trim()), answer: item.options.map((_, index) => index) };
+    if (ORDERING_GAMES.includes(gameType)) return { type: 'ordering', question: item.question.trim(), options: item.options.map((option) => option.trim()), answer: item.options.map((_, index) => index) };
     if (gameType === 'cloze') {
       const answer = [...item.source.matchAll(/\[([^\]]*)\]/g)].map((match) => match[1].trim());
       return { type: 'cloze', question: item.source.replace(/\[[^\]]*\]/g, BLANK).trim(), answer, options: splitList(item.extras) };
@@ -59,15 +68,27 @@ function findProblem(gameType, payload, groups) {
     if (item.type === 'cloze' && (!item.answer.length || item.answer.some((value) => !value))) return `${label}: hãy đặt đáp án trong [ngoặc vuông], ví dụ 1 tạ = [100] kg.`;
     if (item.type === 'fill-blank' && !item.answer) return `${label}: chưa nhập đáp án.`;
     if (gameType === 'digit-arrange' && item.answer.length < 2) return `${label}: đáp án cần ít nhất 2 kí tự.`;
+    if (gameType === 'detective-pattern') {
+      const sequence = item.question.split(',').map((token) => token.trim().replace(/\s+/g, ''));
+      if (sequence.length < 3 || sequence.length > 8 || sequence.filter((token) => token === '?').length !== 1
+        || sequence.some((token) => token !== '?' && (!/^\d+$/.test(token) || !Number.isSafeInteger(Number(token))))) {
+        return `${label}: nhập từ 3 đến 8 vị trí số, cách nhau bằng dấu phẩy và có đúng một dấu hỏi.`;
+      }
+      const choices = item.options.map((option) => option.replace(/\s+/g, ''));
+      if (choices.some((option) => !/^\d+$/.test(option) || !Number.isSafeInteger(Number(option)))
+        || new Set(choices.map(Number)).size !== choices.length) {
+        return `${label}: các lựa chọn phải là những số nguyên không trùng nhau.`;
+      }
+    }
   }
   if (['match-up', 'find-match'].includes(gameType) && new Set(payload.map((item) => item.answer.toLocaleLowerCase('vi-VN'))).size !== payload.length) return 'Các đáp án ghép cặp không được trùng nhau.';
   return '';
 }
 
-function ChoiceEditor({ item, onChange }) {
+function ChoiceEditor({ gameType, item, onChange }) {
   const setOption = (index, value) => onChange({ ...item, options: item.options.map((option, current) => current === index ? value : option) });
   return <>
-    <input className="gm-input" value={item.question} placeholder="Câu hỏi, ví dụ: 7 × 8 = ?" onChange={(event) => onChange({ ...item, question: event.target.value })} />
+    <input className="gm-input" value={item.question} placeholder={gameType === 'detective-pattern' ? 'Dãy số, ví dụ: 2, 4, 6, 8, ?' : 'Câu hỏi, ví dụ: 7 × 8 = ?'} onChange={(event) => onChange({ ...item, question: event.target.value })} />
     <div className="gm-option-editor">
       {item.options.map((option, index) => <label key={index} className={item.answer === index ? 'is-answer' : ''}>
         <input type="radio" checked={item.answer === index} onChange={() => onChange({ ...item, answer: index })} aria-label={`Đáp án đúng là lựa chọn ${String.fromCharCode(65 + index)}`} />
@@ -82,12 +103,12 @@ function ChoiceEditor({ item, onChange }) {
 }
 
 function ItemEditor({ gameType, item, groups, onChange }) {
-  if (CHOICE_GAMES.includes(gameType)) return <ChoiceEditor item={item} onChange={onChange} />;
+  if (CHOICE_GAMES.includes(gameType)) return <ChoiceEditor gameType={gameType} item={item} onChange={onChange} />;
   if (PAIR_GAMES.includes(gameType)) {
     return <div className="gm-pair-editor">
-      <input className="gm-input" value={item.question} placeholder={gameType === 'flash-cards' ? 'Mặt trước, ví dụ: 7 × 8' : gameType === 'match-up' ? 'Vế trái, ví dụ: 1 tấn' : 'Câu hỏi, ví dụ: 36 : 4'} onChange={(event) => onChange({ ...item, question: event.target.value })} />
+      <input className="gm-input" value={item.question} placeholder={gameType === 'flash-cards' || gameType === 'match-up' ? 'Mặt trước, ví dụ: 7 × 8' : 'Câu hỏi, ví dụ: 36 : 4'} onChange={(event) => onChange({ ...item, question: event.target.value })} />
       <span aria-hidden="true">↔</span>
-      <input className="gm-input" value={item.answer} placeholder={gameType === 'flash-cards' ? 'Mặt sau, ví dụ: 56' : gameType === 'match-up' ? 'Vế phải, ví dụ: 1 000 kg' : 'Đáp án, ví dụ: 9'} onChange={(event) => onChange({ ...item, answer: event.target.value })} />
+      <input className="gm-input" value={item.answer} placeholder={gameType === 'flash-cards' || gameType === 'match-up' ? 'Mặt sau, ví dụ: 56' : 'Đáp án, ví dụ: 9'} onChange={(event) => onChange({ ...item, answer: event.target.value })} />
     </div>;
   }
   if (gameType === 'group-sort') {
@@ -99,7 +120,7 @@ function ItemEditor({ gameType, item, groups, onChange }) {
       </select>
     </div>;
   }
-  if (gameType === 'ordering') {
+  if (ORDERING_GAMES.includes(gameType)) {
     const setCard = (index, value) => onChange({ ...item, options: item.options.map((option, current) => current === index ? value : option) });
     return <>
       <input className="gm-input" value={item.question} placeholder="Yêu cầu, ví dụ: Xếp theo thứ tự từ bé đến lớn" onChange={(event) => onChange({ ...item, question: event.target.value })} />
@@ -131,7 +152,7 @@ function TemplatePicker({ onPick }) {
     <div className="gm-studio-intro">
       <span className="gm-kicker">BÀI TẬP TRÒ CHƠI</span>
       <h2>Chọn một mẫu trò chơi</h2>
-      <p>Thầy/cô tự soạn câu hỏi và đáp án; học sinh chơi ở nhà và hệ thống tự chấm điểm.</p>
+      <p>Chỉnh sửa câu hỏi và đáp án mẫu, thêm hoặc xóa nội dung, rồi chơi thử trước khi giao cho lớp. Hệ thống tự chấm điểm.</p>
     </div>
     <div className="gm-template-grid">
       {GAME_TEMPLATES.map((game) => <button type="button" className="gm-template" key={game.id} onClick={() => onPick(game.id)}>
@@ -153,11 +174,23 @@ export default function GameAssignmentStudio({ api, onMessage }) {
   const [classId, setClassId] = useState('');
   const [dueAt, setDueAt] = useState('');
   const [preview, setPreview] = useState(null);
+  const previewFrameRef = useRef(null);
   const [busy, setBusy] = useState(false);
   const [problem, setProblem] = useState('');
 
   useEffect(() => {
     api('/api/catalog/classes').then((data) => setClasses(data.classes || [])).catch((error) => onMessage(`Không thể tải danh sách lớp: ${error.message}`));
+  }, []);
+
+  useEffect(() => {
+    const closePreview = (event) => {
+      if (event.origin !== window.location.origin
+        || event.source !== previewFrameRef.current?.contentWindow
+        || event.data?.type !== 'mathjoy-assignment-preview-close') return;
+      setPreview(null);
+    };
+    window.addEventListener('message', closePreview);
+    return () => window.removeEventListener('message', closePreview);
   }, []);
 
   const pick = (type) => {
@@ -173,6 +206,7 @@ export default function GameAssignmentStudio({ api, onMessage }) {
 
   const game = GAME_BY_ID[gameType];
   const payload = toPayload(gameType, items, groups);
+  const previewGamePage = PREVIEW_GAME_PAGES[gameType];
   const check = () => { const found = findProblem(gameType, payload, groups); setProblem(found); return !found; };
   const updateItem = (index, next) => { setItems((current) => current.map((item, itemIndex) => itemIndex === index ? next : item)); setProblem(''); };
   const moveItem = (index, step) => setItems((current) => {
@@ -241,6 +275,7 @@ export default function GameAssignmentStudio({ api, onMessage }) {
           </div>
           {gameType === 'cloze' && <p className="gm-help">Viết câu và đặt đáp án trong <b>[ngoặc vuông]</b>. Mỗi cặp ngoặc thành một chỗ trống. Ví dụ: <code>2 giờ = [120] phút</code></p>}
           {gameType === 'digit-arrange' && <p className="gm-help">Học sinh nhận các thẻ là từng kí tự của đáp án (đã xáo trộn) và xếp lại cho đúng.</p>}
+          {gameType === 'detective-pattern' && <p className="gm-help">Nhập dãy số, cách nhau bằng dấu phẩy và thay số cần tìm bằng <code>?</code>. Ví dụ: <code>2, 4, 6, 8, ?</code></p>}
           <ol className="gm-item-list">
             {items.map((item, index) => <li className="gm-item" key={index}>
               <div className="gm-item-tools">
@@ -277,9 +312,25 @@ export default function GameAssignmentStudio({ api, onMessage }) {
     </div>
 
     {preview && <div className="gm-modal" role="dialog" aria-modal="true" aria-label="Chơi thử">
-      <div className="gm-modal-card is-wide">
+      <div className={`gm-modal-card ${previewGamePage ? 'is-game-preview' : 'is-wide'}`}>
         <div className="gm-panel-head"><span className="gm-kicker">Chơi thử – kết quả không được lưu</span><button type="button" className="gm-icon-button" aria-label="Đóng" onClick={() => setPreview(null)}>×</button></div>
-        {preview.answers
+        {previewGamePage
+          ? <iframe
+            key={`${gameType}-${preview.round || 0}`}
+            ref={previewFrameRef}
+            className="gm-game-preview-frame"
+            title={`Chơi thử: ${game.name}`}
+            src={`${previewGamePage}?assignmentPreview=1`}
+            onLoad={(event) => {
+              event.currentTarget.contentWindow?.postMessage({
+                type: 'mathjoy-assignment-preview',
+                gameType,
+                questions: payload,
+                settings: { time_limit: Number(timeLimit) || 20 }
+              }, window.location.origin);
+            }}
+          />
+          : preview.answers
           ? (() => {
             const correct = payload.filter((question, index) => isAnswerCorrect(question, preview.answers[index])).length;
             return <GameResult questions={payload} answers={preview.answers} correct={correct} total={payload.length} score={Math.round((correct / payload.length) * 100)}>

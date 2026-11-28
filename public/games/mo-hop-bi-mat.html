@@ -2,256 +2,326 @@
 <html lang="vi">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Mở hộp bí mật | MathJoy</title>
-  <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@700;800&family=Quicksand:wght@600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/public/games/mathjoy-math-game.css?v=6">
-  <style>
-    :root {
-      --brown-dark:#65402a;
-      --brown:#9a7042;
-      --blue:#69b6e5;
-      --blue-dark:#4e82a8;
-    }
-    body {
-      margin:0;
-      min-height:100vh;
-      background-color:#3fb8c9;
-      background-image:image-set(
-        url('/public/img/nen-ruong-kho-bau.jpg?v=3') 1x,
-        url('/public/img/nen-ruong-kho-bau@2x.jpg?v=3') 2x
-      );
-      background-size:cover;
-      background-position:center bottom;
-      background-repeat:no-repeat;
-      background-attachment:fixed;
-    }
-    .mj-game {
-      position:relative;
-      display:flex;
-      justify-content:center;
-      align-items:center;
-      min-height:calc(100vh - 40px);
-      padding-top:128px;
-      border:0;
-      border-radius:0;
-      background:transparent;
-      box-shadow:none;
-    }
-    .mj-character {
-      position:absolute;
-      z-index:6;
-      right:5%;
-      bottom:6%;
-      width:clamp(110px,13vw,190px);
-      height:auto;
-      background:none;
-      border:0;
-      filter:drop-shadow(0 10px 8px rgba(30,60,70,.35));
-      animation:mj-float 3.2s ease-in-out infinite;
-      pointer-events:none;
-    }
-    @keyframes mj-float {
-      0%,100% { transform:translateY(0); }
-      50% { transform:translateY(-8px); }
-    }
-    .mj-game .mj-panel {
-      width:min(920px,76%);
-      margin:auto;
-      padding:22px 28px 26px;
-      border-radius:28px;
-      background:linear-gradient(180deg,rgba(255,251,232,.96) 0%,rgba(251,236,192,.96) 100%);
-      border:5px solid #b9824f;
-      box-shadow:0 8px 0 #8d5f35,0 20px 34px rgba(30,40,40,.35);
-    }
-    .box-grid {
-      display:grid;
-      grid-template-columns:repeat(4,1fr);
-      gap:18px 14px;
-      margin-top:18px;
-    }
-    .gift {
-      position:relative;
-      min-height:150px;
-      border:0;
-      background:url('/public/img/hop-qua-transparent.png') center/contain no-repeat;
-      color:#fff;
-      font:900 30px "Baloo 2",sans-serif;
-      text-shadow:0 2px 0 rgba(120,20,50,.55);
-      cursor:pointer;
-      filter:drop-shadow(0 8px 6px rgba(80,40,20,.28));
-      transition:transform .15s ease,filter .2s,opacity .2s;
-      animation:gift-in .4s ease-out backwards;
-      -webkit-tap-highlight-color:transparent;
-    }
-    .gift:nth-child(2){animation-delay:.05s}
-    .gift:nth-child(3){animation-delay:.10s}
-    .gift:nth-child(4){animation-delay:.15s}
-    .gift:nth-child(5){animation-delay:.20s}
-    .gift:nth-child(6){animation-delay:.25s}
-    .gift:nth-child(7){animation-delay:.30s}
-    .gift:nth-child(8){animation-delay:.35s}
-    @keyframes gift-in {
-      from { opacity:0; transform:translateY(14px) scale(.85); }
-      to { opacity:1; transform:none; }
-    }
-    .gift:hover:not(.opened){ transform:translateY(-6px) rotate(-3deg) scale(1.04); }
-    .gift:active:not(.opened){ transform:scale(.96); }
-    .gift.opened {
-      cursor:default;
-      filter:saturate(.55) drop-shadow(0 4px 3px rgba(80,40,20,.2));
-      opacity:.75;
-    }
-    .gift.wrong {
-      filter:hue-rotate(130deg) saturate(.7) drop-shadow(0 4px 3px rgba(80,40,20,.2));
-    }
-    .box-modal {
-      width:min(620px,100%);
-      display:grid;
-      gap:14px;
-    }
-    .box-modal h3 {
-      margin:4px 0 2px;
-      text-align:center;
-      color:var(--brown-dark);
-      font:800 clamp(22px,3.4vw,30px)/1.25 "Baloo 2",sans-serif;
-    }
-    .box-options {
-      display:grid;
-      grid-template-columns:1fr 1fr;
-      gap:12px;
-    }
-    .box-options button {
-      min-height:62px;
-      border:3px solid #fff;
-      border-radius:14px;
-      background:linear-gradient(180deg,#86cbf0,var(--blue));
-      box-shadow:0 5px 0 var(--blue-dark);
-      color:#fff;
-      font:800 20px "Quicksand",sans-serif;
-      text-shadow:0 1px 0 rgba(0,0,0,.2);
-      cursor:pointer;
-      transition:transform .12s ease,box-shadow .12s ease,filter .15s;
-    }
-    .box-options button:hover { filter:brightness(1.07); transform:translateY(-2px); }
-    .box-options button:active { transform:translateY(3px); box-shadow:0 2px 0 var(--blue-dark); }
-
-    @media(max-width:760px) {
-      .mj-game { padding-top:104px; }
-      .mj-game .mj-panel { width:92%; padding:16px 14px 20px; }
-      .box-grid { grid-template-columns:repeat(2,1fr); gap:12px 10px; }
-      .gift { min-height:118px; font-size:26px; }
-      .box-options { grid-template-columns:1fr; }
-      .mj-character { right:2%; bottom:1%; width:92px; }
-    }
-  </style>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Quicksand:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/public/games/lat-the.css">
+  <link rel="stylesheet" href="/public/games/mo-hop-bi-mat.css">
 </head>
 <body>
-  <main class="mj-shell">
-    <header class="mj-topbar">
-      <a class="mj-back" href="/learn" aria-label="Quay lại bài học">‹</a>
-      <div class="mj-score">⭐ <b id="score">0</b></div>
-    </header>
-    <div class="mj-title"><small></small><strong>Mở hộp bí mật</strong></div>
-
-    <section class="mj-game">
-      <div class="mj-panel">
-        <div class="mj-progress"><i id="progress"></i></div>
-        <div class="box-grid" id="boxes"></div>
-        <p class="mj-status" id="status"></p>
+<main class="page">
+  <header class="top">
+    <div class="brand"></div>
+    <a class="back" href="/learn">← Quay lại bài học</a>
+  </header>
+  <section class="hero">
+    <h1>MỞ HỘP BÍ MẬT</h1>
+    <p>Chọn hộp, giải câu đố và tìm kho báu qua hai chặng!</p>
+  </section>
+  <section class="stats" aria-label="Thống kê trò chơi">
+    <div class="stat"><span class="stat-icon" aria-hidden="true">⭐</span><span class="stat-content"><small>Điểm:</small><b id="score">0</b></span></div>
+    <div class="stat"><span class="stat-icon" aria-hidden="true">🎁</span><span class="stat-content"><small>Đã mở:</small><b id="opened">0 / 10</b></span></div>
+    <div class="stat"><span class="stat-icon" aria-hidden="true">❤️</span><span class="stat-content"><small>Mạng:</small><b id="lives">3</b></span></div>
+    <div class="stat"><span class="stat-icon" aria-hidden="true">🔥</span><span class="stat-content"><small>Chuỗi:</small><b id="streak">0</b></span></div>
+    <div class="stat"><span class="stat-icon" aria-hidden="true">⏱️</span><span class="stat-content"><small>Thời gian:</small><b id="time">02:00</b></span></div>
+  </section>
+  <section class="game">
+    <div class="board">
+      <div class="board-head">
+        <h2 id="stageTitle">Chặng 1 / 2</h2>
+        <span id="stageCount">5 hộp bí mật</span>
       </div>
-      <img class="mj-character" src="/public/img/adventure-boy-safari.png?v=2" alt="" draggable="false">
-    </section>
-
-    <div class="mj-modal" id="questionModal" hidden>
-      <div class="mj-modal-card box-modal">
-        <h3 id="question"></h3>
-        <div class="box-options" id="options"></div>
-        <button class="mj-button" id="close" type="button">Đóng hộp</button>
-      </div>
+      <div class="progress" role="progressbar" aria-label="Tiến độ mở hộp" aria-valuemin="0" aria-valuemax="10" aria-valuenow="0"><i id="progress"></i></div>
+      <div class="box-grid" id="boxes" aria-label="Các hộp bí mật"></div>
+      <p class="message" id="status" aria-live="polite">Chọn một chiếc hộp để bắt đầu nhé!</p>
     </div>
-
-    <div class="mj-modal" id="finish" hidden>
-      <div class="mj-modal-card">
-        <img src="/public/img/cúp.jpg" alt="">
-        <h2>Đã mở hết hộp!</h2>
-        <p id="finishText"></p>
-        <button class="mj-button" id="again" type="button">Chơi lại</button>
+    <aside class="aside">
+      <h2>Bí kíp thám hiểm</h2>
+      <p>Mỗi hộp cất một câu đố. Trả lời đúng để nhận điểm và mở kho báu.</p>
+      <p>Trả lời sai sẽ mất một mạng, nhưng con có thể quay lại thử chiếc hộp đó.</p>
+      <p class="tip" id="tip">Mẹo: Đọc kỹ câu hỏi. Dùng gợi ý trong hộp câu hỏi nếu cần nhé!</p>
+      <div class="actions">
+        <button class="hint-sign" id="pause" type="button" aria-label="Tạm dừng trò chơi">
+          <span class="hint-post" aria-hidden="true"></span>
+          <span class="hint-board"><span class="bulb" aria-hidden="true"></span><span id="pauseLabel">Tạm dừng</span></span>
+        </button>
       </div>
+      <div class="game-actions">
+        <button class="btn primary" id="restart" type="button">↻ Chơi lại</button>
+      </div>
+    </aside>
+  </section>
+</main>
+
+<div class="overlay" id="overlay">
+  <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="dialogTitle">
+    <h2 id="dialogTitle">Sẵn sàng săn kho báu?</h2>
+    <p id="dialogText">Mở 10 hộp qua 2 chặng. Con có 2 phút và 3 mạng để giải câu đố!</p>
+    <button class="btn primary" type="button" id="start">Bắt đầu chơi</button>
+  </div>
+</div>
+
+<div class="overlay question-modal" id="questionModal" hidden>
+  <section class="dialog question-dialog" role="dialog" aria-modal="true" aria-labelledby="question">
+    <div class="question-tag" id="boxTag">HỘP BÍ MẬT</div>
+    <h2 id="question"></h2>
+    <div class="answers" id="answers"></div>
+    <p class="explain" id="feedback" aria-live="polite"></p>
+    <p class="question-hint" id="hintText" aria-live="polite" hidden></p>
+    <div class="dialog-actions">
+      <button class="hint-sign" id="hint" type="button" aria-label="Gợi ý, còn 3 lượt">
+        <span class="hint-post" aria-hidden="true"></span>
+        <span class="hint-board"><span class="bulb" aria-hidden="true"></span><span>Gợi ý</span><small id="hint-left">3</small></span>
+      </button>
+      <button class="btn primary" id="continue" type="button" hidden>Tiếp tục</button>
+      <button class="btn soft" id="close" type="button">Để lát nữa</button>
     </div>
-  </main>
+  </section>
+</div>
 
-  <script>
-  (function () {
-    const qs=[
-      ['Số liền sau của 99 999 là?',['100 000','99 998','10 000','999 999'],0],
-      ['Góc tù là góc có số đo?',['Nhỏ hơn 90°','Lớn hơn 90° và nhỏ hơn 180°','Đúng 180°','Nhỏ hơn 180°'],1],
-      ['1 tấn bằng bao nhiêu kg?',['100','1 000','10','10 000'],1],
-      ['x + 25 = 40 thì x bằng?',['10','15','25','65'],1],
-      ['450 × 20 = ?',['900','9 000','90 000','4 500'],1],
-      ['Số nào chia hết cho 5?',['27','35','46','82'],1],
-      ['1/2 của 30 là?',['10','12','15','20'],2],
-      ['Số nào là số chẵn?',['101','235','468','999'],2]
-    ];
-    const $=id=>document.getElementById(id), boxes=$('boxes');
-    let score=0, opened=0, active=-1;
+<script>
+(() => {
+  const questions = [
+    { q: 'Số liền sau của 99 999 là số nào?', a: ['100 000', '99 998', '10 000', '999 999'], c: 0, e: 'Số liền sau của 99 999 là 100 000.', h: 'Số liền sau được tìm bằng cách cộng thêm 1.' },
+    { q: '1 tấn bằng bao nhiêu ki-lô-gam?', a: ['100 kg', '1 000 kg', '10 kg', '10 000 kg'], c: 1, e: '1 tấn = 1 000 kg.', h: 'Một tấn bằng một nghìn ki-lô-gam.' },
+    { q: '450 × 20 bằng bao nhiêu?', a: ['900', '9 000', '90 000', '4 500'], c: 1, e: '450 × 20 = 450 × 2 × 10 = 9 000.', h: 'Tính 450 × 2 trước, rồi nhân kết quả với 10.' },
+    { q: 'x + 275 = 600. Giá trị của x là?', a: ['325', '875', '425', '335'], c: 0, e: 'x = 600 − 275 = 325.', h: 'Muốn tìm số hạng chưa biết, lấy tổng trừ số hạng đã biết.' },
+    { q: 'Góc tù có số đo như thế nào?', a: ['Nhỏ hơn 90°', 'Bằng 90°', 'Lớn hơn 90° và nhỏ hơn 180°', 'Bằng 180°'], c: 2, e: 'Góc tù lớn hơn 90° nhưng nhỏ hơn 180°.', h: 'Góc tù lớn hơn góc vuông nhưng nhỏ hơn góc bẹt.' },
+    { q: '1/2 của 86 là bao nhiêu?', a: ['42', '43', '44', '46'], c: 1, e: '86 : 2 = 43.', h: 'Tìm một nửa của một số bằng cách chia số đó cho 2.' },
+    { q: 'Số nào chia hết cho cả 2 và 5?', a: ['125', '230', '342', '415'], c: 1, e: 'Số chia hết cho cả 2 và 5 có chữ số tận cùng là 0.', h: 'Hãy tìm số có chữ số tận cùng bằng 0.' },
+    { q: '3 giờ 25 phút bằng bao nhiêu phút?', a: ['185 phút', '195 phút', '205 phút', '215 phút'], c: 2, e: '3 × 60 + 25 = 205 phút.', h: 'Đổi 3 giờ ra phút rồi cộng thêm 25 phút.' },
+    { q: 'Chu vi hình vuông cạnh 8 cm là bao nhiêu?', a: ['16 cm', '24 cm', '32 cm', '64 cm'], c: 2, e: 'Chu vi hình vuông = 4 × 8 = 32 cm.', h: 'Chu vi hình vuông bằng độ dài một cạnh nhân với 4.' },
+    { q: 'Cửa hàng có 240 quyển vở, bán 1/4 số vở. Còn lại bao nhiêu?', a: ['60', '120', '180', '200'], c: 2, e: 'Đã bán 240 : 4 = 60 quyển; còn 240 − 60 = 180 quyển.', h: 'Tìm 1/4 của 240 để biết số vở đã bán, rồi lấy 240 trừ đi.' }
+  ];
+  const $ = id => document.getElementById(id);
+  const shuffle = values => {
+    const result = [...values];
+    for (let i = result.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [result[i], result[j]] = [result[j], result[i]];
+    }
+    return result;
+  };
+  const timeText = () => `${String(Math.floor(timeLeft / 60)).padStart(2, '0')}:${String(timeLeft % 60).padStart(2, '0')}`;
+  let deck = [];
+  let stage = 0;
+  let score = 0;
+  let opened = 0;
+  let lives = 3;
+  let streak = 0;
+  let timeLeft = 120;
+  let hintsRemaining = 3;
+  let activeIndex = -1;
+  let locked = false;
+  let started = false;
+  let paused = false;
+  let timer = null;
 
-    function shuffle(a) {
-      const r=[...a];
-      for(let i=r.length-1;i>0;i--) {
-        const j=Math.floor(Math.random()*(i+1));
-        [r[i],r[j]]=[r[j],r[i]];
+  function update() {
+    $('score').textContent = String(score);
+    $('opened').textContent = `${opened} / ${questions.length}`;
+    $('lives').textContent = String(lives);
+    $('streak').textContent = String(streak);
+    $('time').textContent = timeText();
+    $('stageTitle').textContent = `Chặng ${stage + 1} / 2`;
+    $('progress').style.width = `${opened / questions.length * 100}%`;
+    $('progress').parentElement.setAttribute('aria-valuenow', String(opened));
+    $('time').classList.toggle('urgent', timeLeft <= 20);
+    $('hint-left').textContent = String(hintsRemaining);
+    $('hint').setAttribute('aria-label', `Gợi ý, còn ${hintsRemaining} lượt`);
+  }
+
+  function showOverlay(title, text, label, action) {
+    $('dialogTitle').textContent = title;
+    $('dialogText').textContent = text;
+    $('start').textContent = label;
+    $('start').onclick = action;
+    $('overlay').hidden = false;
+  }
+
+  function renderStage() {
+    const startIndex = stage * 5;
+    const stageQuestions = deck.slice(startIndex, startIndex + 5);
+    $('stageCount').textContent = `${stageQuestions.filter(question => question.done).length}/5 hộp đã mở`;
+    $('boxes').replaceChildren();
+    stageQuestions.forEach((question, localIndex) => {
+      const index = startIndex + localIndex;
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = `gift${question.failed ? ' wrong' : ''}`;
+      button.setAttribute('aria-label', `Mở hộp ${localIndex + 1}`);
+      button.innerHTML = `<span aria-hidden="true">${localIndex + 1}</span><small>HỘP BÍ MẬT</small>`;
+      button.disabled = question.done;
+      if (question.done) {
+        button.classList.add('opened');
+        button.innerHTML = '<span aria-hidden="true">⭐</span><small>ĐÃ MỞ</small>';
+      } else {
+        button.addEventListener('click', () => openBox(index));
       }
-      return r;
-    }
-
-    qs.forEach((q,i)=>{
-      const b=document.createElement('button');
-      b.type='button';
-      b.className='gift';
-      b.textContent=i+1;
-      b.setAttribute('aria-label','Hộp số '+(i+1));
-      b.onclick=()=>openBox(i);
-      boxes.appendChild(b);
+      $('boxes').append(button);
     });
+    update();
+  }
 
-    function openBox(i) {
-      if(boxes.children[i].classList.contains('opened')) return;
-      active=i;
-      $('question').textContent=qs[i][0];
-      $('options').innerHTML='';
-      const opts=shuffle(qs[i][1].map((text,j)=>({text,right:j===qs[i][2]})));
-      opts.forEach(o=>{
-        const b=document.createElement('button');
-        b.type='button';
-        b.textContent=o.text;
-        b.onclick=()=>answer(o.right);
-        $('options').appendChild(b);
-      });
-      $('questionModal').hidden=false;
-    }
+  function openBox(index) {
+    if (!started || paused || locked || deck[index].done) return;
+    activeIndex = index;
+    const question = deck[index];
+    $('boxTag').textContent = `CHẶNG ${stage + 1} · HỘP ${index % 5 + 1}`;
+    $('question').textContent = question.q;
+    $('feedback').textContent = '';
+    $('feedback').className = 'explain';
+    $('hintText').textContent = '';
+    $('hintText').hidden = true;
+    $('continue').hidden = true;
+    $('close').hidden = false;
+    $('hint').hidden = false;
+    $('hint').disabled = hintsRemaining <= 0 || question.hinted;
+    $('answers').replaceChildren();
+    shuffle(question.a.map((text, optionIndex) => ({ text, correct: optionIndex === question.c }))).forEach(option => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.textContent = option.text;
+      button.addEventListener('click', () => answer(option.correct, button));
+      $('answers').append(button);
+    });
+    $('questionModal').hidden = false;
+  }
 
-    function answer(right) {
-      const b=boxes.children[active];
-      b.classList.add('opened');
-      if(!right)b.classList.add('wrong');
-      b.textContent=right?'⭐':'✖';
-      if(right)score+=10;
+  function answer(correct, selected) {
+    if (locked) return;
+    locked = true;
+    const question = deck[activeIndex];
+    [...$('answers').children].forEach(button => {
+      button.disabled = true;
+      if (button.textContent === question.a[question.c]) button.classList.add('correct');
+    });
+    if (correct) {
+      streak++;
+      const gained = 100 + Math.max(0, streak - 1) * 20;
+      score += gained;
       opened++;
-      $('score').textContent=score;
-      $('progress').style.width=(opened/qs.length*100)+'%';
-      $('status').textContent=right?'Chính xác! Hộp đã mở ra phần thưởng.':'Sai rồi! Hộp vẫn đã được mở.';
-      $('status').className='mj-status '+(right?'good':'bad');
-      $('questionModal').hidden=true;
-      if(opened===qs.length)setTimeout(()=>{
-        $('finishText').textContent='Con đã mở '+qs.length+' hộp và đạt '+score+' điểm.';
-        $('finish').hidden=false;
-      },500);
+      question.done = true;
+      const box = $('boxes').children[activeIndex % 5];
+      box.className = 'gift opened';
+      box.disabled = true;
+      box.innerHTML = '<span aria-hidden="true">★</span><small>ĐÃ MỞ</small>';
+      $('feedback').textContent = `Chính xác! +${gained} điểm. ${question.e}`;
+      $('feedback').classList.add('good');
+      $('status').textContent = 'Tuyệt vời! Con đã mở được một chiếc hộp.';
+      $('status').className = 'message good';
+    } else {
+      lives--;
+      streak = 0;
+      selected.classList.add('incorrect');
+      question.failed = true;
+      $('feedback').textContent = `Chưa chính xác. ${question.e} Con có thể quay lại thử hộp này.`;
+      $('feedback').classList.add('bad');
+      $('status').textContent = 'Cố lên! Hãy ghi nhớ đáp án rồi thử lại chiếc hộp.';
+      $('status').className = 'message bad';
     }
+    update();
+    $('continue').hidden = false;
+    $('continue').textContent = opened === questions.length || lives === 0 ? 'Xem kết quả' : 'Tiếp tục';
+    $('close').hidden = true;
+    $('hint').hidden = true;
+  }
 
-    $('close').onclick=()=>$('questionModal').hidden=true;
-    $('again').onclick=()=>location.reload();
-  })();
-  </script>
+  function continueGame() {
+    $('questionModal').hidden = true;
+    locked = false;
+    if (lives === 0) {
+      finish(false);
+      return;
+    }
+    const stageComplete = deck.slice(stage * 5, stage * 5 + 5).every(question => question.done);
+    if (stageComplete) {
+      if (stage === 1) {
+        finish(true);
+        return;
+      }
+      stage++;
+      hintsRemaining = 3;
+      $('status').textContent = 'Qua chặng mới rồi! Chọn tiếp một chiếc hộp nhé.';
+      $('status').className = 'message';
+      $('tip').textContent = 'Chặng mới có thêm 3 lượt gợi ý. Mỗi đáp án đúng giúp chuỗi điểm thưởng tăng lên!';
+    }
+    renderStage();
+  }
+
+  function finish(won) {
+    clearInterval(timer);
+    timer = null;
+    started = false;
+    paused = false;
+    $('questionModal').hidden = true;
+    const title = won ? 'Con đã tìm thấy kho báu!' : timeLeft <= 0 ? 'Hết giờ mất rồi!' : 'Cuộc thám hiểm tạm dừng';
+    const text = `Con đã mở ${opened}/10 chiếc hộp và đạt ${score} điểm.${lives === 0 ? ' Con đã dùng hết số mạng.' : ''}`;
+    showOverlay(title, text, 'Chơi lại', start);
+  }
+
+  function start() {
+    clearInterval(timer);
+    deck = shuffle(questions.map(question => ({ ...question, a: [...question.a], done: false, failed: false, hinted: false })));
+    stage = 0;
+    score = 0;
+    opened = 0;
+    lives = 3;
+    streak = 0;
+    timeLeft = 120;
+    hintsRemaining = 3;
+    activeIndex = -1;
+    locked = false;
+    started = true;
+    paused = false;
+    $('pauseLabel').textContent = 'Tạm dừng';
+    $('questionModal').hidden = true;
+    $('overlay').hidden = true;
+    $('status').textContent = 'Chọn một chiếc hộp để bắt đầu nhé!';
+    $('status').className = 'message';
+    $('tip').textContent = 'Mẹo: Đọc kỹ câu hỏi. Dùng gợi ý trong hộp câu hỏi nếu cần nhé!';
+    renderStage();
+    timer = setInterval(() => {
+      if (!started || paused) return;
+      timeLeft--;
+      update();
+      if (timeLeft <= 0) finish(false);
+    }, 1000);
+  }
+
+  $('close').addEventListener('click', () => {
+    if (locked) return;
+    $('questionModal').hidden = true;
+  });
+  $('continue').addEventListener('click', continueGame);
+  $('hint').addEventListener('click', () => {
+    const question = deck[activeIndex];
+    if (!started || paused || locked || hintsRemaining <= 0 || question.hinted) return;
+    question.hinted = true;
+    hintsRemaining--;
+    score = Math.max(0, score - 5);
+    $('hintText').textContent = `Gợi ý: ${question.h}. (-5 điểm)`;
+    $('hintText').hidden = false;
+    $('hint').disabled = true;
+    update();
+  });
+  $('pause').addEventListener('click', () => {
+    if (!started || paused || !$('questionModal').hidden) return;
+    paused = true;
+    $('pauseLabel').textContent = 'Tiếp tục';
+    showOverlay('Tạm nghỉ một chút nhé!', 'Kho báu và thời gian sẽ được giữ nguyên.', 'Tiếp tục chơi', () => {
+      paused = false;
+      $('pauseLabel').textContent = 'Tạm dừng';
+      $('overlay').hidden = true;
+    });
+  });
+  $('restart').addEventListener('click', start);
+
+  renderStage();
+  showOverlay('Sẵn sàng săn kho báu?', 'Mở 10 hộp qua 2 chặng. Con có 2 phút và 3 mạng để giải câu đố!', 'Bắt đầu chơi', start);
+})();
+</script>
 </body>
 </html>

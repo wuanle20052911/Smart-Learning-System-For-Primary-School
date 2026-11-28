@@ -1,217 +1,456 @@
-.comparison-game {
-  background:
-    linear-gradient(180deg, rgba(225, 246, 255, .1), rgba(224, 245, 220, .12)),
-    url("/public/img/QTsTkVNnEPOXRKZvQHHIkrIGJPY1waMN4MTgBLqF8LCIExXEqKmWuwaYq3HZ-p9yFVxjcGdGX86AyHIgzOxgcaijPIFN9Tc4BYqXckuNha4-K1azEejgpOFFtFBTvDTsYy8JmjulLDyLl2HdnmfFbewMOlYYyEL0vlaCVenjnrCJ.jpg") center / cover fixed;
+body {
+  background-color: #dcc59e;
+  background-image:
+    linear-gradient(rgba(225, 246, 255, .1), rgba(224, 245, 220, .12)),
+    url("/public/img/QTsTkVNnEPOXRKZvQHHIkrIGJPY1waMN4MTgBLqF8LCIExXEqKmWuwaYq3HZ-p9yFVxjcGdGX86AyHIgzOxgcaijPIFN9Tc4BYqXckuNha4-K1azEejgpOFFtFBTvDTsYy8JmjulLDyLl2HdnmfFbewMOlYYyEL0vlaCVenjnrCJ.jpg");
+  background-position: center;
+  background-size: cover;
+  background-attachment: fixed;
 }
 
-.comparison-game::before,
-.comparison-game::after { display: none; }
-.comparison-game main { max-width: 1280px; padding: 12px 22px 24px; }
-.comparison-game .topbar {
-  position: absolute;
-  z-index: 5;
-  top: 10px;
-  left: 12px;
-  width: auto;
-  min-height: 0;
+.hero::before {
+  mix-blend-mode: normal;
+}
+
+.stats {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.stat-content {
+  flex-wrap: wrap;
+  justify-content: center;
+  white-space: normal;
+}
+
+.stat b.urgent {
+  color: #ff9a79;
+}
+
+.game {
+  grid-template-columns: minmax(0, 1fr) 340px;
+}
+
+.board-head h2 {
+  color: #533517;
+}
+
+.board-head span {
+  max-width: 48%;
+  padding: 5px 9px;
+  border: 1px solid #e3c28d;
+  border-radius: 99px;
+  background: #fff1d2;
+  color: #714820;
+  font-size: 11px;
+}
+
+/* ===== Giao diện mới: khung chơi ===== */
+.game {
+  align-items: stretch;
+}
+
+.game .board {
+  display: flex;
+  min-height: 620px;
+  flex-direction: column;
+  padding: 22px 26px 24px;
+  border: 5px solid #8e5a2c;
+  border-radius: 28px;
+  background: linear-gradient(#fffaec, #fbe9c4);
+  box-shadow: inset 0 0 0 3px #e9bd79, 0 8px 0 #5f3818, 0 18px 30px rgba(62, 36, 12, .28);
+}
+
+.board-head {
+  align-items: center;
+}
+
+.board-head h2 {
   margin: 0;
+  font-family: "Baloo 2", sans-serif;
+  font-size: 26px;
 }
-.comparison-game .brand,
-.comparison-game .game-stats { display: none; }
-.comparison-game .topbar-left { gap: 0; }
-.comparison-game .game-hero {
-  grid-template-columns: minmax(0, 1fr) 0 minmax(130px, 16%);
-  grid-template-rows: minmax(0, 1fr);
-  height: 150px;
-  min-height: 150px;
-  margin: 0 0 12px;
+
+.board .progress {
+  height: 16px;
+  margin: 14px 0 18px;
+  overflow: hidden;
+  border: 2px solid #b98248;
+  border-radius: 99px;
+  background: #ecd3a4;
+  box-shadow: inset 0 2px 4px rgba(95, 56, 24, .25);
 }
-.comparison-game .game-hero::before {
-  inset: 0 110px 0 0;
-  border-color: #784019;
-  background: repeating-linear-gradient(2deg, transparent 0 18px, rgba(96, 48, 17, .13) 19px 21px), linear-gradient(#c57a2f, #914719);
+
+.board .progress i {
+  display: block;
+  height: 100%;
+  border-radius: 99px;
+  background: linear-gradient(#b6e35a, #5faa2e);
+  transition: width .4s ease;
 }
-.comparison-game .game-hero::after { right: 155px; }
-.comparison-game .hero-label {
-  font-family: "Quicksand", sans-serif;
-  letter-spacing: .03em;
+
+/* Đẩy phần chơi vào giữa, không để trống phía dưới */
+.board .instruction {
+  margin: auto 0 22px;
+  font-size: 18px;
 }
-.comparison-game .hero-copy {
-  grid-column: 1 / 3;
-  grid-row: 1;
-  min-height: 130px;
-  padding: 20px 36px;
+
+.board .message {
+  display: grid;
+  min-height: 64px;
+  margin: 24px 0 auto;
+  place-items: center;
+  padding: 10px 16px;
+  border: 2px dashed #d3a866;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, .6);
+  color: #765a37;
+}
+
+.board .message.good {
+  border: 2px solid #69b36f;
+  background: #e2f6dc;
+  color: #1f6030;
+}
+
+.board .message.bad {
+  border: 2px solid #dc8573;
+  background: #ffe6df;
+  color: #8f3325;
+}
+
+/* ===== Thẻ số và nút chọn ===== */
+.instruction {
+  margin: 0 0 14px;
+  color: #765a37;
+  font-weight: 800;
   text-align: center;
 }
-.comparison-game .hero-label { padding: 4px 12px; }
-.comparison-game .hero-copy h1 {
-  margin: 4px 0;
-  color: #fff;
-  font-family: "Baloo 2", "Quicksand", sans-serif;
-  font-size: clamp(29px, 4vw, 37px);
-  font-weight: 800;
-  line-height: 1.15;
-  -webkit-text-stroke: 0;
-  text-shadow: 0 2px 2px rgba(58, 31, 15, .8);
-}
-.comparison-game .hero-copy p {
-  margin: 0 auto;
-  color: #fff9e9;
-  font-family: "Quicksand", sans-serif;
-  font-size: 15px;
-  font-weight: 700;
-  line-height: 1.45;
-  text-shadow: 0 1px 2px rgba(58, 31, 15, .8);
-}
-.comparison-game .hero-art { display: none; }
-.comparison-game .hero-kid { grid-column: 3; grid-row: 1; width: 155px; height: 130px; margin-top: 20px; }
-.comparison-game .game-layout {
-  grid-template-columns: minmax(0, 3fr) minmax(215px, 1fr);
+
+.compare {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 58px minmax(0, 1fr);
+  align-items: center;
   gap: 12px;
-  margin-top: 0;
 }
-.comparison-game .game-panel {
-  padding: 15px 18px;
-  border: 5px solid #bd823d;
-  border-radius: 22px;
-  background: linear-gradient(145deg, #fff4dc, #ffe9be);
-  box-shadow: 0 7px 0 #97632e, inset 0 0 0 3px #fff0cf;
-}
-.comparison-game .game-panel-heading h2 { color: #5b3518; font-size: 21px; }
-.comparison-game .counter { gap: 5px; font-size: 11px; }
-.comparison-game .counter span { padding: 5px 8px; border-color: #e6c38b; border-radius: 10px; background: #fff3d9; color: #68431c; }
-.comparison-game .game-progress { height: 10px; margin: 9px 0; border-color: white; background: #e8d1a6; }
-.comparison-game .game-progress span { background: linear-gradient(90deg, #ffbf35, #ff8a32); }
-.comparison-game .pair { gap: 12px; margin: 12px 0; }
-.comparison-game .value {
+
+.value-card {
   display: grid;
-  min-height: 104px;
-  place-content: center;
-  gap: 5px;
-  padding: 12px;
-  border: 3px solid #9bc9ef;
-  border-radius: 18px;
-  background: linear-gradient(#eff8ff, #dceeff);
-  color: #2867a7;
-  font-size: clamp(26px, 4vw, 40px);
-  box-shadow: 0 4px 0 #b0cce3;
+  min-width: 0;
+  min-height: 180px;
+  align-content: center;
+  justify-items: center;
+  gap: 9px;
+  padding: 14px;
+  border: 3px solid #bd8644;
+  border-radius: 20px;
+  background: linear-gradient(#fff9e9, #ffedca);
+  box-shadow: inset 0 2px 0 #fff, 0 5px 0 #8e5e30;
+  text-align: center;
 }
-.comparison-game .value::before { content: attr(data-label); color: #52779a; font-size: 10px; letter-spacing: .08em; }
-.comparison-game .number-right { border-color: #b3d58c; background: linear-gradient(#f7ffeb, #e6f4ce); color: #3c742e; }
-.comparison-game .number-right::before { color: #5b8843; }
-.comparison-game .comparison-mark {
+
+.value-card small {
+  color: #8b5a2a;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: .08em;
+}
+
+.value-card strong {
+  color: #70451f;
+  font: 800 clamp(24px, 3.4vw, 46px)/1.2 "Baloo 2", sans-serif;
+  overflow-wrap: anywhere;
+}
+
+.versus {
   display: grid;
-  width: 48px;
-  height: 48px;
+  width: 52px;
+  height: 52px;
   place-items: center;
-  border: 2px dashed #caa66e;
-  border-radius: 12px;
-  color: #3674ad;
+  border: 3px solid #70451f;
+  border-radius: 17px;
+  background: linear-gradient(#ffd96f, #f4b042);
+  box-shadow: 0 4px 0 #bd8136;
+  color: #603b1b;
+  font: 800 24px "Baloo 2", sans-serif;
+}
+
+.choices {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 28px;
+}
+
+.choices button {
+  min-width: 0;
+  min-height: 88px;
+  border: 3px solid #d89a4e;
+  border-radius: 18px;
+  background: linear-gradient(#fffdf6, #ffe6b8);
+  box-shadow: 0 5px 0 #b77a34;
+  color: #70451f;
+  font: 800 46px "Baloo 2", sans-serif;
+  cursor: pointer;
+  transition: transform .15s, filter .15s;
+}
+
+.choices button:hover:not(:disabled) {
+  transform: translateY(-3px);
+  filter: brightness(1.05);
+}
+
+.choices button:disabled {
+  cursor: default;
+  opacity: .7;
+}
+
+.choices button.correct {
+  border-color: #3f9b55;
+  background: #d5f4d3;
+  box-shadow: 0 5px 0 #2f7a41;
+  color: #1f6030;
+}
+
+.choices button.incorrect {
+  border-color: #cf6250;
+  background: #ffe0d8;
+  box-shadow: 0 5px 0 #a64535;
+  color: #8f3325;
+}
+
+.message {
+  min-height: 44px;
+  margin: 14px 0 0;
+  color: #71819b;
+  font-weight: 900;
+  line-height: 1.5;
+  text-align: center;
+}
+
+.message.good {
+  color: #388458;
+}
+
+.message.bad {
+  color: #b35c4d;
+}
+
+.aside {
+  gap: 10px;
+  min-height: 620px;
+  padding: 126px 58px 100px;
+}
+
+.aside > * {
+  margin: 0;
+}
+
+.aside h2 {
+  color: #70451f;
+  font-size: 21px;
+}
+
+.aside p:not(.tip) {
+  color: #765a37;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.sign-guide {
+  display: grid;
+  gap: 7px;
+  width: 100%;
+}
+
+.sign-guide div {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  color: #765a37;
+  font-size: 13px;
+  font-weight: 800;
+  text-align: left;
+}
+
+.sign-guide b {
+  display: grid;
+  width: 28px;
+  height: 28px;
+  flex: 0 0 28px;
+  place-items: center;
+  border-radius: 50%;
+  background: linear-gradient(#cf8a4b, #a8642c);
+  box-shadow: 0 3px 0 #5a3214;
+  color: #fff6d8;
+  font-size: 17px;
+}
+
+.aside .tip {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #e6ca8d;
+  border-radius: 14px;
+  background: linear-gradient(#fff6dc, #f4dfb8);
+  color: #795c2c !important;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.side-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  width: 100%;
+}
+
+.side-actions .btn {
+  width: 100%;
+  min-height: 38px;
+  padding: 7px;
+  font-size: 11px;
+}
+
+.side-actions .soft {
+  border: 2px solid #70451f;
+  background: linear-gradient(#cf8a4b, #a8642c);
+  box-shadow: 0 4px 0 #5a3214;
+  color: #fff6d8;
+}
+
+/* ===== Hiệu ứng ===== */
+/* Thẻ A xanh dương, thẻ B hồng để bé dễ phân biệt */
+.compare .value-card:first-child {
+  border-color: #3f8fc4;
+  background: linear-gradient(#f4fbff, #d4edfc);
+  box-shadow: inset 0 2px 0 #fff, 0 6px 0 #2b6a96;
+}
+
+.compare .value-card:last-child {
+  border-color: #d9718d;
+  background: linear-gradient(#fff7f9, #ffdce5);
+  box-shadow: inset 0 2px 0 #fff, 0 6px 0 #a84c66;
+}
+
+.value-card small {
+  padding: 3px 12px;
+  border-radius: 99px;
+  background: rgba(255, 255, 255, .85);
+}
+
+/* Trả lời xong: dấu "?" đổi thành dấu đúng */
+.board:has(.choices button.correct) .versus {
+  border-color: #2f7a41;
+  background: linear-gradient(#a6e58f, #5cb85c);
+  box-shadow: 0 4px 0 #2f7a41;
+  color: transparent;
+  font-size: 0;
+}
+
+.board:has(.choices button.correct) .versus::after {
+  color: #fff;
   font-size: 30px;
 }
-.comparison-game .game-panel > .question { min-height: 0; margin: 8px 0 12px; color: #654623; font-size: 15px; }
-.comparison-game .operators { gap: 10px; }
-.comparison-game .operators button {
-  display: grid;
-  width: 100%;
-  min-height: 76px;
-  place-content: center;
-  justify-items: center;
-  gap: 0;
-  line-height: 1;
-  border: 2px solid #e3c18c;
-  border-radius: 16px;
-  background: linear-gradient(#fff5df, #ffe8bf);
-  box-shadow: 0 4px 0 #cba565;
-  color: #dd397a;
-  font-size: 36px;
+
+.board:has(button.correct[data-op="<"]) .versus::after { content: "<"; }
+.board:has(button.correct[data-op="="]) .versus::after { content: "="; }
+.board:has(button.correct[data-op=">"]) .versus::after { content: ">"; }
+
+.choices button.correct,
+.choices button.incorrect {
+  opacity: 1;
 }
-.comparison-game .operators button:nth-child(2) { color: #ef8a12; }
-.comparison-game .operators button::after { content: attr(data-label); color: #654623; font-size: 11px; }
-.comparison-game .operators button:hover:not(:disabled) { transform: translateY(-2px); background: #fff8e9; }
-.comparison-game .feedback { min-height: 0; margin: 8px 0; padding: 8px 10px; font-size: 12px; }
-.comparison-game .actions { margin-top: 8px; }
-.comparison-game .primary {
-  min-height: 42px;
-  padding: 8px 16px;
-  border-color: white;
-  border-radius: 14px;
-  background: linear-gradient(#ffc94f, #ff9d23);
-  color: #754611;
-  font-size: 13px;
+
+.choices button:active:not(:disabled) {
+  transform: translateY(3px);
+  box-shadow: 0 2px 0 #b77a34;
 }
-.comparison-game .game-sidebar { grid-template-columns: 1fr; gap: 10px; }
-.comparison-game .side-panel:first-child {
-  padding: 16px;
-  border: 5px solid #bd823d;
-  border-radius: 20px;
-  background: linear-gradient(#fff9e9, #ffedc8);
-  box-shadow: 0 6px 0 #97632e;
+
+.choices button:focus-visible,
+.side-actions .btn:focus-visible {
+  outline: 4px solid #2b6a96;
+  outline-offset: 3px;
 }
-.comparison-game .side-panel:first-child .side-label {
-  padding: 4px 12px;
-  border: 2px solid #684b9f;
-  border-radius: 7px;
-  background: linear-gradient(#a983ed, #7551c6);
-  color: white;
+
+@media (prefers-reduced-motion: reduce) {
+  .choices button,
+  .board .progress i {
+    transition: none;
+  }
 }
-.comparison-game .side-panel h3 { color: #463018; }
-.comparison-game .side-panel p { color: #5f513f; }
-.comparison-game .quick-tip { border: 2px solid #e6c27f; background: #fff5dd; color: #3e668f; }
-.comparison-game .side-panel:nth-child(2) { border-color: #ba8747; background: linear-gradient(#fff4d8, #f2d99f); box-shadow: 0 5px 0 #97632e; }
-.comparison-game .side-stat-icon { border-radius: 50%; background: linear-gradient(#ffe785, #f1ad32); }
-.comparison-game .star-progress { margin: 8px 0 0 53px; color: #d6aa59; font-size: 17px; letter-spacing: 2px; }
-.comparison-game .comparison-guide {
-  position: relative;
-  margin-top: 12px;
-  padding: 34px 18px 14px;
-  border: 5px solid #b77c39;
-  border-radius: 20px;
-  background: linear-gradient(#fff4dc, #ffe6b4);
-  box-shadow: 0 6px 0 #895a2d;
+
+.overlay[hidden],
+[hidden] {
+  display: none !important;
 }
-.comparison-game .guide-ribbon {
-  position: absolute;
-  top: -13px;
-  left: 14%;
-  padding: 5px 24px;
-  border: 3px solid #684b9f;
-  border-radius: 8px;
-  background: linear-gradient(#a983ed, #7551c6);
-  color: white;
-  font-weight: 900;
-}
-.comparison-game .guide-steps { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
-.comparison-game .guide-steps > div { padding: 4px 8px; }
-.comparison-game .guide-steps strong { color: #7845d3; }
-.comparison-game .guide-steps p { margin: 4px 0 0; color: #5f4b32; font-size: 13px; line-height: 1.4; }
-.comparison-game .guide-conclusion { border: 2px dashed #bda0e8; border-radius: 12px; }
 
 @media (max-width: 820px) {
-  .comparison-game .game-layout { grid-template-columns: minmax(0, 1fr); }
-  .comparison-game .game-sidebar { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .game {
+    grid-template-columns: 1fr;
+  }
+
+  .aside {
+    width: min(380px, 100%);
+    margin: 0 auto;
+  }
 }
 
-@media (max-width: 600px) {
-  .comparison-game { background-attachment: scroll; }
-  .comparison-game main { padding: 12px 10px 24px; }
-  .comparison-game .game-hero { grid-template-columns: minmax(0, 1fr) 86px; grid-template-rows: minmax(150px, auto); height: auto; min-height: 150px; }
-  .comparison-game .game-hero::before { inset: 0 50px 0 0; }
-  .comparison-game .hero-copy { grid-column: 1 / 3; min-height: 128px; padding: 18px 54px 14px 18px; }
-  .comparison-game .hero-label { font-size: 11px; }
-  .comparison-game .hero-copy h1 { font-size: 27px; }
-  .comparison-game .hero-copy p { font-size: 14px; }
-  .comparison-game .hero-kid { display: none; }
-  .comparison-game .topbar { top: 6px; left: 6px; }
-  .comparison-game .back-button { width: 38px; min-height: 38px; }
-  .comparison-game .game-panel-heading { align-items: flex-start; flex-direction: column; gap: 8px; }
-  .comparison-game .pair { gap: 6px; }
-  .comparison-game .value { min-height: 80px; padding: 8px 4px; font-size: 24px; }
-  .comparison-game .comparison-mark { width: 35px; height: 35px; }
-  .comparison-game .operators { gap: 6px; }
-  .comparison-game .operators button { min-height: 66px; padding: 4px; font-size: 28px; }
-  .comparison-game .operators button::after { font-size: 9px; }
-  .comparison-game .game-sidebar { grid-template-columns: 1fr; }
-  .comparison-game .guide-steps { grid-template-columns: 1fr; gap: 4px; }
-  .comparison-game .guide-conclusion { border: 0; }
+@media (max-width: 760px) {
+  .stats {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 560px) {
+  body {
+    background-attachment: scroll;
+  }
+
+  .game .board {
+    min-height: 0;
+    padding: 16px 12px 20px;
+  }
+
+  .board-head h2 {
+    font-size: 21px;
+  }
+
+  .board .instruction {
+    font-size: 15px;
+  }
+
+  .compare {
+    grid-template-columns: minmax(0, 1fr) 38px minmax(0, 1fr);
+    gap: 5px;
+  }
+
+  .value-card {
+    min-height: 116px;
+    padding: 8px 5px;
+  }
+
+  .value-card strong {
+    font-size: clamp(18px, 5vw, 27px);
+  }
+
+  .versus {
+    width: 36px;
+    height: 36px;
+    border-radius: 12px;
+    font-size: 19px;
+  }
+
+  .choices {
+    gap: 8px;
+  }
+
+  .choices button {
+    min-height: 62px;
+    font-size: 32px;
+  }
+}
+
+@media (max-width: 420px) {
+  .stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }

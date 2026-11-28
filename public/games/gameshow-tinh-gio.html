@@ -43,9 +43,10 @@
     </div>
   </div>
 
+  <script src="/public/games/assignment-preview.js"></script>
   <script>
   (function () {
-    const rounds = [
+    let rounds = [
       ['Trung bình cộng của 12,15 và 18 là?', ['15','14','16','45'], 0],
       ['450 × 20 = ?', ['900','9 000','90 000','4 500'], 1],
       ['x + 25 = 40 thì x bằng bao nhiêu?', ['15','25','65','10'], 0],
@@ -66,17 +67,18 @@
       'Chuyên gia AI: tìm số nhân với 8 để bằng 72.',
       'Chuyên gia AI: hãy thử nhân 9 với 4.'
     ];
-    const originalRounds = rounds.map((round) => [round[0], [...round[1]], round[2]]);
-    const LIMIT = 20;
+    let originalRounds = rounds.map((round) => [round[0], [...round[1]], round[2], round[3]]);
+    let limit = 20;
     let index = 0;
     let score = 0;
     let locked = false;
-    let left = LIMIT;
+    let left = limit;
     let timer = null;
     let halfUsed = false;
     let timeUsed = false;
     let expertUsed = false;
     let replaceUsed = false;
+    let customMode = false;
 
     const question = document.getElementById('question');
     const answers = document.getElementById('answers');
@@ -86,7 +88,7 @@
     function render() {
       clearInterval(timer);
       locked = false;
-      left = LIMIT;
+      left = limit;
       status.textContent = '';
       document.getElementById('clock').classList.remove('urgent');
       document.getElementById('time').textContent = left;
@@ -105,7 +107,7 @@
       timer = setInterval(() => {
         left -= 1;
         document.getElementById('time').textContent = Math.max(left, 0);
-        document.getElementById('watchHand').style.transform = 'rotate(' + ((LIMIT - left) * 6) + 'deg)';
+        document.getElementById('watchHand').style.transform = 'rotate(' + ((limit - left) * 6) + 'deg)';
         if (left <= 5) document.getElementById('clock').classList.add('urgent');
         if (left <= 0) {
           clearInterval(timer);
@@ -167,7 +169,7 @@
       if (expertUsed || locked) return;
       expertUsed = true;
       document.getElementById('expert').disabled = true;
-      status.textContent = expertHints[index];
+      status.textContent = rounds[index][3] || (!customMode && expertHints[index]) || 'Hãy đọc kỹ câu hỏi và thử loại trừ các phương án chưa phù hợp.';
     });
 
     document.getElementById('replace').addEventListener('click', () => {
@@ -175,6 +177,7 @@
       replaceUsed = true;
       document.getElementById('replace').disabled = true;
       const replacement = replacements[index];
+      if (!replacement) return;
       rounds.splice(index, 1, [replacement[0], [...replacement[1]], replacement[2]]);
       render();
     });
@@ -193,6 +196,33 @@
       document.getElementById('timePlus').disabled = false;
       document.getElementById('expert').disabled = false;
       document.getElementById('replace').disabled = false;
+      finish.hidden = true;
+      render();
+    });
+
+    window.addEventListener('mathjoy-assignment-preview', event => {
+      const { gameType, questions, settings } = event.detail;
+      if (gameType !== 'gameshow') return;
+      const customRounds = questions
+        .filter(question => question.question && Array.isArray(question.options) && Number.isInteger(question.answer))
+        .map(question => [question.question, question.options.map(String), question.answer, question.explanation || '']);
+      if (!customRounds.length) return;
+      clearInterval(timer);
+      rounds = customRounds;
+      originalRounds = customRounds.map(round => [round[0], [...round[1]], round[2], round[3]]);
+      customMode = true;
+      const requestedLimit = Number(settings?.time_limit);
+      limit = Number.isInteger(requestedLimit) && requestedLimit >= 10 && requestedLimit <= 120 ? requestedLimit : 20;
+      index = 0;
+      score = 0;
+      halfUsed = false;
+      timeUsed = false;
+      expertUsed = false;
+      replaceUsed = false;
+      ['half', 'timePlus', 'expert', 'replace'].forEach(id => {
+        document.getElementById(id).disabled = false;
+      });
+      document.getElementById('replace').hidden = true;
       finish.hidden = true;
       render();
     });

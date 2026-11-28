@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Quicksand:wght@500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Nunito:wght@600;700;800;900&family=Quicksand:wght@500;600;700&display=swap" rel="stylesheet">
   <title>Giải mã hàng số | MathJoy</title>
   <style>
     :root { font-family: "Trebuchet MS", Arial, sans-serif; color: #293857; background: #f3fbff; }
@@ -45,51 +45,124 @@
       <div class="game-stats"><span class="stat-pill">⭐ <strong id="top-score">0</strong></span><span class="stat-pill">💎 <strong>100K</strong></span><span class="stat-pill">📘 <strong>TOÁN 4</strong></span></div>
     </header>
     <section class="game-hero">
-      <div class="hero-copy"><span class="hero-label">TRÒ CHƠI 3 · THỬ THÁCH GIẢI MÃ</span><h1>Giải mã hàng số</h1><p>Tìm giá trị chữ số và cấu tạo số để mở khóa kho báu.</p></div>
-      <div class="hero-art" aria-hidden="true"><img src="/public/img/Df9tCMnasrbmAxvCAjWfu5kmBEN6TGH5yRh-4VDGcVGZFWY6LvCTX0an6vCsM7dJEDZAuddG5KLft_nY6hcqKDeVr3wb1TDlJZAeaMbR3G85vxcuxzcxsFSMu0lwNIgTx7cFiXZ6qhK-6vuXelJVneBEDuLwgbdYEnHlLmyGrSP5.jpg" alt=""></div>
+      <div class="hero-copy"><span class="hero-label">TRÒ CHƠI 3 · THỬ THÁCH GIẢI MÃ</span><h1>Giải mã hàng số</h1><p>Khám phá giá trị chữ số và lần theo quy luật để mở khóa kho báu.</p></div>
+      <div class="hero-art" aria-hidden="true"><img src="/public/img/kinhlup.png" alt=""></div>
       <div class="hero-kid" aria-hidden="true"><img src="/public/img/adventure-boy-trailblazer.png" alt=""></div>
     </section>
     <div class="game-layout">
       <section id="play" class="game-panel">
-        <div class="game-panel-heading"><div><span class="panel-kicker">MẬT MÃ CỦA CHẶNG</span><h2>Khám phá giá trị chữ số</h2></div><div class="counter"><span id="counter"></span><span id="score"></span></div></div>
+        <div class="game-panel-heading"><div><span class="panel-kicker">HỒ SƠ GIẢI MÃ</span><h2>Giá trị chữ số &amp; quy luật</h2><span id="level" class="pattern-level" hidden></span></div><div class="counter"><span id="counter"></span><span id="score"></span><span id="time" class="time-pill">25s</span></div></div>
         <div class="game-progress" aria-label="Tiến độ"><span id="progress"></span></div>
-        <div class="number-card"><small>SỐ BÍ ẨN</small><strong id="number"></strong></div>
+        <div class="number-card" id="number-card"><small id="number-label">SỐ BÍ ẨN</small><strong id="number"></strong><div id="sequence" class="number-sequence" hidden></div></div>
         <p id="question" class="question"></p>
         <div id="answers" class="answers"></div>
         <p id="feedback" class="feedback" role="status" aria-live="polite"></p>
         <div class="actions"><button id="next" class="primary" type="button" disabled>Thử thách tiếp →</button></div>
       </section>
       <aside class="game-sidebar">
-        <section class="side-panel"><span class="side-icon">🧩</span><span class="side-label">MẸO TÁCH SỐ</span><h3>Mỗi hàng có giá trị riêng</h3><p>Từ phải sang trái là hàng đơn vị, chục, trăm, nghìn, chục nghìn.</p><div class="quick-tip">Giá trị chữ số = chữ số × giá trị hàng của nó.</div></section>
-        <section class="side-panel"><div class="side-stat"><span class="side-stat-icon">💎</span><div><strong>6 mật mã</strong><small>Mở khóa kho báu toán học</small></div></div></section>
+        <section class="side-panel"><span class="side-icon">🧩</span><span class="side-label">MẸO GIẢI MÃ</span><h3>Đọc hàng số, tìm quy luật</h3><p>Tách số theo hàng hoặc so sánh các số liên tiếp để tìm bước tăng, giảm hay nhân.</p><div class="quick-tip" id="method-tip">Giá trị chữ số = chữ số × giá trị hàng của nó.</div><div class="quick-tip hint-tip" id="hint-text" role="status" aria-live="polite" hidden></div><div class="actions side-actions"><button id="hint" class="soft" type="button">Mở gợi ý</button><button id="pause" class="soft" type="button">Tạm dừng</button><button id="restart" class="soft" type="button">Chơi lại</button></div></section>
+        <section class="side-panel"><div class="side-stat"><span class="side-stat-icon">💎</span><div><strong>16 hồ sơ</strong><small>6 thử thách hàng số · 10 quy luật</small></div></div></section>
       </aside>
     </div>
-    <section id="finish" class="finish" aria-live="polite"><div style="font-size:64px">💎</div><h2 id="finish-title"></h2><p id="finish-score"></p><button class="primary" type="button" onclick="location.reload()">Chơi lại</button></section>
+    <section id="finish" class="finish" aria-live="polite"><div style="font-size:64px">💎</div><h2 id="finish-title"></h2><p id="finish-score"></p><button id="play-again" class="primary" type="button">Chơi lại</button></section>
   </main>
+  <div class="overlay" id="overlay">
+    <section class="dialog" role="dialog" aria-modal="true" aria-labelledby="dialog-title" aria-describedby="dialog-text">
+      <h2 id="dialog-title">Bắt đầu giải mã?</h2>
+      <p id="dialog-text">Con sẽ giải 16 hồ sơ gồm giá trị hàng số và quy luật. Mỗi hồ sơ có 25 giây; dùng gợi ý sẽ mất 5 điểm thưởng.</p>
+      <button id="start" class="primary" type="button">Nhận nhiệm vụ</button>
+    </section>
+  </div>
+  <script src="/public/games/assignment-preview.js"></script>
   <script>
-    const rounds = [
-      { number: 67482, question: 'Chữ số 7 có giá trị là bao nhiêu?', options: [7000, 700, 70000, 70], answer: 7000, explanation: 'Chữ số 7 ở hàng nghìn nên có giá trị là 7.000.' },
-      { number: 93054, question: 'Chữ số 3 có giá trị là bao nhiêu?', options: [300, 3000, 30000, 30], answer: 3000, explanation: 'Chữ số 3 ở hàng nghìn nên có giá trị là 3.000.' },
-      { number: 40276, question: 'Chữ số 4 có giá trị là bao nhiêu?', options: [4000, 40000, 400, 4], answer: 40000, explanation: 'Chữ số 4 ở hàng chục nghìn nên có giá trị là 40.000.' },
-      { number: 52631, question: 'Chữ số 6 có giá trị là bao nhiêu?', options: [6000, 60, 600, 60000], answer: 600, explanation: 'Chữ số 6 ở hàng trăm nên có giá trị là 600.' },
-      { number: null, question: '20.000 + 5.000 + 300 + 40 + 6 bằng số nào?', options: [25346, 250346, 205346, 253406], answer: 25346, explanation: 'Ghép các hàng chục nghìn, nghìn, trăm, chục, đơn vị được 25.346.' },
-      { number: 81709, question: 'Chữ số 7 có giá trị là bao nhiêu?', options: [7000, 70, 700, 70000], answer: 700, explanation: 'Trong 81.709, chữ số 7 ở hàng trăm nên có giá trị là 700.' }
+    let rounds = [
+      { type: 'place-value', number: 67482, question: 'Chữ số 7 có giá trị là bao nhiêu?', options: [7000, 700, 70000, 70], answer: 7000, hint: 'Đếm từ phải sang trái: đơn vị, chục, trăm, nghìn.', explanation: 'Chữ số 7 ở hàng nghìn nên có giá trị là 7.000.' },
+      { type: 'place-value', number: 93054, question: 'Chữ số 3 có giá trị là bao nhiêu?', options: [300, 3000, 30000, 30], answer: 3000, hint: 'Số 3 nằm ở hàng nghìn; mỗi đơn vị hàng nghìn có giá trị 1.000.', explanation: 'Chữ số 3 ở hàng nghìn nên có giá trị là 3.000.' },
+      { type: 'place-value', number: 40276, question: 'Chữ số 4 có giá trị là bao nhiêu?', options: [4000, 40000, 400, 4], answer: 40000, hint: 'Chữ số đầu tiên bên trái thuộc hàng chục nghìn.', explanation: 'Chữ số 4 ở hàng chục nghìn nên có giá trị là 40.000.' },
+      { type: 'place-value', number: 52631, question: 'Chữ số 6 có giá trị là bao nhiêu?', options: [6000, 60, 600, 60000], answer: 600, hint: 'Tìm hàng của chữ số 6 bằng cách đếm từ phải sang trái.', explanation: 'Chữ số 6 ở hàng trăm nên có giá trị là 600.' },
+      { type: 'place-value', number: null, question: '20.000 + 5.000 + 300 + 40 + 6 bằng số nào?', options: [25346, 250346, 205346, 253406], answer: 25346, hint: 'Mỗi số hạng cho biết chữ số ở một hàng; ghép lần lượt từ chục nghìn đến đơn vị.', explanation: 'Ghép các hàng chục nghìn, nghìn, trăm, chục, đơn vị được 25.346.' },
+      { type: 'place-value', number: 81709, question: 'Chữ số 7 có giá trị là bao nhiêu?', options: [7000, 70, 700, 70000], answer: 700, hint: 'Số 7 đứng ở hàng trăm trong số này.', explanation: 'Trong 81.709, chữ số 7 ở hàng trăm nên có giá trị là 700.' },
+      { type: 'pattern', sequence: [2, 5, 8, 11], level: 'DỄ', question: 'Số nào tiếp theo trong dãy?', options: [14, 13, 15, 16], answer: 14, hint: 'Tính hiệu giữa hai số liên tiếp.', explanation: 'Mỗi lần tăng thêm 3: 2, 5, 8, 11, 14.' },
+      { type: 'pattern', sequence: [12, 18, 24, 30], level: 'DỄ', question: 'Số nào tiếp theo trong dãy?', options: [33, 36, 38, 42], answer: 36, hint: 'Tìm số lượng được cộng thêm sau mỗi bước.', explanation: 'Mỗi lần tăng thêm 6, nên số tiếp theo là 36.' },
+      { type: 'pattern', sequence: [3, 6, 12, 24], level: 'DỄ', question: 'Số nào tiếp theo trong dãy?', options: [36, 42, 48, 54], answer: 48, hint: 'Thử so sánh mỗi số với số đứng ngay trước nó.', explanation: 'Mỗi số gấp đôi số đứng trước: 24 × 2 = 48.' },
+      { type: 'pattern', sequence: [45, 40, 35, 30], level: 'TRUNG BÌNH', question: 'Số nào tiếp theo trong dãy?', options: [20, 25, 26, 35], answer: 25, hint: 'Quan sát mỗi bước số bị giảm đi bao nhiêu.', explanation: 'Mỗi lần giảm đi 5, nên số tiếp theo là 25.' },
+      { type: 'pattern', sequence: [1, 4, 9, 16], level: 'TRUNG BÌNH', question: 'Số nào tiếp theo trong dãy?', options: [20, 24, 25, 36], answer: 25, hint: 'Thử liên hệ dãy với bình phương của 1, 2, 3, 4.', explanation: 'Đây là các số chính phương: 1², 2², 3², 4²; tiếp theo là 5² = 25.' },
+      { type: 'pattern', sequence: [7, 14, 21, 28], level: 'TRUNG BÌNH', question: 'Số nào tiếp theo trong dãy?', options: [32, 35, 36, 42], answer: 35, hint: 'Nhận ra dãy đang đếm theo bảng nhân nào.', explanation: 'Mỗi lần tăng thêm 7, nên số tiếp theo là 35.' },
+      { type: 'pattern', sequence: [81, 72, 63, 54], level: 'TRUNG BÌNH', question: 'Số nào tiếp theo trong dãy?', options: [36, 45, 46, 48], answer: 45, hint: 'Quan sát mỗi bước số bị giảm đi bao nhiêu.', explanation: 'Mỗi lần giảm đi 9, nên số tiếp theo là 45.' },
+      { type: 'pattern', sequence: [2, 5, 4, 7, 6, 9], level: 'THỬ THÁCH', question: 'Số nào tiếp theo trong dãy?', options: [8, 10, 11, 12], answer: 8, hint: 'Tìm hai bước thay đổi luân phiên lặp lại.', explanation: 'Hai bước luân phiên: cộng 3 rồi trừ 1; sau 9 là 8.' },
+      { type: 'pattern', sequence: [1, 3, 6, 10], level: 'THỬ THÁCH', question: 'Số nào tiếp theo trong dãy?', options: [14, 15, 16, 18], answer: 15, hint: 'Các khoảng cách giữa các số tăng dần từng đơn vị.', explanation: 'Các bước tăng lần lượt 2, 3, 4; bước tiếp theo tăng 5, được 15.' },
+      { type: 'pattern', sequence: [4, 8, 14, 22], level: 'THỬ THÁCH', question: 'Số nào tiếp theo trong dãy?', options: [30, 31, 32, 34], answer: 32, hint: 'Tìm khoảng cách giữa các số; mỗi khoảng cách tăng thêm 2.', explanation: 'Các bước tăng lần lượt 4, 6, 8; bước tiếp theo tăng 10, được 32.' }
     ];
     let index = 0;
     let score = 0;
+    let correctCount = 0;
+    let timeLeft = 25;
+    let timer = null;
     let locked = false;
+    let paused = true;
+    let started = false;
+    let hintUsed = false;
     const answers = document.getElementById('answers');
     const feedback = document.getElementById('feedback');
     const next = document.getElementById('next');
+    const overlay = document.getElementById('overlay');
+    const startButton = document.getElementById('start');
+    function stopTimer() {
+      clearInterval(timer);
+      timer = null;
+    }
+    function updateTime() {
+      const time = document.getElementById('time');
+      time.textContent = `${timeLeft}s`;
+      time.classList.toggle('urgent', timeLeft <= 5);
+    }
+    function startTimer() {
+      stopTimer();
+      updateTime();
+      timer = setInterval(() => {
+        if (paused || locked) return;
+        timeLeft -= 1;
+        updateTime();
+        if (timeLeft <= 0) answer(null);
+      }, 1000);
+    }
     function render() {
       const round = rounds[index];
       locked = false;
-      document.getElementById('counter').textContent = `Mật mã ${index + 1}/${rounds.length}`;
+      hintUsed = false;
+      timeLeft = 25;
+      updateTime();
+      document.getElementById('hint').disabled = false;
+      document.getElementById('hint-text').hidden = true;
+      document.getElementById('hint-text').textContent = '';
+      document.getElementById('counter').textContent = `Thử thách ${index + 1}/${rounds.length}`;
       document.getElementById('score').textContent = `⭐ ${score} điểm`;
       document.getElementById('top-score').textContent = String(score);
       document.getElementById('progress').style.width = `${((index + 1) / rounds.length) * 100}%`;
-      document.getElementById('number').textContent = round.number === null ? '—' : round.number.toLocaleString('vi-VN');
-      document.getElementById('number').parentElement.style.display = round.number === null ? 'none' : '';
+      const isPattern = round.type === 'pattern';
+      const numberCard = document.getElementById('number-card');
+      const number = document.getElementById('number');
+      const sequence = document.getElementById('sequence');
+      document.getElementById('number-label').textContent = isPattern ? 'CHUỖI SỐ BÍ ẨN' : 'SỐ BÍ ẨN';
+      number.textContent = isPattern || round.number === null ? '—' : round.number.toLocaleString('vi-VN');
+      number.style.display = isPattern ? 'none' : '';
+      numberCard.style.display = isPattern || round.number !== null ? '' : 'none';
+      sequence.hidden = !isPattern;
+      sequence.replaceChildren();
+      if (isPattern) {
+        [...round.sequence, '?'].forEach((value) => {
+          const token = document.createElement('span');
+          token.className = value === '?' ? 'sequence-token missing' : 'sequence-token';
+          token.textContent = value.toLocaleString('vi-VN');
+          sequence.appendChild(token);
+        });
+      }
+      const level = document.getElementById('level');
+      level.hidden = !isPattern;
+      level.textContent = isPattern ? round.level : '';
+      document.getElementById('method-tip').textContent = isPattern
+        ? 'So sánh khoảng cách giữa các số liền kề; thử cộng, trừ hoặc nhân.'
+        : 'Giá trị chữ số = chữ số × giá trị hàng của nó.';
       document.getElementById('question').textContent = round.question;
       feedback.textContent = '';
       feedback.className = 'feedback';
@@ -99,31 +172,133 @@
         const button = document.createElement('button');
         button.type = 'button';
         button.textContent = value.toLocaleString('vi-VN');
+        button.dataset.value = String(value);
         button.addEventListener('click', () => answer(value));
         return button;
       }));
+      if (started && !paused) startTimer();
     }
     function answer(value) {
-      if (locked) return;
+      if (locked || paused || !started) return;
       locked = true;
+      stopTimer();
       const round = rounds[index];
       const correct = value === round.answer;
-      if (correct) score += 1;
-      [...answers.children].forEach((button) => { button.disabled = true; });
-      feedback.textContent = `${correct ? 'Giải mã đúng! ' : 'Cùng xem lại từng hàng nhé. '}${round.explanation}`;
+      const bonus = correct && !hintUsed ? 5 : 0;
+      if (correct) {
+        correctCount += 1;
+        score += 10 + bonus;
+      }
+      [...answers.children].forEach((button) => {
+        button.disabled = true;
+        if (String(button.dataset.value) === String(round.answer)) button.classList.add('good');
+        else if (value !== null && String(button.dataset.value) === String(value)) button.classList.add('bad');
+      });
+      const result = value === null ? 'Hết giờ! ' : correct ? 'Giải mã đúng! ' : 'Cùng xem lại nhé. ';
+      feedback.textContent = `${result}${round.explanation}${bonus ? ' Thưởng không dùng gợi ý: +5 điểm.' : ''}`;
       feedback.classList.add(correct ? 'good' : 'bad');
       document.getElementById('score').textContent = `⭐ ${score} điểm`;
       document.getElementById('top-score').textContent = String(score);
+      document.getElementById('hint').disabled = true;
       next.disabled = false;
     }
+    function begin() {
+      stopTimer();
+      index = 0;
+      score = 0;
+      correctCount = 0;
+      started = true;
+      paused = false;
+      overlay.hidden = true;
+      document.getElementById('play').hidden = false;
+      document.getElementById('finish').style.display = 'none';
+      startButton.textContent = 'Nhận nhiệm vụ';
+      startButton.onclick = begin;
+      render();
+    }
+    function resume() {
+      overlay.hidden = true;
+      paused = false;
+      startButton.onclick = begin;
+      startTimer();
+    }
+    document.getElementById('hint').addEventListener('click', () => {
+      if (!started || locked || paused || hintUsed) return;
+      hintUsed = true;
+      document.getElementById('hint-text').textContent = rounds[index].hint
+        || (rounds[index].type === 'pattern'
+          ? 'So sánh hai số liền kề để tìm bước tăng, giảm hoặc phép nhân.'
+          : rounds[index].number === null
+            ? 'Tách tổng thành các hàng chục nghìn, nghìn, trăm, chục và đơn vị.'
+            : 'Xác định chữ số thuộc hàng nào, đếm từ phải sang trái.');
+      document.getElementById('hint-text').hidden = false;
+      document.getElementById('hint').disabled = true;
+    });
+    document.getElementById('pause').addEventListener('click', () => {
+      if (!started || paused || locked) return;
+      paused = true;
+      stopTimer();
+      document.getElementById('dialog-title').textContent = 'Tạm dừng giải mã';
+      document.getElementById('dialog-text').textContent = 'Thời gian đã dừng. Tiếp tục khi con sẵn sàng.';
+      startButton.textContent = 'Tiếp tục';
+      startButton.onclick = resume;
+      overlay.hidden = false;
+    });
+    document.getElementById('restart').addEventListener('click', () => {
+      if (!started) return;
+      paused = true;
+      stopTimer();
+      document.getElementById('dialog-title').textContent = 'Làm lại từ đầu?';
+      document.getElementById('dialog-text').textContent = 'Tiến trình hiện tại sẽ được đặt lại để bắt đầu bộ hồ sơ mới.';
+      startButton.textContent = 'Bắt đầu lại';
+      startButton.onclick = begin;
+      overlay.hidden = false;
+    });
+    startButton.onclick = begin;
+    document.getElementById('play-again').addEventListener('click', begin);
     next.addEventListener('click', () => {
+      if (!locked) return;
       index += 1;
       if (index < rounds.length) return render();
+      stopTimer();
+      started = false;
+      paused = true;
+      overlay.hidden = true;
       document.getElementById('play').hidden = true;
-      document.getElementById('finish-title').textContent = score === rounds.length ? 'Mở kho báu hoàn hảo!' : 'Kho báu đã mở!';
-      document.getElementById('finish-score').textContent = `Con giải đúng ${score}/${rounds.length} mật mã.`;
+      document.getElementById('finish-title').textContent = correctCount === rounds.length ? 'Mở kho báu hoàn hảo!' : 'Kho báu đã mở!';
+      document.getElementById('finish-score').textContent = `Con giải đúng ${correctCount}/${rounds.length} hồ sơ và đạt ${score} điểm.`;
       document.getElementById('finish').style.display = 'block';
     });
+
+    window.addEventListener('mathjoy-assignment-preview', event => {
+      const { gameType, questions } = event.detail;
+      if (gameType !== 'decode-place-value') return;
+      const customRounds = questions
+        .filter(question => question.question && Array.isArray(question.options) && Number.isInteger(question.answer))
+        .map(question => ({
+          type: 'assignment',
+          number: null,
+          question: question.question,
+          options: question.options.map(String),
+          answer: String(question.options[question.answer]),
+          hint: question.explanation,
+          explanation: question.explanation || ''
+        }));
+      if (!customRounds.length) return;
+      stopTimer();
+      rounds = customRounds;
+      index = 0;
+      score = 0;
+      correctCount = 0;
+      started = false;
+      paused = true;
+      document.getElementById('dialog-text').textContent = `Giải ${rounds.length} câu hỏi do giáo viên soạn.`;
+      render();
+      overlay.hidden = false;
+      startButton.textContent = 'Nhận nhiệm vụ';
+      startButton.onclick = begin;
+    });
+
     render();
   </script>
 </body>

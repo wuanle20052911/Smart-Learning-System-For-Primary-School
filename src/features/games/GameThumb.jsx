@@ -19,10 +19,8 @@ const art = {
     <Tile x={32} y={62} w={26} h={18} fill={C.red} label="9" /><Tile x={62} y={62} w={26} h={18} fill={C.red} label="6" />
   </>,
   'match-up': <>
-    <Tile x={16} y={18} w={30} h={16} fill={C.blue} label="2×5" /><Tile x={16} y={42} w={30} h={16} fill={C.blue} label="3×4" /><Tile x={16} y={66} w={30} h={16} fill={C.blue} label="6×1" />
-    <Tile x={54} y={18} w={24} h={16} dashed /><Tile x={54} y={42} w={24} h={16} dashed label="12" /><Tile x={54} y={66} w={24} h={16} dashed />
-    <Tile x={86} y={30} w={22} h={16} fill={C.red} label="10" /><Tile x={86} y={58} w={22} h={16} fill={C.red} label="6" />
-    <path d="M97 26 C 97 10, 70 8, 66 16" stroke={C.red} strokeWidth="2" fill="none" markerEnd="url(#arrow)" />
+    <Tile x={20} y={18} w={30} h={28} fill={C.blue} label="?" /><Tile x={58} y={18} w={30} h={28} fill={C.gold} label="7×8" />
+    <Tile x={20} y={54} w={30} h={28} fill={C.gold} label="56" /><Tile x={58} y={54} w={30} h={28} fill={C.blue} label="?" />
   </>,
   'group-sort': <>
     <rect x="16" y="22" width="40" height="64" rx="7" fill="#e7f3ff" stroke={C.blue} strokeWidth="2" />
@@ -37,6 +35,21 @@ const art = {
     <Tile x={62} y={40} w={22} h={20} fill={C.blue} label="48" /><Tile x={88} y={40} w={22} h={20} fill={C.gold} label="90" />
     <path d="M73 36 C 73 18, 46 18, 47 34" stroke={C.red} strokeWidth="2" fill="none" markerEnd="url(#arrow)" />
     <text x="60" y="80" textAnchor="middle" fontSize="11" fontWeight="900" fill={C.ink} fontFamily="sans-serif">bé → lớn</text>
+  </>,
+  'sort-numbers': <>
+    <Tile x={10} y={40} w={22} h={20} fill={C.gold} label="12" /><Tile x={36} y={40} w={22} h={20} fill={C.blue} label="35" />
+    <Tile x={62} y={40} w={22} h={20} fill={C.gold} label="48" /><Tile x={88} y={40} w={22} h={20} fill={C.gold} label="90" />
+    <path d="M73 36 C 73 18, 46 18, 47 34" stroke={C.red} strokeWidth="2" fill="none" markerEnd="url(#arrow)" />
+    <text x="60" y="80" textAnchor="middle" fontSize="11" fontWeight="900" fill={C.ink} fontFamily="sans-serif">bé → lớn</text>
+  </>,
+  'compare-numbers': <>
+    <text x="60" y="30" textAnchor="middle" fontSize="12" fontWeight="900" fill={C.ink} fontFamily="sans-serif">45 678 ? 45 687</text>
+    <Tile x={18} y={48} w={24} h={24} fill={C.blue} label=">" /><Tile x={48} y={48} w={24} h={24} fill={C.green} label="<" /><Tile x={78} y={48} w={24} h={24} fill={C.gold} label="=" />
+  </>,
+  'decode-place-value': <>
+    <rect x="14" y="20" width="92" height="32" rx="8" fill={C.paper} stroke={C.line} strokeWidth="2" />
+    <text x="60" y="42" textAnchor="middle" fontSize="18" fontWeight="900" fill={C.ink} fontFamily="sans-serif">48 215</text>
+    <Tile x={20} y={64} w={82} h={22} fill={C.blue} label="Hàng nghìn?" />
   </>,
   cloze: <>
     <rect x="18" y="38" width="84" height="44" rx="7" fill={C.paper} stroke={C.line} strokeWidth="2" />
@@ -76,6 +89,12 @@ const art = {
     <text x="65" y="43" textAnchor="middle" fontSize="10" fontWeight="800" fill={C.blue} fontFamily="sans-serif">7 × 8</text>
     <path d="M48 54 L82 54" stroke={C.line} strokeWidth="2" strokeDasharray="3 3" />
     <text x="65" y="72" textAnchor="middle" fontSize="14" fontWeight="900" fill={C.green} fontFamily="sans-serif">56</text>
+  </>,
+  'detective-pattern': <>
+    <rect x="10" y="20" width="100" height="32" rx="8" fill={C.paper} stroke={C.line} strokeWidth="2" />
+    <text x="60" y="41" textAnchor="middle" fontSize="13" fontWeight="900" fill={C.ink} fontFamily="sans-serif">2, 4, 6, ?</text>
+    <circle cx="60" cy="72" r="13" fill="none" stroke={C.blue} strokeWidth="5" />
+    <path d="M70 82 L84 94" stroke={C.blue} strokeWidth="6" strokeLinecap="round" />
   </>
 };
 
