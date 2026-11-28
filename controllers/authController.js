@@ -199,4 +199,27 @@ function getOAuthConfig(req, res) {
   return res.json({ supabaseUrl: SUPABASE_URL, supabaseAnonKey: SUPABASE_ANON_KEY });
 }
 
-module.exports = { login, registerStudent, registerParent, createTeacher, listManagedUsers, setManagedUserDisabled, updateProfile, getProfile, getOAuthConfig };
+async function changePassword(req, res) {
+  const currentPassword = typeof req.body?.currentPassword === 'string' ? req.body.currentPassword : '';
+  const newPassword = typeof req.body?.newPassword === 'string' ? req.body.newPassword : '';
+  if (!currentPassword || newPassword.length < 6) {
+    return res.status(400).json({ error: 'Vui lòng nhập mật khẩu hiện tại và mật khẩu mới ít nhất 6 ký tự.' });
+  }
+  if (currentPassword === newPassword) {
+    return res.status(400).json({ error: 'Mật khẩu mới phải khác mật khẩu hiện tại.' });
+  }
+  try {
+    await userModel.signIn(req.profile.email, currentPassword);
+    await userModel.changePassword(req.accessToken, newPassword);
+    return res.json({ message: 'Đổi mật khẩu thành công.' });
+  } catch (error) {
+    const invalidPassword = ['invalid_credentials', 'Invalid login credentials'].some((text) =>
+      `${error.code || ''} ${error.message || ''}`.includes(text)
+    );
+    return res.status(invalidPassword ? 401 : 400).json({
+      error: invalidPassword ? 'Mật khẩu hiện tại không đúng.' : (error.message || 'Không thể đổi mật khẩu.')
+    });
+  }
+}
+
+module.exports = { login, registerStudent, registerParent, createTeacher, listManagedUsers, setManagedUserDisabled, updateProfile, getProfile, getOAuthConfig, changePassword };

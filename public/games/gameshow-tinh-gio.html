@@ -1,0 +1,234 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Gameshow tính giờ | MathJoy</title>
+  <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@600;700;800&family=Oswald:wght@600;700&display=swap&subset=vietnamese" rel="stylesheet">
+  <link rel="stylesheet" href="/public/games/gameshow-tinh-gio.css?v=17">
+</head>
+<body>
+  <main class="gs-stage" aria-label="Gameshow tính giờ">
+    <div class="gs-clock" id="clock" aria-label="Thời gian còn lại">
+      <svg class="gs-stopwatch" viewBox="0 0 64 70" aria-hidden="true">
+        <rect x="26" y="2" width="12" height="8" rx="2" fill="#ff8a3d" stroke="#3a2a1a" stroke-width="3"/>
+        <path d="M48 12l6-5" stroke="#3a2a1a" stroke-width="5" stroke-linecap="round"/>
+        <circle cx="32" cy="40" r="26" fill="#ffd23f" stroke="#3a2a1a" stroke-width="4"/>
+        <circle cx="32" cy="40" r="19" fill="#fffdf6" stroke="#e0b030" stroke-width="2"/>
+        <g stroke="#3a2a1a" stroke-width="2.5" stroke-linecap="round"><path d="M32 23v4M32 53v4M15 40h4M45 40h4"/></g>
+        <g class="gs-watch-hand" id="watchHand"><path d="M32 40V26" stroke="#e5323f" stroke-width="3.5" stroke-linecap="round"/></g>
+        <circle cx="32" cy="40" r="3" fill="#3a2a1a"/>
+      </svg>
+      <div class="gs-clock-text"><small>Thời gian:</small><b id="time">20</b></div>
+    </div>
+
+    <div class="gs-lifelines" aria-label="Quyền trợ giúp">
+      <button type="button" id="half" aria-label="Loại hai đáp án sai">50 : 50</button>
+      <button type="button" id="timePlus" aria-label="Thêm 15 giây">+15 giây</button>
+      <button type="button" id="expert" aria-label="Hỏi ý kiến chuyên gia AI">🤖 Ý kiến chuyên gia</button>
+      <button type="button" id="replace" aria-label="Đổi câu hỏi">Đổi câu hỏi</button>
+    </div>
+
+    <img class="gs-host" src="/public/img/MC-chuong-trinh-transparent.png" alt="MC chương trình">
+    <h1 class="gs-question" id="question"></h1>
+    <div class="gs-options" id="answers"></div>
+    <p class="gs-feedback" id="status" role="status" aria-live="polite"></p>
+  </main>
+
+  <div class="gs-modal" id="finish" hidden>
+    <div class="gs-modal-card" role="dialog" aria-modal="true" aria-labelledby="finishTitle">
+      <h2 id="finishTitle">Hoàn thành Gameshow!</h2>
+      <p id="finishText"></p>
+      <button type="button" id="again">Chơi lại</button>
+    </div>
+  </div>
+
+  <script src="/public/games/assignment-preview.js"></script>
+  <script>
+  (function () {
+    let rounds = [
+      ['Trung bình cộng của 12,15 và 18 là?', ['15','14','16','45'], 0],
+      ['450 × 20 = ?', ['900','9 000','90 000','4 500'], 1],
+      ['x + 25 = 40 thì x bằng bao nhiêu?', ['15','25','65','10'], 0],
+      ['56 ÷ x = 8 thì x bằng bao nhiêu?', ['6','7','8','9'], 1],
+      ['x × 3 = 27 thì x bằng bao nhiêu?', ['7','8','9','10'], 2]
+    ];
+    const replacements = [
+      ['Trung bình cộng của 10, 20 và 30 là?', ['20','15','25','30'], 0],
+      ['350 × 20 = ?', ['7 000','700','70 000','3 500'], 0],
+      ['x − 25 = 40 thì x bằng bao nhiêu?', ['65','15','55','75'], 0],
+      ['72 ÷ x = 8 thì x bằng bao nhiêu?', ['8','9','7','6'], 1],
+      ['x × 4 = 36 thì x bằng bao nhiêu?', ['8','9','6','12'], 1]
+    ];
+    const expertHints = [
+      'Chuyên gia AI: cộng ba số rồi chia tổng cho 3.',
+      'Chuyên gia AI: nhân 350 với 2 rồi thêm một chữ số 0.',
+      'Chuyên gia AI: tìm số cộng với 25 để bằng 40.',
+      'Chuyên gia AI: tìm số nhân với 8 để bằng 72.',
+      'Chuyên gia AI: hãy thử nhân 9 với 4.'
+    ];
+    let originalRounds = rounds.map((round) => [round[0], [...round[1]], round[2], round[3]]);
+    let limit = 20;
+    let index = 0;
+    let score = 0;
+    let locked = false;
+    let left = limit;
+    let timer = null;
+    let halfUsed = false;
+    let timeUsed = false;
+    let expertUsed = false;
+    let replaceUsed = false;
+    let customMode = false;
+
+    const question = document.getElementById('question');
+    const answers = document.getElementById('answers');
+    const status = document.getElementById('status');
+    const finish = document.getElementById('finish');
+
+    function render() {
+      clearInterval(timer);
+      locked = false;
+      left = limit;
+      status.textContent = '';
+      document.getElementById('clock').classList.remove('urgent');
+      document.getElementById('time').textContent = left;
+      document.getElementById('watchHand').style.transform = 'rotate(0deg)';
+      const round = rounds[index];
+      question.textContent = round[0];
+      answers.innerHTML = '';
+      round[1].forEach((text, optionIndex) => {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'gs-option';
+        button.textContent = text;
+        button.addEventListener('click', () => answer(optionIndex));
+        answers.appendChild(button);
+      });
+      timer = setInterval(() => {
+        left -= 1;
+        document.getElementById('time').textContent = Math.max(left, 0);
+        document.getElementById('watchHand').style.transform = 'rotate(' + ((limit - left) * 6) + 'deg)';
+        if (left <= 5) document.getElementById('clock').classList.add('urgent');
+        if (left <= 0) {
+          clearInterval(timer);
+          answer(-1);
+        }
+      }, 1000);
+    }
+
+    function answer(optionIndex) {
+      if (locked) return;
+      locked = true;
+      clearInterval(timer);
+      const round = rounds[index];
+      const correct = round[2];
+      [...answers.children].forEach((button, buttonIndex) => {
+        button.disabled = true;
+        if (buttonIndex === correct) button.classList.add('correct');
+        if (buttonIndex === optionIndex && optionIndex !== correct) button.classList.add('wrong');
+      });
+      if (optionIndex === correct) {
+        score += 10;
+        status.textContent = 'Đúng rồi!';
+      } else {
+        status.textContent = 'Sai rồi';
+      }
+      setTimeout(() => {
+        if (index + 1 >= rounds.length) {
+          document.getElementById('finishText').textContent = 'Con đạt ' + score + '/' + (rounds.length * 10) + ' điểm.';
+          finish.hidden = false;
+        } else {
+          index += 1;
+          render();
+        }
+      }, 1200);
+    }
+
+    document.getElementById('half').addEventListener('click', () => {
+      if (halfUsed || locked) return;
+      halfUsed = true;
+      const ans = rounds[index][2];
+      const wrong = [0, 1, 2, 3].filter((optionIndex) => optionIndex !== ans);
+      wrong.sort(() => Math.random() - .5);
+      wrong.slice(0, 2).forEach((optionIndex) => {
+        const button = answers.children[optionIndex];
+        if (button) button.classList.add('hidden-option');
+      });
+      document.getElementById('half').disabled = true;
+    });
+
+    document.getElementById('timePlus').addEventListener('click', () => {
+      if (timeUsed || locked) return;
+      timeUsed = true;
+      left += 15;
+      document.getElementById('time').textContent = left;
+      document.getElementById('timePlus').disabled = true;
+    });
+
+    document.getElementById('expert').addEventListener('click', () => {
+      if (expertUsed || locked) return;
+      expertUsed = true;
+      document.getElementById('expert').disabled = true;
+      status.textContent = rounds[index][3] || (!customMode && expertHints[index]) || 'Hãy đọc kỹ câu hỏi và thử loại trừ các phương án chưa phù hợp.';
+    });
+
+    document.getElementById('replace').addEventListener('click', () => {
+      if (replaceUsed || locked) return;
+      replaceUsed = true;
+      document.getElementById('replace').disabled = true;
+      const replacement = replacements[index];
+      if (!replacement) return;
+      rounds.splice(index, 1, [replacement[0], [...replacement[1]], replacement[2]]);
+      render();
+    });
+
+    document.getElementById('again').addEventListener('click', () => {
+      index = 0;
+      score = 0;
+      halfUsed = false;
+      timeUsed = false;
+      expertUsed = false;
+      replaceUsed = false;
+      originalRounds.forEach((round, roundIndex) => {
+        rounds.splice(roundIndex, 1, [round[0], [...round[1]], round[2]]);
+      });
+      document.getElementById('half').disabled = false;
+      document.getElementById('timePlus').disabled = false;
+      document.getElementById('expert').disabled = false;
+      document.getElementById('replace').disabled = false;
+      finish.hidden = true;
+      render();
+    });
+
+    window.addEventListener('mathjoy-assignment-preview', event => {
+      const { gameType, questions, settings } = event.detail;
+      if (gameType !== 'gameshow') return;
+      const customRounds = questions
+        .filter(question => question.question && Array.isArray(question.options) && Number.isInteger(question.answer))
+        .map(question => [question.question, question.options.map(String), question.answer, question.explanation || '']);
+      if (!customRounds.length) return;
+      clearInterval(timer);
+      rounds = customRounds;
+      originalRounds = customRounds.map(round => [round[0], [...round[1]], round[2], round[3]]);
+      customMode = true;
+      const requestedLimit = Number(settings?.time_limit);
+      limit = Number.isInteger(requestedLimit) && requestedLimit >= 10 && requestedLimit <= 120 ? requestedLimit : 20;
+      index = 0;
+      score = 0;
+      halfUsed = false;
+      timeUsed = false;
+      expertUsed = false;
+      replaceUsed = false;
+      ['half', 'timePlus', 'expert', 'replace'].forEach(id => {
+        document.getElementById(id).disabled = false;
+      });
+      document.getElementById('replace').hidden = true;
+      finish.hidden = true;
+      render();
+    });
+
+    render();
+  })();
+  </script>
+</body>
+</html>

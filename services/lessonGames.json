@@ -1,30 +1,16 @@
 [
   {
-    "slug": "sap-xep-so-tang-dan",
-    "href": "/public/games/sap-xep-so-tang-dan.html",
-    "icon": "🪨",
-    "title": "Đường đua sắp xếp",
-    "description": "Đưa các số từ bé đến lớn để hoàn thành chặng đua."
-  },
-  {
-    "slug": "so-sanh-so",
-    "href": "/public/games/so-sanh-so.html",
-    "icon": "⚖️",
-    "title": "Ai lớn hơn?",
-    "description": "So sánh các số có nhiều chữ số bằng dấu >, < hoặc =."
-  },
-  {
-    "slug": "giai-ma-hang-so",
-    "href": "/public/games/giai-ma-hang-so.html",
-    "icon": "🔎",
-    "title": "Giải mã hàng số",
-    "description": "Khám phá giá trị của chữ số và cấu tạo số đến 100 000."
-  },
-  {
     "slug": "phan-loai-chan-le",
     "href": "/public/games/phan-loai-chan-le.html",
     "icon": "🛣️",
     "title": "Phố Số Chẵn Số Lẻ",
     "description": "Dán thẻ số vào đúng dãy nhà Số Chẵn hoặc Số Lẻ và xếp từ bé đến lớn."
+  },
+  {
+    "slug": "so-sanh-so",
+    "href": "/public/games/so-sanh-so.html",
+    "icon": "⚖️",
+    "title": "So sánh số",
+    "description": "So sánh các số có nhiều chữ số bằng dấu >, < hoặc =."
   }
 ]

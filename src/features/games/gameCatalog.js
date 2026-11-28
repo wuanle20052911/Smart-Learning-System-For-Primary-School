@@ -1,6 +1,12 @@
 // Danh mục mẫu trò chơi bài tập Toán. Giáo viên tự soạn nội dung; ví dụ chỉ để gợi ý.
 export const BLANK = '___';
 
+export const FLASH_CARD_THEMES = [
+  { id: 'garden', name: 'Vườn vui', emoji: '🌿' },
+  { id: 'ocean', name: 'Đại dương', emoji: '🌊' },
+  { id: 'space', name: 'Vũ trụ', emoji: '🚀' }
+];
+
 export const GAME_TEMPLATES = [
   {
     id: 'quiz',
@@ -15,8 +21,8 @@ export const GAME_TEMPLATES = [
   },
   {
     id: 'match-up',
-    name: 'Nối cặp',
-    description: 'Kéo mỗi thẻ đáp án đặt cạnh phép tính hoặc khái niệm phù hợp.',
+    name: 'Lật thẻ',
+    description: 'Lật từng thẻ, ghi nhớ vị trí rồi ghép phép tính hoặc khái niệm với đáp án.',
     hint: 'Phép tính ↔ kết quả, đổi đơn vị, phân số ↔ cách đọc.',
     itemLabel: 'cặp',
     sample: () => [
@@ -51,6 +57,41 @@ export const GAME_TEMPLATES = [
     sample: () => [
       { question: 'Xếp các số theo thứ tự từ bé đến lớn', options: ['45 678', '45 768', '45 867', '46 578'] },
       { question: 'Xếp các phân số theo thứ tự từ bé đến lớn', options: ['1/5', '2/5', '4/5', '6/5'] }
+    ]
+  },
+  {
+    id: 'sort-numbers',
+    name: 'Sắp xếp số tăng dần',
+    description: 'Lật trộn các thẻ số rồi xếp lại từ bé đến lớn.',
+    hint: 'So sánh số có nhiều chữ số và tìm thứ tự tăng dần.',
+    itemLabel: 'dãy số',
+    sample: () => [
+      { question: 'Xếp các số theo thứ tự từ bé đến lớn', options: ['8 999', '15 230', '45 100', '67 400'] },
+      { question: 'Sắp xếp các số sau theo thứ tự tăng dần', options: ['10 001', '19 999', '40 000', '75 000'] }
+    ]
+  },
+  {
+    id: 'compare-numbers',
+    name: 'So sánh số',
+    description: 'So sánh hai số rồi chọn dấu >, < hoặc = phù hợp.',
+    hint: 'Bắt đầu từ hàng lớn nhất; nếu bằng nhau thì xét hàng kế tiếp.',
+    itemLabel: 'câu hỏi',
+    sample: () => [
+      { question: '45 678 ___ 45 687', options: ['>', '<', '='], answer: 1 },
+      { question: '72 350 ___ 72 305', options: ['>', '<', '='], answer: 0 },
+      { question: '30 500 ___ 30 500', options: ['>', '<', '='], answer: 2 }
+    ]
+  },
+  {
+    id: 'decode-place-value',
+    name: 'Giải mã hàng số',
+    description: 'Giải câu đố về hàng, lớp và giá trị của chữ số.',
+    hint: 'Xác định vị trí chữ số rồi đọc đúng giá trị theo hàng.',
+    itemLabel: 'câu hỏi',
+    sample: () => [
+      { question: 'Trong số 48 215, chữ số 8 thuộc hàng nào?', options: ['Hàng trăm', 'Hàng nghìn', 'Hàng chục nghìn', 'Hàng đơn vị'], answer: 1 },
+      { question: 'Giá trị của chữ số 6 trong số 263 481 là bao nhiêu?', options: ['60', '600', '6 000', '60 000'], answer: 2 },
+      { question: 'Chữ số hàng trăm trong số 35 724 là chữ số nào?', options: ['5', '7', '2', '4'], answer: 1 }
     ]
   },
   {
@@ -90,7 +131,7 @@ export const GAME_TEMPLATES = [
   },
   {
     id: 'gameshow',
-    name: 'Đấu trường tính giờ',
+    name: 'Đấu trường tính số',
     description: 'Trắc nghiệm có đồng hồ đếm ngược, hai quyền trợ giúp và sao thưởng khi trả lời nhanh.',
     hint: 'Ôn tập cuối chương cho học sinh thích thử thách.',
     itemLabel: 'câu hỏi',
@@ -101,13 +142,38 @@ export const GAME_TEMPLATES = [
   },
   {
     id: 'digit-arrange',
-    name: 'Xếp chữ số',
+    name: 'Xếp chữ số tạo số',
     description: 'Kéo các thẻ chữ số vào đúng vị trí để tạo thành số theo yêu cầu.',
     hint: 'Lập số lớn nhất / bé nhất, viết số theo cách đọc.',
     itemLabel: 'câu',
     sample: () => [
       { question: 'Dùng các chữ số 3, 0, 7, 5 lập số lớn nhất', answer: '7530' },
       { question: 'Viết số: Hai mươi nghìn không trăm linh sáu', answer: '20006' }
+    ]
+  },
+  {
+    id: 'flash-cards',
+    name: 'Thẻ ghi nhớ',
+    description: 'Lật thẻ để xem đáp án rồi tự đánh dấu đã nhớ hoặc cần ôn thêm.',
+    hint: 'Ôn bảng nhân, từ vựng Toán và các quy tắc quan trọng.',
+    itemLabel: 'thẻ',
+    sample: () => [
+      { question: '7 × 8', answer: '56' },
+      { question: '1 km', answer: '1 000 m' },
+      { question: 'Chu vi hình vuông', answer: 'Độ dài một cạnh × 4' }
+    ]
+  },
+  {
+    id: 'detective-pattern',
+    name: 'Thám tử tìm quy luật',
+    description: 'Quan sát dãy số, tìm quy luật và chọn số còn thiếu.',
+    hint: 'Nhập các số cách nhau bằng dấu phẩy và dùng ? cho số cần tìm.',
+    itemLabel: 'mật mã',
+    sample: () => [
+      { question: '2, 4, 6, 8, ?', options: ['9', '10', '11', '12'], answer: 1, explanation: 'Mỗi lần tăng thêm 2: 8 + 2 = 10.' },
+      { question: '3, 6, 12, 24, ?', options: ['36', '42', '48', '52'], answer: 2, explanation: 'Mỗi số gấp đôi số đứng trước: 24 × 2 = 48.' },
+      { question: '100, 90, ?, 70, 60', options: ['75', '80', '85', '90'], answer: 1, explanation: 'Mỗi bước giảm đi 10.' },
+      { question: '1, 4, 9, 16, ?', options: ['20', '24', '25', '36'], answer: 2, explanation: 'Đây là các số chính phương; số tiếp theo là 5² = 25.' }
     ]
   }
 ];

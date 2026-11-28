@@ -35,7 +35,7 @@ function App() {
   useEffect(() => {
     const styles = path === '/' || path === '/auth' || path === '/auth/callback'
       ? ['/public/css/auth.css']
-      : path === '/admin'
+      : path === '/admin' || path === '/admin/settings'
         ? ['/public/css/admin.css', '/public/css/admin-dashboard.css']
         : path === '/teacher'
           ? ['/public/css/teacher.css']
@@ -64,6 +64,10 @@ function App() {
   if (path === '/admin') {
     if (role !== 'admin') return <AccessDenied destination={homePath} go={go} />;
     return <AdminPage Brand={Brand} api={api} logout={logout} go={go} />;
+  }
+  if (path === '/admin/settings') {
+    if (role !== 'admin') return <AccessDenied destination={homePath} go={go} />;
+    return <AdminPage Brand={Brand} api={api} logout={logout} go={go} settingsView />;
   }
   if (path === '/teacher') {
     if (!['teacher', 'admin'].includes(role)) return <AccessDenied destination={homePath} go={go} />;

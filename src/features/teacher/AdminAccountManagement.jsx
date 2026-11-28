@@ -24,7 +24,7 @@ function AccountTable({ title, role, users, loading, updatingId, onToggle }) {
   </section>;
 }
 
-export default function AdminAccountManagement({ api }) {
+export default function AdminAccountManagement({ api, onError }) {
   const [users, setUsers] = useState([]);
   const [links, setLinks] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -44,6 +44,7 @@ export default function AdminAccountManagement({ api }) {
       setLinks(linkData.links || []);
     } catch (loadError) {
       setError(loadError.message);
+      onError?.('Không thể tải danh sách tài khoản', loadError.message);
     } finally {
       setLoading(false);
     }
@@ -66,6 +67,7 @@ export default function AdminAccountManagement({ api }) {
       setUsers((current) => current.map((item) => item.id === result.user.id ? result.user : item));
     } catch (updateError) {
       setError(updateError.message);
+      onError?.('Không thể cập nhật trạng thái tài khoản', updateError.message);
     } finally {
       setUpdatingId('');
     }
@@ -86,6 +88,7 @@ export default function AdminAccountManagement({ api }) {
       await load();
     } catch (linkError) {
       setError(linkError.message);
+      onError?.('Không thể tạo liên kết phụ huynh', linkError.message);
     } finally {
       setSavingLink(false);
     }
@@ -101,6 +104,7 @@ export default function AdminAccountManagement({ api }) {
       setLinks((current) => current.filter((item) => item.parent_id !== link.parent_id || item.student_id !== link.student_id));
     } catch (linkError) {
       setError(linkError.message);
+      onError?.('Không thể gỡ liên kết phụ huynh', linkError.message);
     }
   };
 

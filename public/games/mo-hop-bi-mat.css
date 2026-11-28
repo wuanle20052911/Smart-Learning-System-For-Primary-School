@@ -1,0 +1,439 @@
+body {
+  background-color: #3fb8c9;
+  background-image:
+    linear-gradient(rgba(244, 232, 205, .12), rgba(244, 232, 205, .12)),
+    url('/public/img/nen%20ruong%20kho%20bau.png');
+  background-position: center bottom;
+}
+
+.hero::before {
+  mix-blend-mode: normal;
+}
+
+.stats {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.stat-content {
+  flex-wrap: wrap;
+  justify-content: center;
+  white-space: normal;
+}
+
+.stat b.urgent {
+  color: #ff9a79;
+}
+
+.game {
+  grid-template-columns: minmax(0, 1fr) 360px;
+}
+
+.board-head span {
+  color: #70451f;
+}
+
+.box-grid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 12px 10px;
+  margin: 20px 0 12px;
+}
+
+.gift {
+  position: relative;
+  display: grid;
+  grid-column: span 2;
+  min-width: 0;
+  min-height: 168px;
+  place-items: center;
+  padding: 8px 2px 3px;
+  border: 0;
+  background: url('/public/img/hop-qua-transparent.png') center / contain no-repeat;
+  color: #fff;
+  cursor: pointer;
+  filter: drop-shadow(0 6px 4px #50351e55);
+  transition: transform .18s, filter .18s;
+}
+
+.gift:nth-child(4) {
+  grid-column: 2 / span 2;
+}
+
+.gift:nth-child(5) {
+  grid-column: 4 / span 2;
+}
+
+.gift span {
+  position: relative;
+  z-index: 1;
+  font: 800 clamp(19px, 2.4vw, 27px)/1 "Baloo 2", sans-serif;
+  text-shadow: 0 2px 0 #7a351c, 0 0 4px #7a351c;
+}
+
+.gift small {
+  position: absolute;
+  right: 0;
+  bottom: 8px;
+  left: 0;
+  z-index: 1;
+  font-size: 9px;
+  font-weight: 900;
+  text-shadow: 0 1px 3px #502815;
+}
+
+.gift:hover:not(:disabled) {
+  transform: translateY(-5px) rotate(-2deg);
+  filter: drop-shadow(0 9px 5px #50351e66) brightness(1.05);
+}
+
+.gift:active:not(:disabled) {
+  transform: translateY(1px) scale(.97);
+}
+
+.gift:disabled {
+  cursor: default;
+}
+
+.gift.opened {
+  filter: saturate(.55) drop-shadow(0 4px 3px #50351e33);
+  opacity: .8;
+}
+
+.gift.opened span {
+  color: #fff6cf;
+}
+
+.gift.wrong {
+  filter: hue-rotate(130deg) saturate(.7) drop-shadow(0 4px 3px #50351e33);
+}
+
+.game-actions {
+  display: flex;
+  justify-content: center;
+  margin-top: 6px;
+}
+
+.game-actions .btn {
+  width: 100%;
+}
+
+.aside h2 {
+  font-size: 21px;
+}
+
+.aside p:not(.tip) {
+  margin: 0;
+  font-size: 14px;
+}
+
+.aside .tip {
+  margin: 0;
+}
+
+/* ===== Giao diện mới ===== */
+.game {
+  align-items: stretch;
+}
+
+.game .board {
+  display: flex;
+  min-height: 620px;
+  flex-direction: column;
+  padding: 22px 26px 24px;
+  border: 5px solid #8e5a2c;
+  border-radius: 28px;
+  background: linear-gradient(#fffaec, #fbe9c4);
+  box-shadow: inset 0 0 0 3px #e9bd79, 0 8px 0 #5f3818, 0 18px 30px rgba(62, 36, 12, .28);
+}
+
+.board-head {
+  align-items: center;
+}
+
+.board-head h2 {
+  margin: 0;
+  color: #533517;
+  font: 800 26px "Baloo 2", sans-serif;
+}
+
+.board-head span {
+  padding: 6px 14px;
+  border: 2px solid #e3c28d;
+  border-radius: 99px;
+  background: #fff1d2;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.board .progress {
+  height: 16px;
+  margin: 14px 0 0;
+  overflow: hidden;
+  border: 2px solid #b98248;
+  border-radius: 99px;
+  background: #ecd3a4;
+  box-shadow: inset 0 2px 4px rgba(95, 56, 24, .25);
+}
+
+.board .progress i {
+  display: block;
+  height: 100%;
+  border-radius: 99px;
+  background: linear-gradient(#ffe06a, #f2a51f);
+  transition: width .4s ease;
+}
+
+.board .box-grid {
+  margin: auto 0 18px;
+  padding-top: 18px;
+  row-gap: 22px;
+}
+
+/* Vầng sáng sau mỗi hộp */
+.gift::before {
+  position: absolute;
+  inset: 8% 12%;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(255, 205, 70, .55), transparent);
+  content: "";
+}
+
+/* Nhãn dưới hộp: chữ đậm trên nền gỗ cho dễ đọc */
+.gift small {
+  right: auto;
+  bottom: -6px;
+  left: 50%;
+  width: max-content;
+  padding: 3px 10px;
+  border-radius: 99px;
+  background: #8e5a2c;
+  color: #fff6d8;
+  font-size: 11px;
+  text-shadow: none;
+  transform: translateX(-50%);
+}
+
+.gift.opened small {
+  background: #3f8a4f;
+}
+
+.gift:focus-visible,
+.answers button:focus-visible {
+  outline: 4px solid #2b6a96;
+  outline-offset: 3px;
+}
+
+.board .message {
+  display: grid;
+  min-height: 56px;
+  margin: 0 0 auto;
+  place-items: center;
+  padding: 10px 16px;
+  border: 2px dashed #d3a866;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, .6);
+  color: #765a37;
+  font-weight: 900;
+  text-align: center;
+}
+
+.board .message.good {
+  border: 2px solid #69b36f;
+  background: #e2f6dc;
+  color: #1f6030;
+}
+
+.board .message.bad {
+  border: 2px solid #dc8573;
+  background: #ffe6df;
+  color: #8f3325;
+}
+
+/* Nút tạm dừng: thay bóng đèn bằng biểu tượng dừng */
+#pause .bulb {
+  display: none;
+}
+
+#pauseLabel::before {
+  content: "Ⅱ ";
+}
+
+/* Hộp câu hỏi */
+.question-modal .question-dialog {
+  border: 6px solid #8e5a2c;
+  border-radius: 28px;
+  background: linear-gradient(#fffaec, #fbe9c4);
+  box-shadow: inset 0 0 0 3px #e9bd79, 0 10px 0 #5f3818;
+}
+
+.question-dialog h2 {
+  color: #533517;
+}
+
+.overlay[hidden],
+[hidden] {
+  display: none !important;
+}
+
+.question-modal {
+  z-index: 6;
+}
+
+.question-dialog {
+  width: min(570px, 100%);
+}
+
+.question-tag {
+  color: #a8752d;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: .12em;
+}
+
+.question-dialog h2 {
+  margin: 8px 0 17px;
+  font-size: clamp(22px, 4vw, 30px);
+  line-height: 1.25;
+}
+
+.answers {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.answers button {
+  min-height: 58px;
+  padding: 9px;
+  border: 2px solid #fff;
+  border-radius: 15px;
+  background: linear-gradient(#91cff4, #5ca9df);
+  box-shadow: 0 5px 0 #387fae;
+  color: #fff;
+  font: 800 17px Quicksand, sans-serif;
+  cursor: pointer;
+}
+
+.answers button:disabled {
+  cursor: default;
+  opacity: .7;
+}
+
+.answers button.correct {
+  background: linear-gradient(#9be3aa, #54b875);
+  box-shadow: 0 5px 0 #32864f;
+}
+
+.answers button.incorrect {
+  background: linear-gradient(#f7aaa0, #df6e65);
+  box-shadow: 0 5px 0 #ad4843;
+}
+
+.explain {
+  min-height: 44px;
+  margin: 14px 0 0;
+  font-weight: 800;
+  line-height: 1.5;
+}
+
+.explain.good {
+  color: #23834d;
+}
+
+.explain.bad {
+  color: #c34d48;
+}
+
+.question-hint {
+  margin: 8px 0 0;
+  padding: 10px 12px;
+  border: 1px dashed #e0b45c;
+  border-radius: 13px;
+  background: #fff0c9;
+  color: #795c2c;
+  font-weight: 800;
+  line-height: 1.5;
+}
+
+.dialog-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.dialog-actions .hint-sign {
+  margin: 0;
+}
+
+.btn.soft {
+  background: #edf3fb;
+  box-shadow: 0 4px 0 #c5d0df;
+  color: #50688e;
+}
+
+@media (max-width: 800px) {
+  .game {
+    grid-template-columns: 1fr;
+  }
+
+  .aside {
+    width: min(380px, 100%);
+    margin: 0 auto;
+  }
+}
+
+@media (max-width: 760px) {
+  .stats {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 560px) {
+  body {
+    background-attachment: scroll;
+  }
+
+  .answers {
+    grid-template-columns: 1fr;
+  }
+
+  .box-grid {
+    gap: 8px 4px;
+  }
+
+  .gift {
+    min-height: 112px;
+  }
+}
+
+@media (max-width: 420px) {
+  .stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 560px) {
+  .game .board {
+    min-height: 0;
+    padding: 16px 12px 20px;
+  }
+
+  .board-head h2 {
+    font-size: 21px;
+  }
+
+  .gift small {
+    padding: 2px 6px;
+    font-size: 9px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gift,
+  .board .progress i {
+    transition: none;
+  }
+}

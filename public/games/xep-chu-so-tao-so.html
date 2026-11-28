@@ -1,0 +1,279 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Xếp chữ số | MathJoy</title>
+  <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@700;800&family=Quicksand:wght@600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/public/games/mathjoy-math-game.css?v=5">
+  <style>
+    :root {
+      --brown-dark:#65402a;
+      --brown:#9a7042;
+      --cream:#fff9df;
+      --gold:#f2ce69;
+      --green:#70b65a;
+      --green-dark:#477a38;
+    }
+
+    body {
+      margin:0;
+      min-height:100vh;
+      background-color:#d9d27a;
+      background-image:
+        image-set(
+          url('/public/img/nen-rung.jpg?v=3') 1x,
+          url('/public/img/nen-rung@2x.jpg?v=3') 2x
+        );
+      background-image:
+        -webkit-image-set(
+          url('/public/img/nen-rung.jpg?v=3') 1x,
+          url('/public/img/nen-rung@2x.jpg?v=3') 2x
+        );
+      background-size:cover;
+      background-position:center bottom;
+      background-repeat:no-repeat;
+      background-attachment:fixed;
+      image-rendering:auto;
+    }
+
+    .mj-game {
+      padding-top:138px;
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      min-height:calc(100vh - 40px);
+      position:relative;
+      border:0;
+      border-radius:0;
+      background:transparent;
+      box-shadow:none;
+    }
+
+    .mj-character {
+      position:absolute;
+      z-index:6;
+      right:2%;
+      bottom:2%;
+      width:clamp(110px,12vw,170px);
+      height:auto;
+      background:none !important;
+      border:0;
+      opacity:1;
+      filter:drop-shadow(0 8px 10px rgba(60,40,10,.28));
+      animation:mj-float 3.2s ease-in-out infinite;
+      pointer-events:none;
+    }
+    @keyframes mj-float {
+      0%,100% { transform:translateY(0); }
+      50% { transform:translateY(-8px); }
+    }
+
+    .digit-panel {
+      width:min(760px,76%);
+      margin:auto;
+      text-align:center;
+      padding:22px 28px 26px;
+      border-radius:28px;
+      background:linear-gradient(180deg,#fffbe8 0%,#fbecc0 100%);
+      border:5px solid #b9824f;
+      box-shadow:0 8px 0 #8d5f35,0 18px 30px rgba(50,30,10,.35);
+    }
+    .digit-question {
+      margin:18px 0 14px;
+      color:var(--brown-dark);
+      font:800 clamp(22px,3vw,30px) "Baloo 2",sans-serif;
+      text-shadow:0 1px 0 #fff;
+    }
+    .slots,.bank {
+      display:flex;
+      justify-content:center;
+      flex-wrap:wrap;
+      gap:12px;
+    }
+
+    .slot,.digit {
+      width:64px;
+      height:72px;
+      border-radius:14px;
+      font:900 32px "Baloo 2",sans-serif;
+      transition:transform .12s ease,box-shadow .12s ease,opacity .2s;
+    }
+    .slot {
+      border:3px dashed #b0875a;
+      background:rgba(255,255,255,.65);
+      color:var(--brown-dark);
+      box-shadow:inset 0 3px 6px rgba(120,80,30,.15);
+    }
+    .slot.filled {
+      border:0;
+      background:linear-gradient(180deg,#86cc6e,var(--green));
+      box-shadow:0 5px 0 var(--green-dark);
+      color:#fff;
+      animation:mj-pop .18s ease-out;
+    }
+    @keyframes mj-pop {
+      0% { transform:scale(.8); }
+      100% { transform:scale(1); }
+    }
+
+    .digit {
+      border:3px solid #fff;
+      background:linear-gradient(180deg,#ffe58a,var(--gold));
+      box-shadow:0 6px 0 var(--brown);
+      color:var(--brown-dark);
+      cursor:pointer;
+    }
+    .digit:hover:not(:disabled) { transform:translateY(-3px); }
+    .digit:active:not(:disabled) { transform:translateY(3px); box-shadow:0 2px 0 var(--brown); }
+    .digit:disabled { opacity:.25; cursor:default; box-shadow:none; }
+
+    .bank-label {
+      margin:18px 0 10px;
+      color:#806245;
+      font:800 15px "Quicksand",sans-serif;
+      letter-spacing:.5px;
+    }
+
+    @media(max-width:760px) {
+      .mj-game { padding-top:106px; }
+      .digit-panel { width:92%; padding:16px 14px 20px; }
+      .slot,.digit { width:50px; height:58px; font-size:26px; }
+      .slots,.bank { gap:8px; }
+      .mj-character { right:2%; bottom:2%; width:100px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="mj-shell">
+    <header class="mj-topbar">
+      <a class="mj-back" href="/learn" aria-label="Quay lại bài học">‹</a>
+      <div class="mj-score">⭐ <b id="score">0</b></div>
+    </header>
+    <div class="mj-title"><small></small><strong>Xếp chữ số</strong></div>
+
+    <section class="mj-game">
+      <div class="mj-panel digit-panel">
+        <div class="mj-progress"><i id="progress"></i></div>
+        <h2 class="digit-question" id="question"></h2>
+        <div class="slots" id="slots"></div>
+        <p class="bank-label">Ngân hàng chữ số</p>
+        <div class="bank" id="bank"></div>
+        <p class="mj-status" id="status"></p>
+        <div class="mj-actions"><button class="mj-button" id="check" type="button" disabled>Chốt số</button></div>
+      </div>
+      <img class="mj-character" src="/public/img/adventure-boy-trailblazer.png?v=2" alt="" draggable="false">
+    </section>
+
+    <div class="mj-modal" id="finish" hidden>
+      <div class="mj-modal-card">
+        <img src="/public/img/cúp.jpg" alt="">
+        <h2>Xếp số siêu giỏi!</h2>
+        <p id="finishText"></p>
+        <button class="mj-button" id="again" type="button">Chơi lại</button>
+      </div>
+    </div>
+  </main>
+
+  <script>
+  (function () {
+    const rounds=[
+      ['Tạo số lớn nhất từ: 3, 0, 7, 5','7530',['3','0','7','5']],
+      ['Viết số: Hai mươi nghìn không trăm linh sáu','20006',['2','0','0','0','6']],
+      ['Tạo số bé nhất từ: 4, 1, 8, 2','1248',['4','1','8','2']],
+      ['Tạo số 6205 bằng các chữ số','6205',['6','2','0','5']]
+    ];
+    const $=id=>document.getElementById(id);
+    let index=0, score=0, chosen=[];
+
+    function shuffle(a) {
+      const r=[...a];
+      for(let i=r.length-1;i>0;i--) {
+        const j=Math.floor(Math.random()*(i+1));
+        [r[i],r[j]]=[r[j],r[i]];
+      }
+      return r;
+    }
+
+    function render() {
+      chosen=[];
+      $('question').textContent=rounds[index][0];
+      $('progress').style.width=((index+1)/rounds.length*100)+'%';
+      $('status').textContent='';
+      $('status').className='mj-status';
+      $('check').disabled=true;
+      $('slots').innerHTML='';
+      $('bank').innerHTML='';
+      rounds[index][2].forEach(()=>{
+        const s=document.createElement('button');
+        s.type='button';
+        s.className='slot';
+        s.onclick=()=>removeSlot([...$('slots').children].indexOf(s));
+        $('slots').appendChild(s);
+      });
+      let items=shuffle(rounds[index][2].map((d,i)=>({d,i})));
+      if(items.map(x=>x.d).join('')===rounds[index][1]&&items.length>1) items=shuffle(items);
+      items.forEach(item=>{
+        const b=document.createElement('button');
+ b.type='button';
+        b.className='digit';
+        b.textContent=item.d;
+        b.dataset.id=item.i;
+        b.onclick=()=>choose(b);
+        $('bank').appendChild(b);
+      });
+    }
+
+    function choose(b) {
+      if(chosen.length>=rounds[index][1].length||b.disabled)return;
+      chosen.push({id:b.dataset.id,char:b.textContent});
+      const s=[...$('slots').children][chosen.length-1];
+      s.textContent=b.textContent;
+      s.classList.add('filled');
+      b.disabled=true;
+      $('check').disabled=chosen.length!==rounds[index][1].length;
+    }
+
+    function removeSlot(pos) {
+      if(pos<0||pos>=chosen.length)return;
+      const item=chosen[pos];
+      const bank=[...$('bank').children].find(b=>b.dataset.id===item.id);
+      if(bank)bank.disabled=false;
+      chosen.splice(pos,1);
+      [...$('slots').children].forEach((s,i)=>{
+        if(i<chosen.length) {
+          s.textContent=chosen[i].char;
+          s.classList.add('filled');
+        } else {
+          s.textContent='';
+          s.classList.remove('filled');
+        }
+      });
+      $('check').disabled=true;
+    }
+
+    $('check').onclick=()=>{
+      const value=chosen.map(x=>x.char).join('');
+      const right=value===rounds[index][1];
+      if(right)score+=10;
+      $('score').textContent=score;
+      $('status').textContent=right?'Chính xác! Con đã tạo đúng số.':'Chưa đúng. Đáp án: '+rounds[index][1];
+      $('status').className='mj-status '+(right?'good':'bad');
+      $('check').disabled=true;
+      setTimeout(()=>{
+        if(index+1>=rounds.length) {
+          $('finish').hidden=false;
+          $('finishText').textContent='Con đạt '+score+' điểm.';
+        } else {
+          index++;
+          render();
+        }
+      },900);
+    };
+
+    $('again').onclick=()=>location.reload();
+    render();
+  })();
+  </script>
+</body>
+</html>

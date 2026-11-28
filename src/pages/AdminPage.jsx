@@ -1,13 +1,15 @@
-import React, { useEffect, useState } from 'react';
-import { authHeaders } from '../services/api.js';
+import React, { useCallback, useEffect, useState } from 'react';
+import { authHeaders, readSession } from '../services/api.js';
 import AdminAccountManagement from '../features/teacher/AdminAccountManagement.jsx';
 
-export default function AdminPage({ Brand, api, logout, go }) {
+export default function AdminPage({ Brand, api, logout, go, settingsView = false }) {
   const [data, setData] = useState({ classes: [], teachers: [] });
   const [managementLoading, setManagementLoading] = useState(true);
   const [managementError, setManagementError] = useState('');
   const [message, setMessage] = useState('');
   const [toast, setToast] = useState('');
+  const [notifications, setNotifications] = useState([]);
+  const [notificationOpen, setNotificationOpen] = useState(false);
   const [editingClass, setEditingClass] = useState(null);
   const [rosterClassId, setRosterClassId] = useState('');
   const [classStudents, setClassStudents] = useState([]);
@@ -21,6 +23,70 @@ export default function AdminPage({ Brand, api, logout, go }) {
   const [aiSettingsLoading, setAISettingsLoading] = useState(true);
   const [aiSettingsSaving, setAISettingsSaving] = useState(false);
   const [aiSettingsMessage, setAISettingsMessage] = useState('');
+  const [theme, setTheme] = useState(() => localStorage.getItem('admin-theme') || 'light');
+  const [passwordMessage, setPasswordMessage] = useState('');
+  const [passwordBusy, setPasswordBusy] = useState(false);
+  const session = readSession();
+
+  const addNotification = useCallback((title, text) => {
+    setNotifications((current) => [{
+      id: `${Date.now()}-${Math.random()}`,
+      title,
+      text: text || 'Đã xảy ra lỗi không xác định.',
+      time: new Date()
+    }, ...current].slice(0, 20));
+  }, []);
+
+  useEffect(() => {
+    document.documentElement.dataset.adminTheme = theme;
+  }, [theme]);
+
+  const changeTheme = (nextTheme) => {
+    setTheme(nextTheme);
+    localStorage.setItem('admin-theme', nextTheme);
+  };
+
+  const changePassword = async (event) => {
+    event.preventDefault();
+    const formElement = event.currentTarget;
+    const form = new FormData(formElement);
+    const newPassword = form.get('newPassword');
+    const confirmPassword = form.get('confirmPassword');
+    setPasswordMessage('');
+    if (newPassword !== confirmPassword) {
+      setPasswordMessage('Mật khẩu xác nhận không khớp.');
+      return;
+    }
+    setPasswordBusy(true);
+    try {
+      const result = await api('/api/auth/password', {
+        method: 'PUT',
+        body: JSON.stringify({
+          currentPassword: form.get('currentPassword'),
+          newPassword
+        })
+      });
+      formElement.reset();
+      setPasswordMessage(result.message);
+      setToast(result.message);
+    } catch (error) {
+      const text = error.message || 'Không thể đổi mật khẩu.';
+      setPasswordMessage(text);
+      addNotification('Không thể đổi mật khẩu', text);
+    } finally {
+      setPasswordBusy(false);
+    }
+  };
+
+
+  useEffect(() => {
+    const onAdminApiError = (event) => {
+      const { title, text } = event.detail || {};
+      if (title && text) addNotification(title, text);
+    };
+    window.addEventListener('admin-api-error', onAdminApiError);
+    return () => window.removeEventListener('admin-api-error', onAdminApiError);
+  }, [addNotification]);
 
   const load = async () => {
     setManagementLoading(true);
@@ -30,25 +96,34 @@ export default function AdminPage({ Brand, api, logout, go }) {
       setData({ classes: result.classes || [], teachers: result.teachers || [] });
     } catch (error) {
       setManagementError(error.message);
+      addNotification('Không thể tải dữ liệu quản lý', error.message);
     } finally {
       setManagementLoading(false);
     }
   };
 
   useEffect(() => {
-    load();
-  }, []);
+    if (!settingsView) load();
+  }, [settingsView]);
 
   useEffect(() => {
     let active = true;
+    if (settingsView) return () => { active = false; };
     api('/api/admin/ai-settings')
       .then((settings) => { if (active) setAIEnabled(settings.enabled); })
-      .catch((error) => { if (active) setAISettingsMessage(error.message || 'Không thể tải cài đặt AI.'); })
+      .catch((error) => {
+        if (active) {
+          const text = error.message || 'Không thể tải cài đặt AI.';
+          setAISettingsMessage(text);
+          addNotification('Không thể tải cài đặt AI', text);
+        }
+      })
       .finally(() => { if (active) setAISettingsLoading(false); });
     return () => { active = false; };
-  }, [api]);
+  }, [api, settingsView]);
 
   useEffect(() => {
+    if (settingsView) return undefined;
     if (!data.classes.length) {
       setRosterClassId('');
       setClassStudents([]);
@@ -57,9 +132,10 @@ export default function AdminPage({ Brand, api, logout, go }) {
     if (!data.classes.some((item) => item.id === rosterClassId)) {
       setRosterClassId(data.classes[0].id);
     }
-  }, [data.classes, rosterClassId]);
+  }, [data.classes, rosterClassId, settingsView]);
 
   useEffect(() => {
+    if (settingsView) return undefined;
     if (!rosterClassId) {
       setClassStudents([]);
       return undefined;
@@ -72,15 +148,20 @@ export default function AdminPage({ Brand, api, logout, go }) {
         if (active) setClassStudents(result.students || []);
       })
       .catch((error) => {
-        if (active) setRosterError(error.message || 'Không thể tải danh sách học sinh trong lớp.');
+        if (active) {
+          const text = error.message || 'Không thể tải danh sách học sinh trong lớp.';
+          setRosterError(text);
+          addNotification('Không thể tải danh sách học sinh', text);
+        }
       })
       .finally(() => {
         if (active) setRosterLoading(false);
       });
     return () => { active = false; };
-  }, [api, rosterClassId]);
+  }, [api, rosterClassId, settingsView]);
 
   useEffect(() => {
+    if (settingsView) return undefined;
     let cancelled = false;
     let retryTimer;
     let controller;
@@ -125,8 +206,10 @@ export default function AdminPage({ Brand, api, logout, go }) {
         if (!cancelled) throw new Error('Luồng thống kê AI đã ngắt kết nối.');
       } catch (error) {
         if (cancelled || error.name === 'AbortError') return;
+        const text = error.message || 'Không thể kết nối thống kê AI realtime.';
         setAIUsageConnected(false);
-        setAIUsageError(error.message || 'Không thể kết nối thống kê AI realtime.');
+        setAIUsageError(text);
+        addNotification('Lỗi kết nối thống kê AI', text);
         retryTimer = setTimeout(connect, 5000);
       }
     };
@@ -158,6 +241,7 @@ export default function AdminPage({ Brand, api, logout, go }) {
       await load();
     } catch (error) {
       setMessage(error.message);
+      addNotification('Không thể tạo tài khoản giáo viên', error.message);
     }
   };
 
@@ -180,6 +264,7 @@ export default function AdminPage({ Brand, api, logout, go }) {
       await load();
     } catch (error) {
       setMessage(error.message);
+      addNotification('Không thể tạo lớp học', error.message);
     }
   };
 
@@ -201,6 +286,7 @@ export default function AdminPage({ Brand, api, logout, go }) {
       await load();
     } catch (error) {
       setMessage(error.message);
+      addNotification('Không thể cập nhật lớp học', error.message);
     }
   };
 
@@ -225,6 +311,7 @@ export default function AdminPage({ Brand, api, logout, go }) {
       }
     } catch (error) {
       setMessage(error.message);
+      addNotification('Không thể thêm học sinh vào lớp', error.message);
     }
   };
 
@@ -240,6 +327,7 @@ export default function AdminPage({ Brand, api, logout, go }) {
       setToast(`Đã gỡ ${studentName} khỏi lớp.`);
     } catch (error) {
       setRosterError(error.message || 'Không thể gỡ học sinh khỏi lớp.');
+      addNotification('Không thể gỡ học sinh khỏi lớp', error.message);
     } finally {
       setRemovingStudentId('');
     }
@@ -257,7 +345,9 @@ export default function AdminPage({ Brand, api, logout, go }) {
       setAIEnabled(result.enabled);
       setAISettingsMessage(result.message);
     } catch (error) {
-      setAISettingsMessage(error.message || 'Không thể cập nhật cài đặt AI.');
+      const text = error.message || 'Không thể cập nhật cài đặt AI.';
+      setAISettingsMessage(text);
+      addNotification('Không thể cập nhật cài đặt AI', text);
     } finally {
       setAISettingsSaving(false);
     }
@@ -266,28 +356,119 @@ export default function AdminPage({ Brand, api, logout, go }) {
   const formatLatency = (value) => `${(Number(value || 0) / 1000).toFixed(2)} giây`;
   const scrollTo = (id) => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
 
+  if (settingsView) return <main className="admin-dashboard">
+    <aside className="admin-sidebar">
+      <Brand href="/admin" go={go} />
+      <div className="sidebar-school">CỔNG QUẢN LÝ NHÀ TRƯỜNG</div>
+      <button className="sidebar-item" type="button" onClick={() => go('/admin')}>▦ <span>Tổng quan</span></button>
+      <button className="sidebar-item" type="button" onClick={() => go('/admin')}>♙ <span>Tài khoản</span></button>
+      <button className="sidebar-item" type="button" onClick={() => go('/admin')}>▱ <span>Lớp học</span></button>
+      <button className="sidebar-item" type="button" onClick={() => go('/admin')}>✧ <span>Quan sát AI</span></button>
+      <button className="sidebar-item active" type="button" onClick={() => scrollTo('admin-settings')}>⚙ <span>Cài đặt</span></button>
+      <button className="sidebar-logout" type="button" onClick={logout}>↪ <span>Đăng xuất</span></button>
+    </aside>
+    <section className="admin-main admin-settings-page">
+      <header className="dashboard-header">
+        <div><span className="eyebrow">QUẢN TRỊ HỆ THỐNG</span><h1>Cài đặt</h1><p>Quản lý giao diện và bảo mật tài khoản quản trị.</p></div>
+        <div className="dashboard-actions">
+          <button type="button" onClick={() => go('/admin')}>← Quay lại tổng quan</button>
+          <div className="admin-notification">
+            <button className="admin-notification-button" type="button" aria-label="Thông báo quản trị" aria-expanded={notificationOpen} onClick={() => setNotificationOpen((open) => !open)}>
+              🔔
+              {notifications.length > 0 && <span>{notifications.length > 99 ? '99+' : notifications.length}</span>}
+            </button>
+            {notificationOpen && <div className="admin-notification-panel" role="dialog" aria-label="Thông báo lỗi">
+              <div className="admin-notification-head"><strong>Thông báo lỗi</strong>{notifications.length > 0 && <button type="button" onClick={() => setNotifications([])}>Xóa tất cả</button>}</div>
+              {notifications.length ? <div className="admin-notification-list">{notifications.map((item) => <article key={item.id}><span>!</span><div><strong>{item.title}</strong><p>{item.text}</p><small>{item.time.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}</small></div></article>)}</div> : <p className="admin-notification-empty">Chưa có lỗi nào.</p>}
+            </div>}
+          </div>
+        </div>
+      </header>
+      <section className="dashboard-card admin-settings-card" id="admin-settings">
+        <div className="card-heading"><div><h2>Cài đặt tài khoản</h2><small>Giao diện và bảo mật tài khoản quản trị</small></div></div>
+        <div className="admin-settings-grid">
+          <div className="admin-theme-settings">
+            <strong>Giao diện</strong>
+            <p>Chọn chế độ sáng hoặc tối cho trang quản trị.</p>
+            <div className="admin-theme-options" role="group" aria-label="Chọn giao diện">
+              <button type="button" className={theme === 'light' ? 'active' : ''} onClick={() => changeTheme('light')}><span className="theme-preview light" aria-hidden="true"><i /><i /><i /></span><b>Chế độ sáng</b></button>
+              <button type="button" className={theme === 'dark' ? 'active' : ''} onClick={() => changeTheme('dark')}><span className="theme-preview dark" aria-hidden="true"><i /><i /><i /></span><b>Chế độ tối</b></button>
+            </div>
+          </div>
+          <form className="admin-password-form" onSubmit={changePassword}>
+            <strong>Đổi mật khẩu</strong>
+            <p>Dùng mật khẩu mới có ít nhất 6 ký tự.</p>
+            <label>Mật khẩu hiện tại<input name="currentPassword" type="password" required autoComplete="current-password" /></label>
+            <label>Mật khẩu mới<input name="newPassword" type="password" required minLength="6" autoComplete="new-password" /></label>
+            <label>Xác nhận mật khẩu mới<input name="confirmPassword" type="password" required minLength="6" autoComplete="new-password" /></label>
+            <button className="primary" type="submit" disabled={passwordBusy}>{passwordBusy ? 'Đang đổi...' : 'Đổi mật khẩu'}</button>
+            {passwordMessage && <p className={passwordMessage.includes('thành công') ? 'admin-password-success' : 'ai-usage-error'} role="alert">{passwordMessage}</p>}
+          </form>
+        </div>
+      </section>
+    </section>
+  </main>;
+
   return <main className="admin-dashboard">
     <aside className="admin-sidebar">
       <Brand href="/admin" go={go} />
       <div className="sidebar-school">CỔNG QUẢN LÝ NHÀ TRƯỜNG</div>
-      <button className="sidebar-item active" type="button" onClick={() => scrollTo('admin-ai-usage')}>✧ Quan sát AI</button>
-      <button className="sidebar-item" type="button" onClick={() => scrollTo('quick-management')}>♧ Quản lý lớp học</button>
-      <button className="sidebar-logout" type="button" onClick={logout}>↪ Đăng xuất</button>
+      <button className="sidebar-item active" type="button" onClick={() => scrollTo('admin-overview')}>▦ <span>Tổng quan</span></button>
+      <button className="sidebar-item" type="button" onClick={() => scrollTo('admin-accounts')}>♙ <span>Tài khoản</span></button>
+      <button className="sidebar-item" type="button" onClick={() => scrollTo('quick-management')}>▱ <span>Lớp học</span></button>
+      <button className="sidebar-item" type="button" onClick={() => scrollTo('admin-ai-usage')}>✧ <span>Quan sát AI</span></button>
+      <button className="sidebar-item" type="button" onClick={() => go('/admin/settings')}>⚙ <span>Cài đặt</span></button>
+      <button className="sidebar-logout" type="button" onClick={logout}>↪ <span>Đăng xuất</span></button>
     </aside>
     <section className="admin-main">
       <header className="dashboard-header">
-        <div><span className="eyebrow">QUẢN LÝ HỆ THỐNG</span><h1>Quản lý nhà trường</h1><p>Quản lý tài khoản giáo viên, lớp học và theo dõi hoạt động AI.</p></div>
-        <div className="dashboard-actions"><button className="dashboard-primary" type="button" onClick={() => scrollTo('quick-management')}>＋ Quản lý tài khoản và lớp</button></div>
+        <div><span className="eyebrow">QUẢN TRỊ HỆ THỐNG</span><h1>Tổng quan</h1><p>Quản lý tài khoản, lớp học và theo dõi hoạt động AI.</p></div>
+        <div className="dashboard-actions">
+          <label className="admin-search"><span>⌕</span><input type="search" placeholder="Tìm tài khoản, lớp học..." aria-label="Tìm kiếm" /></label>
+          <div className="admin-notification">
+            <button
+              className="admin-notification-button"
+              type="button"
+              aria-label="Thông báo quản trị"
+              aria-expanded={notificationOpen}
+              onClick={() => setNotificationOpen((open) => !open)}
+            >
+              🔔
+              {notifications.length > 0 && <span>{notifications.length > 99 ? '99+' : notifications.length}</span>}
+            </button>
+            {notificationOpen && <div className="admin-notification-panel" role="dialog" aria-label="Thông báo lỗi">
+              <div className="admin-notification-head">
+                <strong>Thông báo lỗi</strong>
+                {notifications.length > 0 && <button type="button" onClick={() => setNotifications([])}>Xóa tất cả</button>}
+              </div>
+              {notifications.length ? <div className="admin-notification-list">
+                {notifications.map((item) => <article key={item.id}>
+                  <span aria-hidden="true">!</span>
+                  <div>
+                    <strong>{item.title}</strong>
+                    <p>{item.text}</p>
+                    <small>{item.time.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}</small>
+                  </div>
+                </article>)}
+              </div> : <p className="admin-notification-empty">Chưa có lỗi nào.</p>}
+            </div>}
+          </div>
+          <button className="dashboard-primary" type="button" onClick={() => scrollTo('quick-management')}>＋ Quản lý tài khoản và lớp</button>
+        </div>
       </header>
 
       {message && <p className="message error" role="alert">{message}</p>}
 
+      <div id="admin-overview" />
       {!managementLoading && !managementError && <div className="dashboard-stats">
-        <article className="dashboard-stat"><span className="stat-icon violet">🎓</span><div><small>Giáo viên</small><strong>{data.teachers.length}</strong><em>Dữ liệu từ hệ thống</em></div></article>
-        <article className="dashboard-stat"><span className="stat-icon purple">🏫</span><div><small>Lớp học</small><strong>{data.classes.length}</strong><em>Dữ liệu từ hệ thống</em></div></article>
+        <article className="dashboard-stat"><span className="stat-icon violet">♙</span><div><small>Tổng học sinh</small><strong>—</strong><em>Đang theo dõi</em></div></article>
+        <article className="dashboard-stat"><span className="stat-icon purple">▱</span><div><small>Tổng lớp học</small><strong>{data.classes.length}</strong><em>Dữ liệu hệ thống</em></div></article>
+        <article className="dashboard-stat"><span className="stat-icon yellow">🎓</span><div><small>Giáo viên</small><strong>{data.teachers.length}</strong><em>Đang hoạt động</em></div></article>
+        <article className="dashboard-stat"><span className="stat-icon teal">✧</span><div><small>Yêu cầu AI</small><strong>{aiUsage?.requestCount || 0}</strong><em>30 ngày gần nhất</em></div></article>
       </div>}
 
-      <section className="dashboard-card ai-usage-card" id="admin-ai-usage">
+      <div className="admin-dashboard-grid">
+        <section className="dashboard-card ai-usage-card" id="admin-ai-usage">
         <div className="card-heading">
           <div><h2>Quan sát AI · 30 ngày gần nhất</h2><small>Dữ liệu ghi nhận từ các yêu cầu AI thực tế · {aiUsageConnected ? 'Đang cập nhật realtime' : 'Đang kết nối lại...'}</small></div>
           <span>{aiUsage ? `${aiUsage.requestCount} yêu cầu` : 'Đang tải...'}</span>
@@ -330,8 +511,24 @@ export default function AdminPage({ Brand, api, logout, go }) {
           </div> : <p className="ai-usage-empty">Chưa có yêu cầu AI nào được ghi nhận trong khoảng thời gian này.</p>}
         </>}
       </section>
+      </div>
 
-      <AdminAccountManagement api={api} />
+      <div className="admin-secondary-grid">
+        <div id="admin-accounts">
+          <AdminAccountManagement api={api} onError={(title, text) => addNotification(title, text)} />
+        </div>
+        <section className="dashboard-card admin-status-card">
+          <div className="card-heading"><div><h2>Trạng thái hệ thống</h2><small>Tổng quan kết nối và dữ liệu</small></div></div>
+          <div className="admin-status-ring">
+            <div className="admin-status-donut"><strong>{aiUsageConnected ? '98%' : '—'}</strong><small>Hoạt động</small></div>
+          </div>
+          <div className="admin-status-list">
+            <span><i className="green" />Cơ sở dữ liệu</span>
+            <span><i className="blue" />Dịch vụ AI</span>
+            <span><i className="yellow" />Thông báo</span>
+          </div>
+        </section>
+      </div>
 
       <section className="dashboard-card quick-management" id="quick-management">
         <div className="card-heading"><div><h2>Quản lý tài khoản và lớp học</h2></div></div>

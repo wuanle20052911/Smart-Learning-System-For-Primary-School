@@ -1,0 +1,215 @@
+* { box-sizing: border-box; }
+html, body { width: 100%; height: 100%; margin: 0; }
+body {
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  background: #100a38;
+  font-family: "Quicksand", "Trebuchet MS", sans-serif;
+}
+.gs-stage {
+  position: relative;
+  width: min(100vw, calc(100vh * 740 / 416));
+  aspect-ratio: 740 / 416;
+  overflow: hidden;
+  background: url('/public/img/UI gameshow.png') center / 100% 100% no-repeat;
+  user-select: none;
+}
+.gs-clock {
+  position: absolute;
+  z-index: 6;
+  right: 2.5%;
+  top: 5%;
+  width: 19%;
+  height: 14%;
+  display: flex;
+  align-items: center;
+  gap: 3%;
+  padding: 1.5% 2.5%;
+  border: 3px solid #75421f;
+  border-radius: 14px;
+  background: linear-gradient(180deg, #c98447, #a5612b);
+  box-shadow: inset 0 2px rgba(255,255,255,.28), 0 5px 0 #5a3214;
+  color: #fff6d8;
+  text-shadow: 0 1px #5a3214;
+}
+.gs-clock.urgent { animation: gs-pulse .55s ease-in-out infinite alternate; color: #ffd0d0; }
+.gs-stopwatch { width: 34%; height: 95%; flex: none; filter: drop-shadow(0 2px #5a3214); }
+.gs-watch-hand { transform-origin: 32px 40px; transform-box: view-box; transition: transform .3s ease; }
+.gs-clock-text { display: grid; line-height: 1.05; }
+.gs-clock-text small { font-size: clamp(8px, 1vw, 12px); font-weight: 800; }
+.gs-clock-text b { font-size: clamp(16px, 2.2vw, 26px); font-variant-numeric: tabular-nums; }
+.gs-lifelines {
+  position: absolute;
+  z-index: 6;
+  left: 2%;
+  top: 27%;
+  width: 16%;
+  display: grid;
+  gap: 8px;
+}
+.gs-lifelines button {
+  min-height: 42px;
+  position: relative;
+  border: 0;
+  border-radius: 0;
+  background: linear-gradient(90deg, #183b91, #15306f);
+  box-shadow: 0 4px 0 #6d1d91;
+  clip-path: polygon(9% 0, 100% 0, 91% 100%, 0 100%);
+  padding: 4px 10%;
+  color: #fff;
+  text-shadow: 0 2px 2px #18265d;
+  font-size: clamp(9px, 1.15vw, 13px);
+  font-family: "Oswald", "Copperplate Gothic Bold", "Copperplate", "ITC Conduit", "ITC Conduit VN", "Arial Narrow", sans-serif;
+  font-weight: 900;
+  letter-spacing: .02em;
+  cursor: pointer;
+  isolation: isolate;
+}
+.gs-lifelines button::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  clip-path: polygon(9% 0, 100% 0, 91% 100%, 0 100%);
+  background: linear-gradient(180deg, #83d8ff 0 3px, #f279ff 3px 5px, transparent 5px),
+              linear-gradient(90deg, #f279ff 0 2px, transparent 2px 100%);
+  filter: drop-shadow(0 0 5px #f279ff);
+}
+.gs-lifelines button:disabled { opacity: .45; filter: grayscale(.7); cursor: default; }
+.gs-host {
+  position: absolute;
+  z-index: 6;
+  right: 0.5%;
+  bottom: -1%;
+  width: 16%;
+  height: 37%;
+  object-fit: contain;
+  object-position: center bottom;
+  pointer-events: none;
+  filter: drop-shadow(0 4px 3px rgba(35,24,60,.35));
+}
+.gs-question {
+  position: absolute;
+  z-index: 2;
+  left: 21%;
+  right: 21%;
+  top: 21.7%;
+  height: 25.6%;
+  display: grid;
+  place-items: center;
+  margin: 0;
+  color: #fff;
+  font-size: clamp(16px, 2.7vw, 30px);
+  font-weight: 900;
+  line-height: 1.12;
+  text-align: center;
+  text-shadow: 0 3px 5px #25236d;
+}
+.gs-options {
+  position: absolute;
+  z-index: 3;
+  left: 17.2%;
+  right: 17.4%;
+  top: 51.8%;
+  height: 24.5%;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+  gap: 11% 2.3%;
+}
+.gs-option {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  background: transparent;
+  color: #fff;
+  font-size: clamp(16px, 2.65vw, 30px);
+  font-weight: 900;
+  cursor: pointer;
+  text-shadow: 0 2px 3px #202258;
+  padding-left: 19%;
+  transition: filter .12s, transform .12s;
+}
+.gs-option:nth-child(1),
+.gs-option:nth-child(2),
+.gs-option:nth-child(3),
+.gs-option:nth-child(4) {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  padding: 0 8% 0 16%;
+  overflow: hidden;
+  white-space: nowrap;
+  display: grid;
+  place-items: center;
+  text-align: center;
+  font-size: clamp(14px, 2.2vw, 26px);
+  font-family: "Quicksand", "Trebuchet MS", sans-serif;
+  clip-path: none;
+  background: transparent;
+  filter: none;
+  text-shadow: 0 2px 2px #15265c;
+}
+.gs-option:hover:not(:disabled) {
+  filter: brightness(1.12);
+  transform: translateY(-2px);
+}
+.gs-option.correct { background: linear-gradient(90deg, #287d45, #55af58 55%, #287d45); color: #dfffd7; }
+.gs-option.wrong { background: linear-gradient(90deg, #8e3041, #c8515d 55%, #8e3041); color: #ffd3d3; }
+.gs-option.hidden-option { visibility: hidden; }
+.gs-option:disabled { cursor: default; }
+.gs-feedback {
+  position: absolute;
+  z-index: 4;
+  left: 25%;
+  right: 25%;
+  bottom: 2.5%;
+  min-height: 6%;
+  display: grid;
+  place-items: center;
+  margin: 0;
+  color: #fff;
+  font-size: clamp(10px, 1.2vw, 16px);
+  font-weight: 900;
+  text-align: center;
+  text-shadow: 0 2px 3px #25236d;
+}
+.gs-feedback:empty { display: none; }
+.gs-modal {
+  position: fixed;
+  z-index: 30;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: rgba(12, 8, 48, .72);
+}
+.gs-modal[hidden] { display: none; }
+.gs-modal-card {
+  width: min(420px, 80vw);
+  padding: 24px;
+  border: 3px solid #fff;
+  border-radius: 18px;
+  background: #1d5eb2;
+  color: #fff;
+  text-align: center;
+  box-shadow: 0 12px 30px rgba(0,0,0,.35);
+}
+.gs-modal-card h2 { margin: 4px 0 8px; }
+.gs-modal-card p { margin: 8px 0 16px; font-weight: 800; }
+.gs-modal-card button {
+  min-height: 44px;
+  padding: 8px 18px;
+  border: 2px solid #fff;
+  border-radius: 999px;
+  background: #ef65bd;
+  color: #fff;
+  font-weight: 900;
+  cursor: pointer;
+}
+@keyframes gs-pulse { to { transform: scale(1.06); } }
+@media (max-width: 600px) {
+  .gs-question { font-size: clamp(15px, 4.5vw, 22px); }
+  .gs-options { gap: 6% 4%; }
+  .gs-option { font-size: clamp(12px, 3.7vw, 18px); }
+}

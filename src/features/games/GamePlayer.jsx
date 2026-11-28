@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { BLANK, GAME_BY_ID, shuffle, shuffleAway } from './gameCatalog.js';
+import { BLANK, FLASH_CARD_THEMES, GAME_BY_ID, shuffle, shuffleAway } from './gameCatalog.js';
 import { isAnswerCorrect } from './gameAnswers.js';
+import FlashCardThemePicker from './FlashCardThemePicker.jsx';
 import './games.css';
 
 const FEEDBACK_MS = 1100;
@@ -69,6 +70,129 @@ function QuizPlayer({ questions, onComplete }) {
     <Progress current={index + (chosen !== null ? 1 : 0)} total={questions.length} />
     <ChoiceCard key={index} question={questions[index]} locked={chosen !== null} chosen={chosen} onAnswer={answer} />
   </>;
+}
+
+function patternHint(question) {
+  const values = String(question || '').split(',').map((token) => {
+    const value = token.trim().replace(/\s+/g, '');
+    return value === '?' ? null : Number(value);
+  });
+  const differences = values.slice(1).map((value, index) => (
+    value === null || values[index] === null ? null : value - values[index]
+  )).filter((value) => value !== null);
+  if (differences.length > 1 && differences.every((value) => value === differences[0])) {
+    return 'So sánh hiệu giữa các số liền kề; mỗi bước đang tăng hoặc giảm cùng một lượng.';
+  }
+  const ratios = values.slice(1).map((value, index) => (
+    value === null || values[index] === null || values[index] === 0 ? null : value / values[index]
+  )).filter((value) => value !== null);
+  if (ratios.length > 1 && ratios.every((value) => value === ratios[0])) {
+    return 'Thử xem mỗi số có được nhân với cùng một số để ra số tiếp theo không.';
+  }
+  return 'Quan sát các số liền kề và tìm xem khoảng cách giữa chúng thay đổi theo quy luật nào.';
+}
+
+function DetectivePatternPlayer({ questions, onComplete }) {
+  const [index, setIndex] = useState(0);
+  const [answers, setAnswers] = useState([]);
+  const [chosen, setChosen] = useState(null);
+  const [left, setLeft] = useState(25);
+  const [lives, setLives] = useState(3);
+  const [score, setScore] = useState(0);
+  const [hintUsed, setHintUsed] = useState(false);
+  const [hintVisible, setHintVisible] = useState(false);
+  const [paused, setPaused] = useState(false);
+  const [dialogMode, setDialogMode] = useState('');
+  const [feedback, setFeedback] = useState('');
+  const answerRef = useRef(null);
+  const question = questions[index];
+  const answer = (option) => {
+    if (chosen !== null || paused) return;
+    const next = [...answers, option];
+    setChosen(option);
+    setAnswers(next);
+    const correct = option !== null && Number(option) === Number(question.answer);
+    const bonus = correct && !hintUsed ? 5 : 0;
+    setFeedback(`${option === null ? 'Hết giờ! ' : correct ? 'Chính xác! ' : 'Cùng xem lại nhé. '}${question.explanation || ''}${bonus ? ' Thưởng không dùng gợi ý: +5 điểm.' : ''}`);
+    if (correct) setScore((value) => value + 100 + bonus);
+    else setLives((value) => Math.max(0, value - 1));
+  };
+  answerRef.current = answer;
+  useEffect(() => {
+    if (paused || chosen !== null) return undefined;
+    if (left <= 0) {
+      answerRef.current(null);
+      return undefined;
+    }
+    const timer = window.setTimeout(() => setLeft((value) => value - 1), 1000);
+    return () => window.clearTimeout(timer);
+  }, [left, paused, chosen, index]);
+  const moveNext = () => {
+    if (chosen === null) return;
+    if (index + 1 >= questions.length || lives === 0) {
+      onComplete(answers);
+      return;
+    }
+    setIndex((value) => value + 1);
+    setChosen(null);
+    setLeft(25);
+    setHintUsed(false);
+    setHintVisible(false);
+    setFeedback('');
+  };
+  const restart = () => {
+    setIndex(0);
+    setAnswers([]);
+    setChosen(null);
+    setLeft(25);
+    setLives(3);
+    setScore(0);
+    setHintUsed(false);
+    setHintVisible(false);
+    setFeedback('');
+    setPaused(false);
+    setDialogMode('');
+  };
+  const sequence = String(question.question || '').split(',').map((token) => token.trim());
+  return <div className="gm-detective">
+    <header className="gm-detective-hero">
+      <div><small>GIẢI MÃ · QUAN SÁT · SUY LUẬN</small><h3>Thám tử tìm quy luật</h3></div>
+      <img src="/public/img/conan.png" alt="" />
+    </header>
+    <Progress current={index + (chosen !== null ? 1 : 0)} total={questions.length} extra={<b className="gm-stars">⭐ {score} · ❤️ {lives}</b>} />
+    <div className={`gm-detective-clock ${left <= 5 && chosen === null ? 'is-urgent' : ''}`} role="timer" aria-live="polite">⏱ {left} giây</div>
+    <div className="gm-detective-sequence" aria-label={`Dãy số: ${sequence.join(', ')}`}>
+      {sequence.map((token, tokenIndex) => <span key={tokenIndex} className={token === '?' ? 'is-missing' : ''}>
+        {token === '?' ? '?' : token}
+      </span>)}
+    </div>
+    <p className="gm-question">Số nào phù hợp với dấu hỏi?</p>
+    <ChoiceCard question={{ ...question, question: 'Chọn đáp án' }} locked={chosen !== null} chosen={chosen} onAnswer={answer} />
+    <p className={`gm-detective-feedback ${chosen === null ? '' : 'is-visible'}`} role="status" aria-live="polite">{feedback}</p>
+    <div className="gm-detective-hint" aria-live="polite">
+      {hintVisible && <p>{question.hint || patternHint(question.question)}</p>}
+      <div>
+        <button className="gm-secondary" type="button" disabled={hintUsed || chosen !== null || paused} onClick={() => { setHintUsed(true); setHintVisible(true); }}>💡 Mở gợi ý</button>
+        <button className="gm-secondary" type="button" disabled={chosen !== null} onClick={() => { setPaused(true); setDialogMode('pause'); }}>⏸ Tạm dừng</button>
+        <button className="gm-secondary" type="button" disabled={chosen !== null} onClick={() => { setPaused(true); setDialogMode('restart'); }}>↻ Chơi lại</button>
+      </div>
+    </div>
+    <div className="gm-detective-next">
+      <button className="gm-primary" type="button" disabled={chosen === null} onClick={moveNext}>
+        {index === questions.length - 1 || lives === 0 ? 'Xem kết quả →' : 'Mật mã tiếp theo →'}
+      </button>
+    </div>
+    {dialogMode && <div className="gm-detective-overlay">
+      <section role="dialog" aria-modal="true" aria-labelledby="gm-detective-dialog-title">
+        <h3 id="gm-detective-dialog-title">{dialogMode === 'pause' ? 'Tạm dừng giải mã' : 'Làm lại từ đầu?'}</h3>
+        <p>{dialogMode === 'pause' ? 'Thời gian đã dừng. Tiếp tục khi con sẵn sàng.' : 'Tiến trình hiện tại sẽ được đặt lại để bắt đầu bộ mật mã mới.'}</p>
+        <button className="gm-primary" type="button" onClick={dialogMode === 'pause' ? () => { setPaused(false); setDialogMode(''); } : restart}>
+          {dialogMode === 'pause' ? 'Tiếp tục' : 'Bắt đầu lại'}
+        </button>
+        {dialogMode === 'restart' && <button className="gm-secondary" type="button" onClick={() => { setPaused(false); setDialogMode(''); }}>Tiếp tục chơi</button>}
+      </section>
+    </div>}
+  </div>;
 }
 
 function GameshowPlayer({ questions, settings, onComplete }) {
@@ -157,43 +281,58 @@ function OpenBoxPlayer({ questions, onComplete }) {
   </>;
 }
 
-/* ---------- Nối cặp ---------- */
+/* ---------- Lật thẻ ghép cặp ---------- */
 function MatchUpPlayer({ questions, onComplete }) {
-  const tiles = useMemo(() => shuffleAway(questions.map((question, index) => ({ id: String(index), text: question.answer }))), [questions]);
-  const [slots, setSlots] = useState(() => Array(questions.length).fill(null));
-  const [picked, setPicked] = useState(null);
-  const placedIds = slots.filter(Boolean);
-  const place = (slotIndex, tileId) => {
-    setSlots((current) => {
-      const next = current.map((value) => value === tileId ? null : value);
-      next[slotIndex] = tileId;
-      return next;
-    });
-    setPicked(null);
+  const tiles = useMemo(() => shuffleAway(questions.flatMap((question, pairIndex) => [
+    { id: `question-${pairIndex}`, pairIndex, side: 'question', text: question.question },
+    { id: `answer-${pairIndex}`, pairIndex, side: 'answer', text: question.answer }
+  ])), [questions]);
+  const [revealed, setRevealed] = useState([]);
+  const [matched, setMatched] = useState([]);
+  const [locked, setLocked] = useState(false);
+  const later = useLater();
+  const flip = (tile) => {
+    if (locked || matched.includes(tile.pairIndex) || revealed.some((item) => item.id === tile.id)) return;
+    const nextRevealed = [...revealed, tile];
+    setRevealed(nextRevealed);
+    if (nextRevealed.length < 2) return;
+    setLocked(true);
+    const [first, second] = nextRevealed;
+    if (first.pairIndex === second.pairIndex && first.side !== second.side) {
+      const nextMatched = [...matched, tile.pairIndex];
+      setMatched(nextMatched);
+      setRevealed([]);
+      later(() => {
+        setLocked(false);
+        if (nextMatched.length === questions.length) onComplete(questions.map((question) => question.answer));
+      }, 500);
+    } else {
+      later(() => { setRevealed([]); setLocked(false); });
+    }
   };
-  const clickSlot = (slotIndex) => {
-    if (picked !== null) place(slotIndex, picked);
-    else if (slots[slotIndex]) setSlots((current) => current.map((value, index) => index === slotIndex ? null : value));
-  };
-  const tileText = (id) => tiles.find((tile) => tile.id === id)?.text;
-  const bank = tiles.filter((tile) => !placedIds.includes(tile.id));
+  const isRevealed = (tile) => revealed.some((item) => item.id === tile.id);
+  const isMatched = (tile) => matched.includes(tile.pairIndex);
   return <>
-    <p className="gm-instruction">Kéo (hoặc chạm chọn rồi chạm ô) để đặt đáp án cạnh phép tính phù hợp. Chạm vào ô đã đặt để gỡ ra.</p>
-    <div className="gm-match">
-      <div className="gm-match-rows">
-        {questions.map((question, index) => <div className="gm-match-row" key={index}>
-          <span className="gm-prompt">{question.question}</span>
-          <button type="button" className={`gm-slot ${slots[index] ? 'is-filled' : ''} ${picked !== null ? 'is-ready' : ''}`} onClick={() => clickSlot(index)} {...dropProps((id) => place(index, id))} aria-label={`Ô đáp án cho ${question.question}`}>
-            {slots[index] ? <span className="gm-tile tone-1" {...dragProps(slots[index])}>{tileText(slots[index])}</span> : '…'}
-          </button>
-        </div>)}
-      </div>
-      <div className="gm-bank" {...dropProps((id) => setSlots((current) => current.map((value) => value === id ? null : value)))}>
-        {bank.map((tile) => <button type="button" key={tile.id} className={`gm-tile tone-1 ${picked === tile.id ? 'is-picked' : ''}`} onClick={() => setPicked(picked === tile.id ? null : tile.id)} {...dragProps(tile.id)}>{tile.text}</button>)}
-        {!bank.length && <small>Đã đặt hết thẻ ✓</small>}
-      </div>
+    <Progress current={matched.length} total={questions.length} />
+    <p className="gm-instruction">Lật hai thẻ mỗi lượt. Hãy ghi nhớ vị trí và tìm thẻ phép tính khớp với đáp án.</p>
+    <div className="gm-flip-grid">
+      {tiles.map((tile, index) => {
+        const faceUp = isRevealed(tile) || isMatched(tile);
+        return <button
+          type="button"
+          key={tile.id}
+          className={`gm-flip-card ${faceUp ? 'is-revealed' : ''} ${isMatched(tile) ? 'is-matched' : ''}`}
+          onClick={() => flip(tile)}
+          disabled={locked || isMatched(tile)}
+          aria-pressed={faceUp}
+          aria-label={faceUp ? `Thẻ ${index + 1}: ${tile.text}` : `Lật thẻ ${index + 1}`}
+        >{faceUp ? tile.text : '?'}</button>;
+      })}
     </div>
-    <SubmitBar ready={!bank.length} remaining={bank.length} onSubmit={() => onComplete(slots.map(tileText))} />
+    <div className="gm-flip-score" aria-live="polite">
+      Đã ghép {matched.length}/{questions.length} cặp
+      {locked && matched.length < questions.length ? ' · Hãy ghi nhớ vị trí thẻ' : ''}
+    </div>
   </>;
 }
 
@@ -390,21 +529,86 @@ function DigitArrangePlayer({ questions, onComplete }) {
   </>;
 }
 
+function FlashCardsPlayer({ questions, settings, onComplete }) {
+  const [index, setIndex] = useState(0);
+  const [answers, setAnswers] = useState([]);
+  const [flipped, setFlipped] = useState(false);
+  const [remembered, setRemembered] = useState(null);
+  const later = useLater();
+  const question = questions[index];
+  const theme = FLASH_CARD_THEMES.some((item) => item.id === settings?.theme) ? settings.theme : 'garden';
+
+  const rateCard = (didRemember) => {
+    if (remembered !== null) return;
+    const answer = didRemember ? question.answer : 'Cần ôn thêm';
+    const next = [...answers, answer];
+    setAnswers(next);
+    setRemembered(didRemember);
+    later(() => {
+      if (index + 1 >= questions.length) {
+        onComplete(next);
+        return;
+      }
+      setIndex(index + 1);
+      setFlipped(false);
+      setRemembered(null);
+    }, 650);
+  };
+
+  return <div className={`gm-flashcards gm-flashcards-${theme}`}>
+    <Progress current={index + (remembered !== null ? 1 : 0)} total={questions.length} extra={<span className="gm-flash-theme-label">{FLASH_CARD_THEMES.find((item) => item.id === theme)?.emoji} {FLASH_CARD_THEMES.find((item) => item.id === theme)?.name}</span>} />
+    <button
+      type="button"
+      className={`gm-flashcard ${flipped ? 'is-flipped' : ''}`}
+      onClick={() => setFlipped((value) => !value)}
+      aria-pressed={flipped}
+      aria-label={flipped ? `Mặt sau: ${question.answer}. Chạm để lật lại.` : `Mặt trước: ${question.question}. Chạm để xem đáp án.`}
+    >
+      <span className="gm-flashcard-inner">
+        <span className="gm-flashcard-face gm-flashcard-front">
+          <small>MẶT TRƯỚC · THẺ {index + 1}</small>
+          <strong>{question.question}</strong>
+          <em>Chạm thẻ để lật ↻</em>
+        </span>
+        <span className="gm-flashcard-face gm-flashcard-back">
+          <small>ĐÁP ÁN</small>
+          <strong>{question.answer}</strong>
+          <em>Con đã nhớ chưa?</em>
+        </span>
+      </span>
+    </button>
+    {flipped && <div className="gm-flashcard-actions" aria-live="polite">
+      {remembered === null
+        ? <>
+          <button type="button" className="gm-flashcard-review" onClick={() => rateCard(false)}>↻ Cần ôn thêm</button>
+          <button type="button" className="gm-flashcard-known" onClick={() => rateCard(true)}>✓ Con đã nhớ</button>
+        </>
+        : <p>{remembered ? 'Giỏi lắm, mình đã nhớ thẻ này!' : 'Không sao, thẻ này sẽ cần ôn thêm nhé.'}</p>}
+    </div>}
+  </div>;
+}
+
 const PLAYERS = {
   quiz: QuizPlayer,
+  'compare-numbers': QuizPlayer,
+  'decode-place-value': QuizPlayer,
+  'detective-pattern': DetectivePatternPlayer,
   gameshow: GameshowPlayer,
   'open-box': OpenBoxPlayer,
   'match-up': MatchUpPlayer,
   'group-sort': GroupSortPlayer,
   ordering: OrderingPlayer,
+  'sort-numbers': OrderingPlayer,
   cloze: ClozePlayer,
   'find-match': FindMatchPlayer,
-  'digit-arrange': DigitArrangePlayer
+  'digit-arrange': DigitArrangePlayer,
+  'flash-cards': FlashCardsPlayer
 };
 
 export default function GamePlayer({ gameType, questions, settings, onComplete }) {
   const Player = PLAYERS[gameType];
   const [started, setStarted] = useState(false);
+  const [theme, setTheme] = useState(FLASH_CARD_THEMES.some((item) => item.id === settings?.theme) ? settings.theme : 'garden');
   const game = GAME_BY_ID[gameType];
   if (!Player || !questions?.length) return <p className="gm-note">Trò chơi này chưa có nội dung.</p>;
   if (!started) {
@@ -412,8 +616,12 @@ export default function GamePlayer({ gameType, questions, settings, onComplete }
       <span className="gm-start-badge">{game?.name}</span>
       <p>{game?.description}</p>
       <small>{questions.length} {game?.itemLabel}{gameType === 'gameshow' ? ` · ${settings?.time_limit || 20} giây mỗi câu` : ''}</small>
+      {gameType === 'flash-cards' && <div className="gm-start-themes">
+        <strong>Chọn chủ đề yêu thích</strong>
+        <FlashCardThemePicker value={theme} onChange={setTheme} />
+      </div>}
       <button className="gm-primary gm-start-button" type="button" onClick={() => setStarted(true)}>▶ Bắt đầu chơi</button>
     </div>;
   }
-  return <div className={`gm-stage gm-stage-${gameType}`}><Player questions={questions} settings={settings} onComplete={onComplete} /></div>;
+  return <div className={`gm-stage gm-stage-${gameType}`}><Player questions={questions} settings={{ ...settings, theme }} onComplete={onComplete} /></div>;
 }

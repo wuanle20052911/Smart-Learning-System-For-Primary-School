@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Lật thẻ | MathJoy</title>
+  <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@700;800&family=Quicksand:wght@600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/public/games/lat-the.css">
+</head>
+<body>
+<main class="page">
+  <header class="top">
+    <div class="brand"></div>
+    <a class="back" href="/learn">← Quay lại bài học</a>
+  </header>
+  <section class="hero">
+    <h1>LẬT THẺ TOÁN HỌC</h1>
+    <p>Lật hai thẻ, ghi nhớ vị trí và ghép phép tính với kết quả!</p>
+  </section>
+  <section class="stats" aria-label="Thống kê trò chơi">
+    <div class="stat"><span class="stat-icon" aria-hidden="true">⭐</span><span class="stat-content"><small>Điểm:</small><b id="score">0</b></span></div>
+    <div class="stat"><span class="stat-icon" aria-hidden="true">🌼</span><span class="stat-content"><small>Đã ghép:</small><b id="pairs">0 / 16</b></span></div>
+    <div class="stat"><span class="stat-icon" aria-hidden="true">🔄</span><span class="stat-content"><small>Lượt lật:</small><b id="moves">0</b></span></div>
+    <div class="stat"><span class="stat-icon" aria-hidden="true">⏱️</span><span class="stat-content"><small>Thời gian:</small><b id="time">02:00</b></span></div>
+  </section>
+  <section class="game">
+    <div class="board">
+      <div class="board-head"><h2 id="roundTitle">Chặng 1 / 4</h2><span>Lật 2 thẻ mỗi lượt</span></div>
+      <div class="progress" role="progressbar" aria-label="Tiến độ trò chơi" aria-valuemin="0" aria-valuemax="16" aria-valuenow="0"><i id="progress"></i></div>
+      <div class="grid" id="grid" aria-label="Các thẻ toán học"></div>
+      <p class="message" id="status" aria-live="polite">Hãy lật hai thẻ để ghép phép tính với kết quả tương ứng.</p>
+    </div>
+    <aside class="aside">
+      <h2>Cách lật thẻ</h2>
+      <p>Mỗi lượt lật hai thẻ. Hãy ghi nhớ vị trí và ghép phép tính với kết quả đúng để mở chặng tiếp theo.</p>
+      <p class="tip" id="tip">Mẹo: Tính nhẩm phép tính rồi ghi nhớ vị trí kết quả nhé!</p>
+      <div class="actions">
+        <button class="hint-sign" id="hint" type="button" aria-label="Gợi ý, còn 3 lượt">
+          <span class="hint-post" aria-hidden="true"></span>
+          <span class="hint-board"><span class="bulb" aria-hidden="true"></span><span>Gợi ý</span><small id="hint-left">3</small></span>
+        </button>
+      </div>
+    </aside>
+  </section>
+  <div class="overlay" id="overlay">
+    <div class="dialog">
+      <h2 id="dialogTitle">Sẵn sàng khám phá?</h2>
+      <p id="dialogText">Lật và ghép 16 cặp phép tính với kết quả. Con có 2 phút để hoàn thành!</p>
+      <button class="btn primary" type="button" id="start">Bắt đầu chơi</button>
+    </div>
+  </div>
+</main>
+<script src="/public/games/assignment-preview.js"></script>
+<script>
+(function(){
+  let rounds=[
+    {answers:[5,4,3,2],pairs:[['1 + ___ = 6',5],['1 + ___ = 4',3],['5 + ___ = 9',4],['7 + ___ = 9',2]]},
+    {answers:[141,244,471,120],pairs:[['x − 10 = 131',141],['x − 10 = 234',244],['x − 10 = 461',471],['x ÷ 10 = 12',120]]},
+    {answers:[6,8,7,9],pairs:[['x + 4 = 10',6],['x − 3 = 5',8],['56 ÷ x = 8',7],['x × 3 = 27',9]]},
+    {answers:[15,20,25,30],pairs:[['x + 25 = 40',15],['45 − x = 25',20],['5 × x = 125',25],['x ÷ 3 = 10',30]]}
+  ];
+  const $=id=>document.getElementById(id),grid=$('grid'),status=$('status'),progress=$('progress');
+  const hintsPerRound=3;
+  let round=0,deck=[],first=null,locked=false,moves=0,matched=0,totalMatched=0,score=0,timeLeft=120,timer=null,flipTimeout=null,roundTimeout=null,hintTimeout=null,started=false,hintsRemaining=hintsPerRound;
+  const totalPairs=()=>rounds.reduce((total,item)=>total+item.pairs.length,0);
+  const shuffle=items=>{const result=[...items];for(let i=result.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[result[i],result[j]]=[result[j],result[i]]}return result};
+  function timeText(){return String(Math.floor(timeLeft/60)).padStart(2,'0')+':'+String(timeLeft%60).padStart(2,'0')}
+  function update(){
+    const pairTotal=totalPairs();
+    $('score').textContent=score;$('pairs').textContent=totalMatched+' / '+pairTotal;$('moves').textContent=moves;$('time').textContent=timeText();
+    $('roundTitle').textContent='Chặng '+(round+1)+' / '+rounds.length;progress.style.width=(totalMatched/pairTotal*100)+'%';progress.parentElement.setAttribute('aria-valuenow',String(totalMatched));
+  }
+  function buildRound(){
+    deck=shuffle(rounds[round].pairs.flatMap((pair,index)=>[
+      {pair:index,text:pair[0],kind:'math'},
+      {pair:index,text:String(pair[1]),kind:'result'}
+    ]));
+    grid.innerHTML='';
+    deck.forEach((card,index)=>{
+      const button=document.createElement('button');button.type='button';button.className='card';button.dataset.index=index;button.setAttribute('aria-label','Thẻ úp');
+      const cover=document.createElement('span');cover.className='cover';cover.textContent='✿';
+      const face=document.createElement('span');face.className='face';face.textContent=card.text;
+      button.append(cover,face);button.onclick=()=>flip(index,button);grid.appendChild(button);
+    });
+    matched=0;first=null;locked=false;hintsRemaining=hintsPerRound;$('hint-left').textContent=String(hintsRemaining);$('hint').setAttribute('aria-label','Gợi ý, còn '+hintsRemaining+' lượt');update();
+  }
+  function flip(index,button){
+    if(!started||locked||button.disabled||button.classList.contains('open'))return;
+    button.classList.add('open');button.setAttribute('aria-label','Thẻ: '+deck[index].text);
+    if(!first){first={index,button};return}
+    moves++;const previous=first;first=null;locked=true;const firstCard=deck[previous.index],secondCard=deck[index];
+    if(firstCard.pair===secondCard.pair&&firstCard.kind!==secondCard.kind){
+      previous.button.classList.add('matched');button.classList.add('matched');previous.button.disabled=true;button.disabled=true;locked=false;
+      matched++;totalMatched++;score+=Math.max(5,20-Math.floor(moves/3));status.textContent='Hai thẻ khớp nhau! Lật tiếp nhé.';status.className='message good';update();
+      if(matched===rounds[round].pairs.length)roundTimeout=setTimeout(nextRound,700);
+    }else{
+      status.textContent='Chưa khớp, hãy ghi nhớ vị trí các thẻ!';status.className='message bad';update();
+      flipTimeout=setTimeout(()=>{previous.button.classList.remove('open');button.classList.remove('open');previous.button.setAttribute('aria-label','Thẻ úp');button.setAttribute('aria-label','Thẻ úp');locked=false;flipTimeout=null},850);
+    }
+  }
+  function clearTimers(){clearInterval(timer);clearTimeout(flipTimeout);clearTimeout(roundTimeout);clearTimeout(hintTimeout);timer=null;flipTimeout=null;roundTimeout=null;hintTimeout=null}
+  function runTimer(){clearInterval(timer);timer=setInterval(()=>{if(!started)return;timeLeft--;update();if(timeLeft<=0)finish(false)},1000)}
+  function showDialog(title,text,label,action){$('dialogTitle').textContent=title;$('dialogText').textContent=text;$('start').textContent=label;$('start').onclick=action;$('overlay').hidden=false}
+  function finish(won){
+    clearTimers();started=false;const completed=Math.min(rounds.length,round+Number(matched===rounds[round].pairs.length));
+    showDialog(won?'Tuyệt vời! Con đã lật hết thẻ!':'Hết giờ mất rồi!',`Con ghép được ${totalMatched}/${totalPairs()} cặp qua ${completed}/${rounds.length} chặng, đạt ${score} điểm trong ${moves} lượt lật.`,'Đóng',()=>{$('overlay').hidden=true});
+  }
+  function nextRound(){
+    roundTimeout=null;
+    if(!started)return;
+    if(round+1<rounds.length){round++;status.textContent='Qua chặng mới rồi! Hãy tiếp tục ghi nhớ các thẻ.';status.className='message';buildRound()}
+    else finish(true);
+  }
+  function begin(){
+    clearTimers();round=0;deck=[];first=null;locked=false;moves=0;matched=0;totalMatched=0;score=0;timeLeft=120;started=true;
+    $('tip').textContent='Mẹo: Tính nhẩm phép tính rồi ghi nhớ vị trí kết quả nhé!';$('overlay').hidden=true;
+    status.textContent='Hãy lật hai thẻ để ghép phép tính với kết quả tương ứng.';status.className='message';buildRound();runTimer();
+  }
+  $('start').onclick=begin;
+  $('hint').onclick=()=>{
+    if(!started||locked)return;
+    if(hintsRemaining<=0){status.textContent='Đã dùng hết lượt gợi ý ở chặng này.';status.className='message bad';return}
+    const candidate=[...grid.children].find(button=>!button.disabled&&!button.classList.contains('open')&&deck[Number(button.dataset.index)].kind==='math');
+    if(!candidate)return;
+    hintsRemaining--;$('hint-left').textContent=String(hintsRemaining);$('hint').setAttribute('aria-label','Gợi ý, còn '+hintsRemaining+' lượt');
+    candidate.classList.add('open');candidate.setAttribute('aria-label','Thẻ: '+deck[Number(candidate.dataset.index)].text);score=Math.max(0,score-5);update();
+    $('tip').textContent='Đã lật hé một thẻ trong chốc lát (-5 điểm). Còn '+hintsRemaining+' lượt gợi ý ở chặng này.';
+    hintTimeout=setTimeout(()=>{if(!candidate.disabled){candidate.classList.remove('open');candidate.setAttribute('aria-label','Thẻ úp')}hintTimeout=null},650);
+  };
+  window.addEventListener('mathjoy-assignment-preview',event=>{
+    const {gameType,questions}=event.detail;
+    if(gameType!=='match-up')return;
+    const pairs=questions.filter(question=>question.question&&question.answer).map(question=>[question.question,String(question.answer)]);
+    if(!pairs.length)return;
+    clearTimers();rounds=[{answers:pairs.map(pair=>pair[1]),pairs}];round=0;deck=[];first=null;locked=false;moves=0;matched=0;totalMatched=0;score=0;timeLeft=120;started=false;
+    $('dialogText').textContent='Lật và ghép '+pairs.length+' cặp do giáo viên soạn. Con có 2 phút để hoàn thành!';
+    $('tip').textContent='Mẹo: Ghi nhớ vị trí các thẻ để tìm đúng cặp!';
+    buildRound();$('overlay').hidden=false;update();
+  });
+  buildRound();$('overlay').hidden=false;update();
+})();
+</script>
+</body>
+</html>

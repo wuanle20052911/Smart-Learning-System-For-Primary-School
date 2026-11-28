@@ -1,9 +1,10 @@
 // Kiểm tra nội dung giáo viên soạn cho từng mẫu trò chơi bài tập.
 // Mỗi mục hợp lệ trở thành một dòng assignment_questions và được chấm điểm riêng.
 
-const GAME_TYPES = ['quiz', 'match-up', 'group-sort', 'ordering', 'cloze', 'find-match', 'open-box', 'gameshow', 'digit-arrange'];
+const GAME_TYPES = ['quiz', 'match-up', 'group-sort', 'ordering', 'sort-numbers', 'compare-numbers', 'decode-place-value', 'cloze', 'find-match', 'open-box', 'gameshow', 'digit-arrange', 'flash-cards', 'detective-pattern'];
 const BLANK = '___';
 const MAX_ITEMS = 40;
+const FLASH_CARD_THEMES = ['garden', 'ocean', 'space'];
 
 function text(value, max = 300) {
   return typeof value === 'string' ? value.trim().slice(0, max) : '';
@@ -36,15 +37,40 @@ function pairItem(item, index) {
   return { type: 'fill-blank', question, options: [], answer };
 }
 
+function patternItem(item, index) {
+  const normalized = choiceItem(item, index, { min: 2, max: 4 });
+  const sequence = normalized.question.split(',').map((token) => token.trim().replace(/\s+/g, ''));
+  if (sequence.length < 3 || sequence.length > 8 || sequence.filter((token) => token === '?').length !== 1) {
+    fail(index, 'dãy số cần từ 3 đến 8 vị trí và có đúng một dấu hỏi.');
+  }
+  if (sequence.some((token) => token !== '?' && !/^\d+$/.test(token))) {
+    fail(index, 'các vị trí trong dãy chỉ được chứa số nguyên không âm hoặc dấu hỏi.');
+  }
+  if (sequence.some((token) => token !== '?' && !Number.isSafeInteger(Number(token)))) {
+    fail(index, 'các số trong dãy vượt quá giới hạn an toàn.');
+  }
+  const values = normalized.options.map((option) => option.replace(/\s+/g, ''));
+  if (values.some((value) => !/^\d+$/.test(value) || !Number.isSafeInteger(Number(value)))
+    || new Set(values.map(Number)).size !== values.length) {
+    fail(index, 'các lựa chọn phải là những số nguyên không trùng nhau.');
+  }
+  return normalized;
+}
+
 function normalizeItem(gameType, item, index) {
   switch (gameType) {
     case 'quiz':
+    case 'compare-numbers':
+    case 'decode-place-value':
     case 'open-box':
     case 'gameshow':
     case 'group-sort':
       return choiceItem(item, index, { min: 2, max: 4 });
+    case 'detective-pattern':
+      return patternItem(item, index);
     case 'match-up':
     case 'find-match':
+    case 'flash-cards':
       return pairItem(item, index);
     case 'digit-arrange': {
       const question = text(item.question, 300);
@@ -53,7 +79,8 @@ function normalizeItem(gameType, item, index) {
       if (answer.length < 2) fail(index, 'đáp án cần ít nhất 2 kí tự.');
       return { type: 'fill-blank', question, options: [], answer };
     }
-    case 'ordering': {
+    case 'ordering':
+    case 'sort-numbers': {
       const question = text(item.question, 300);
       const options = (Array.isArray(item.options) ? item.options : []).map((option) => text(option, 120));
       if (!question) fail(index, 'cần nhập yêu cầu sắp xếp.');
@@ -78,6 +105,7 @@ function normalizeItem(gameType, item, index) {
 
 function minimumItems(gameType) {
   if (['match-up', 'find-match'].includes(gameType)) return 3;
+  if (gameType === 'flash-cards') return 2;
   if (gameType === 'group-sort') return 4;
   return 1;
 }
@@ -104,9 +132,16 @@ function normalizeGameQuestions(gameType, questions) {
 }
 
 function normalizeGameSettings(gameType, settings = {}) {
-  if (gameType !== 'gameshow') return {};
-  const timeLimit = Number(settings?.time_limit);
-  return { time_limit: Number.isInteger(timeLimit) && timeLimit >= 10 && timeLimit <= 120 ? timeLimit : 20 };
+  if (gameType === 'gameshow') {
+    const timeLimit = Number(settings?.time_limit);
+    return { time_limit: Number.isInteger(timeLimit) && timeLimit >= 10 && timeLimit <= 120 ? timeLimit : 20 };
+  }
+  if (gameType === 'flash-cards') {
+    const theme = settings?.theme || 'garden';
+    if (!FLASH_CARD_THEMES.includes(theme)) throw new Error('Chủ đề thẻ ghi nhớ không hợp lệ.');
+    return { theme };
+  }
+  return {};
 }
 
 module.exports = { GAME_TYPES, BLANK, normalizeGameQuestions, normalizeGameSettings };

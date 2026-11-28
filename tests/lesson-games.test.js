@@ -8,10 +8,22 @@ test('every catalog game has a unique slug and an existing HTML file', () => {
   const slugs = catalog.map((game) => game.slug);
   assert.equal(new Set(slugs).size, slugs.length);
   catalog.forEach((game) => {
+    assert.ok(game.title && game.description);
     assert.match(game.href, /^\/public\/games\/[a-z0-9-]+\.html$/);
     assert.ok(fs.existsSync(path.join(__dirname, '..', game.href)), `${game.href} is missing`);
-    assert.ok(game.title && game.description);
   });
+});
+
+test('only even-odd street and number comparison remain attached to lessons', () => {
+  const lessonGames = ['phan-loai-chan-le', 'so-sanh-so'];
+  assert.deepEqual(catalog.map((game) => game.slug), lessonGames);
+  assert.deepEqual(normalizeGameSlugs(lessonGames), lessonGames);
+  const assignmentGames = [
+    'sap-xep-so-tang-dan', 'giai-ma-hang-so', 'match-up', 'gameshow',
+    'open-box', 'digit-arrange', 'flash-cards'
+  ];
+  assert.ok(assignmentGames.every((slug) => !catalog.some((game) => game.slug === slug)));
+  assignmentGames.forEach((slug) => assert.throws(() => normalizeGameSlugs([slug]), /không tồn tại/));
 });
 
 test('missing game_slugs leaves the stored value untouched', () => {
@@ -19,7 +31,7 @@ test('missing game_slugs leaves the stored value untouched', () => {
 });
 
 test('game_slugs are trimmed, de-duplicated and keep the chosen order', () => {
-  assert.deepEqual(normalizeGameSlugs([' so-sanh-so', 'sap-xep-so-tang-dan', 'so-sanh-so']), ['so-sanh-so', 'sap-xep-so-tang-dan']);
+  assert.deepEqual(normalizeGameSlugs([' so-sanh-so', 'phan-loai-chan-le', 'so-sanh-so']), ['so-sanh-so', 'phan-loai-chan-le']);
   assert.deepEqual(normalizeGameSlugs([]), []);
 });
 
